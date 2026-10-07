@@ -48,10 +48,11 @@ configuration place l'exécutable directement dans `out/vulkan`. Le script
 shader GLSL et lance `spirv-val --target-env vulkan1.2` avant son utilisation.
 
 `tools/build-translator.ps1` et `tools/build-translator.sh` utilisent `--locked`,
-construisent le CLI avec réflexion JSON et sélectionnent désormais **11 tests
-autonomes**, dont `apple_vector_add` sur le désassemblage de notre AIR Apple.
-Les 11 tests passent sur Mac et sous Windows, y compris le script PowerShell
-mis à jour. Les scripts
+construisent le CLI avec réflexion JSON et sélectionnent désormais **15 tests
+autonomes**, dont `apple_vector_add` et quatre régressions `apple_graphics`
+sur les désassemblages de nos AIR Apple. Les 15 passent sur Mac ; les 11
+précédents sont validés sous Windows. La nouvelle sélection PowerShell reste
+à rejouer sur la Radeon. Les scripts
 excluent explicitement les 4 cas `every_public_fixture*` des suites choisies.
 La suite unitaire complète reste bloquée par trois `include_str!` dont les
 fixtures `validation/fixtures/public/` sont absentes. Les autres suites ne sont

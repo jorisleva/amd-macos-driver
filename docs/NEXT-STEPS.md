@@ -17,7 +17,11 @@ Le rendu hors écran de contrôle GLSL passe également 48 cas : copies et
 RGBA correspondent exactement à la référence CPU, sans erreur Vulkan ni
 corruption. Les trois rejets graphiques et la régression Apple/GLSL passent.
 Preuves : [rapport graphique avec images](reports/2026-10-07-offscreen-radeon.md).
-La traduction graphique Metal/AIR et les essais du pilote macOS restent ouverts.
+Les quatre shaders graphiques Metal sont maintenant compilés et traduits sur
+Mac ; 28 artefacts sont reproduits octet par octet. La nouvelle sélection
+passe 15 tests Rust, 13 CTest GPU-free et 8 tests Python sur Mac.
+Preuve : [rapport graphique Metal/Mac](reports/2026-10-07-metal-graphics.md).
+L'exécution de ces graphiques sur Radeon et les essais du pilote macOS restent ouverts.
 
 ## Prochaines actions, dans l'ordre
 
@@ -35,11 +39,17 @@ La traduction graphique Metal/AIR et les essais du pilote macOS restent ouverts.
    Rejouer aussi `tools/run-windows-graphics-probe.ps1 -DeviceId 0x7550` pour
    les 48 cas hors écran et `tools/test-windows-graphics-rejections.ps1`
    pour leurs scénarios d'échec, selon la [procédure graphique](VALIDATION-GRAPHICS.md).
-3. **Produire le corpus graphique Metal/AIR sur le Mac.** Les références
-   texture/triangle/blending sont désormais définies et validées avec GLSL.
-   Écrire leurs équivalents Metal, les compiler, conserver leur AIR/SPIR-V et
-   réflexion, puis adapter descriptors/paramètres du banc à cette ABI avant
-   de les lancer sur la Radeon. La copie d'image reste une opération Vulkan.
+3. **Exécuter le corpus graphique Metal/AIR sur la Radeon.** Les quatre
+   équivalents et leurs AIR/SPIR-V/réflexions sont conservés dans
+   `tests/shaders/apple/graphics/`. Lancer
+   `tools/run-windows-graphics-probe.ps1 -DeviceId 0x7550 -ShaderOrigin metal-air`,
+   puis le même script sans ce flag pour le contrôle GLSL, selon la
+   [procédure graphique](VALIDATION-GRAPHICS.md). Le banc dispose d'un profil
+   image/sampler séparés et d'un buffer DrawParams dynamique ; son admission
+   et ses tests logiciels passent sur Mac, mais ce chemin GPU et le wrapper
+   PowerShell modifié restent à rejouer sous Windows. Le sampler texture
+   traduit exige shaderInt8, demandé explicitement ou refusé. La copie d'image
+   reste une opération Vulkan ; les 48 cas devront être vérifiés en entier.
    Les dispatchs dépendants, files multiples et mémoire non cohérente restent
    également à étendre.
 
@@ -48,7 +58,8 @@ Commandes détaillées : [banc Windows](VALIDATION-WINDOWS.md) et
 x86_64 sous Sequoia est qualifié pour ce premier shader ; la compilation de
 l'assemblage AMD reste à faire. Le nouveau test `apple_vector_add` est ajouté
 aux scripts Mac/Windows et ses trois traductions de référence sont désormais
-vérifiées sous Windows également.
+vérifiées sous Windows également. Les quatre régressions `apple_graphics`
+portent la nouvelle sélection à 15 tests ; leur lancement Windows reste à faire.
 
 ## Compilation et dépendances encore ouvertes
 

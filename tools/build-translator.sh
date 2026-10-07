@@ -11,7 +11,7 @@ cargo build --locked --manifest-path "$repo_root/translator/translator/Cargo.tom
 cargo test --locked --manifest-path "$repo_root/translator/translator/Cargo.toml" \
   --features serde --target-dir "$target_dir" --test deterministic_output \
   --test reflection_describes_each_resource_once --test reflection_access_covers_the_module --test env_registry \
-  --test apple_vector_add \
+  --test apple_vector_add --test apple_graphics \
   -- --skip every_public_fixture
 mkdir -p "$target_dir/fixture"
 "$target_dir/debug/metal2vulkan" "$repo_root/tests/shaders/vector_add.synthetic.ll" \

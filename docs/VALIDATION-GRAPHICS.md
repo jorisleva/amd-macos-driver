@@ -5,11 +5,13 @@ le calcul : une unique RX 9070 XT AMD discrète. Il rend avec Vulkan dans des
 images en mémoire device-local, relit chaque pixel et le compare à une
 référence CPU. Le CPU ne produit pas l'image testée.
 
-Cette première version utilise **quatre shaders de contrôle GLSL**, compilés
-en SPIR-V Vulkan 1.2. Elle qualifie les copies d'images, l'échantillonnage, la
-rastérisation et le blending du banc sous le pilote AMD Windows. Le calcul
-`vector_add` issu d'AIR Apple reste un contrôle distinct ; les shaders
-graphiques Metal/AIR et leur ABI de ressources restent à ajouter.
+Le profil par défaut utilise **quatre shaders de contrôle GLSL**, validés dans
+48 cas sous le pilote AMD Windows. Le nouveau profil **metal-air** emploie
+leurs équivalents compilés par Apple sur Mac, traduits et validés en SPIR-V
+Vulkan 1.2, dans [`tests/shaders/apple/graphics/`](../tests/shaders/apple/graphics/).
+Il est vérifié logiciellement, mais son rendu GPU reste à exécuter sur Radeon.
+Preuves et limites : [rapport Metal/Mac](reports/2026-10-07-metal-graphics.md).
+Le calcul `vector_add` issu d'AIR Apple reste un contrôle distinct.
 
 ## Exécuter le corpus
 
@@ -23,8 +25,9 @@ cmake -S tests/vulkan -B out/vulkan -G Ninja -DCMAKE_BUILD_TYPE=Debug
 ```
 
 Remplacer l'ID par celui de l'inventaire de la cible. Le script configure et
-construit le banc, compile les shaders, valide leur SPIR-V, lance les **7 CTest**
-et exécute les **48 cas GPU**. La validation Khronos et sa validation de
+construit le banc, compile les contrôles, valide le SPIR-V sélectionné, lance
+les **13 CTest actuels** et exécute les **48 cas GPU**. Les 13 tests logiciels
+passent sur Mac ; 7 tests de la version précédente sont validés sous Windows. La validation Khronos et sa validation de
 synchronisation sont obligatoires par défaut. `-WithoutValidation` reste une
 option de diagnostic consignée dans la provenance.
 
@@ -38,11 +41,61 @@ python tools/render-graphics-report.py reports/local/graphics-check
 ```
 
 Un nouveau dossier par essai conserve les preuves précédentes. Les paramètres
-`-BuildDirectory` et `-ReportDirectory` acceptent aussi des chemins explicites.
+`-BuildDirectory`, `-ReportDirectory` et `-ShaderDirectory` acceptent aussi des
+chemins explicites. `-ShaderOrigin` choisit `glsl-control` (défaut) ou `metal-air`.
 Un générateur Visual Studio place le binaire dans `Debug/` ; le wrapper prend
-en charge les deux dispositions. Les deux headers du banc sont déclarés
+en charge les deux dispositions. Les trois headers du banc sont déclarés
 comme dépendances explicites pour reconstruire leurs modifications, y compris
 avec un ancien cache Ninja dont la détection des inclusions MSVC est incorrecte.
+
+## Exécuter les équivalents Metal/AIR
+
+Python 3 est requis en plus du SDK pour contrôler les empreintes et la réflexion.
+La vérification ne compile pas sur Windows et ne modifie pas les shaders :
+
+```powershell
+. ./tools/initialize-windows-dev.ps1
+python tools/compile-metal-graphics.py --check tests/shaders/apple/graphics
+./tools/build-translator.ps1
+./tools/run-windows-graphics-probe.ps1 -DeviceId 0x7550 `
+  -ShaderOrigin metal-air -ReportDirectory reports/local/graphics-metal-air
+./tools/run-windows-graphics-probe.ps1 -DeviceId 0x7550 `
+  -ReportDirectory reports/local/graphics-glsl-regression
+python tools/render-graphics-report.py reports/local/graphics-metal-air
+```
+
+Ce lancement du nouveau profil **n'est pas encore exécuté sur la Radeon**.
+Le wrapper vérifie les SHA-256, le schéma 56, les interfaces et les descriptors
+réellement présents dans le SPIR-V, puis lance spirv-val. Le banc C++ refait
+une admission sans accès GPU avant l'énumération et utilise ensuite les mêmes
+bytes pour créer les modules, sans relire les fichiers admis.
+
+| Profil | Texture | Paramètres colorés | Capacité additionnelle |
+| --- | --- | --- | --- |
+| GLSL | combined image sampler, set 0 / binding 0 | Push constants (32 octets réservés) | Aucune |
+| Metal/AIR | sampled image 32 et sampler 160, set 0 | Storage buffer dynamique readonly, binding 0, 32 octets | shaderInt8 pour texture.frag |
+
+Les deux régions DrawParams sont alignées selon les limites du GPU, remplies
+avant soumission et choisies par offset dynamique. Leurs allocations entières
+sont comparées après la fence ; leurs écarts alimentent `upload_mismatches`.
+Le sampler est nearest, clamp-to-edge, normalisé, avec un seul mip. La source
+Metal sélectionne le mip 0 explicitement et préserve les quatre canaux.
+Le blending fixe et la géométrie restent ceux du contrôle GLSL.
+
+Le fork active normalement un chemin bindless NVIDIA : pour cette texture,
+sa réflexion ne correspond pas aux descriptors émis. Le corpus livré est
+compilé avec `NVMTL_NO_BINDLESS_ALL=1`, enregistré dans sa provenance.
+Le profil bindless est refusé, jamais remplacé silencieusement par GLSL.
+Int8 provient de l'octet de résidence de l'intrinsèque AIR ; le banc vérifie
+et active `shaderInt8` ou échoue explicitement. Les bits de pixels ne sont
+pas calculés par le CPU dans le chemin rendu.
+
+`-ShaderDirectory` peut sélectionner une copie complète du corpus ; son
+manifeste doit rester conforme. La provenance conserve l'origine et les
+empreintes des modules et, pour Metal, de leurs réflexions/provenance Mac.
+Le JSON du banc expose `graphics.shader_origin` et `shader_int8_required`.
+Rejouer également le calcul Apple et les rejets GLSL ci-dessous : les derniers
+48 succès publiés concernent le banc antérieur, pas cette nouvelle adaptation.
 
 ## Scènes et critères
 

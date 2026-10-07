@@ -14,7 +14,7 @@ if (-not $SkipTests) {
     Write-Host 'Targeted tests only: excluding every_public_fixture* (unpublished corpus).'
     & cargo test --locked --manifest-path $manifest --features serde --target-dir $OutputDirectory `
         --test deterministic_output --test reflection_describes_each_resource_once `
-        --test reflection_access_covers_the_module --test env_registry --test apple_vector_add `
+        --test reflection_access_covers_the_module --test env_registry --test apple_vector_add --test apple_graphics `
         -- --skip every_public_fixture
     if ($LASTEXITCODE -ne 0) { throw "Translator software tests failed: $LASTEXITCODE" }
 }

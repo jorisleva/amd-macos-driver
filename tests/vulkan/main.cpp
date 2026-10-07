@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include "offscreen_reference.h"
+#include "graphics_shader_contract.h"
 
 namespace {
 constexpr uint32_t kVendor = 0x1002, kLocal = 64, kGuard = 16, kSentinel = 0xa5c37e19;
@@ -173,7 +174,7 @@ struct MemoryRecord {
     VkDeviceSize heapSize;
 };
 struct Report {
-    std::string status = "failed", mode, error, shader, entry = "main";
+    std::string status = "failed", mode, error, shader, entry = "main", graphicsShaderOrigin = "glsl-control";
     std::vector<DeviceRecord> devices;
     std::vector<CaseResult> cases;
     std::vector<offscreen::Case> graphicsCases;
@@ -181,7 +182,7 @@ struct Report {
     int selected = -1;
     uint32_t queueFamily = 0, deviceId = 0;
     uint32_t subPixelPrecisionBits = 0, formatFeatures = 0;
-    bool shaderInt64 = false;
+    bool shaderInt64 = false, shaderInt8 = false;
     bool validation = false;
     bool synchronizationValidation = false;
     std::atomic<uint32_t> validationErrors{0};
@@ -191,9 +192,10 @@ struct Report {
             << ",\"code_revision\":" << quote(CODE_REVISION) << ",\"error\":" << quote(error)
             << ",\"expected_vendor_id\":" << kVendor << ",\"expected_device_id\":" << deviceId
             << ",\"shader\":" << quote(shader) << ",\"entry_point\":" << quote(entry);
-        if (mode != "graphics") out << ",\"local_size\":[64,1,1],\"guard_words_each_side\":" << kGuard << ",\"integer_tolerance\":0";
+        if (mode != "graphics" && mode != "graphics-contract") out << ",\"local_size\":[64,1,1],\"guard_words_each_side\":" << kGuard << ",\"integer_tolerance\":0";
         out << ",\"fence_timeout_ns\":" << kTimeoutNs
             << ",\"shader_int64_required\":" << (shaderInt64 ? "true" : "false")
+            << ",\"shader_int8_required\":" << (shaderInt8 ? "true" : "false")
             << ",\"validation_enabled\":" << (validation ? "true" : "false")
             << ",\"synchronization_validation_enabled\":" << (synchronizationValidation ? "true" : "false")
             << ",\"validation_errors\":" << validationErrors.load() << ",\n  \"devices\":[";
@@ -216,7 +218,8 @@ struct Report {
                 << ",\"memory_path\":" << quote(c.memoryPath)
                 << ",\"output_fnv1a64\":" << quote(c.outputChecksum) << ",\"reference_fnv1a64\":" << quote(c.referenceChecksum) << '}';
         }
-        out << "],\n  \"graphics\":{\"format\":\"R8G8B8A8_UNORM\",\"samples\":1,\"guard_bytes_each_side\":"
+        out << "],\n  \"graphics\":{\"shader_origin\":" << quote(graphicsShaderOrigin)
+            << ",\"format\":\"R8G8B8A8_UNORM\",\"samples\":1,\"guard_bytes_each_side\":"
             << offscreen::kGuardBytes << ",\"subpixel_precision_bits\":" << subPixelPrecisionBits
             << ",\"optimal_tiling_format_features\":" << formatFeatures << ",\"cases\":[";
         for (size_t i = 0; i < graphicsCases.size(); ++i) {
@@ -504,7 +507,8 @@ std::vector<uint32_t> readShader(const std::string& path) {
 int main(int argc, char** argv) {
     Report report;
     std::string reportPath, shaderDirectory, imageDirectory;
-    bool graphics = false;
+    bool graphics = false, graphicsOriginSpecified = false;
+    std::array<std::vector<uint32_t>, 4> graphicsWords;
     int exitCode = 1;
     try {
         if (argc == 2 && std::string(argv[1]) == "--self-test") { selfTest(); std::cout << "PASS: verifier detects planted data/guard/input corruption; target selection rejects other devices\n"; return 0; }
@@ -513,7 +517,8 @@ int main(int argc, char** argv) {
             std::cout << "amd_gpu_probe --list [--report FILE]\n"
                       << "amd_gpu_probe --device-id PCI_ID [--shader FILE --entry NAME] [--validation | --sync-validation] [--report FILE]\n"
                       << "amd_gpu_probe --check-shader FILE [--entry NAME] (ABI admission only, no GPU execution)\n"
-                      << "amd_gpu_probe --graphics --device-id PCI_ID --shader-directory DIR --image-directory DIR [--sync-validation] [--report FILE]\n"
+                      << "amd_gpu_probe --graphics --device-id PCI_ID --shader-directory DIR --image-directory DIR [--graphics-shader-origin glsl-control|metal-air] [--sync-validation] [--report FILE]\n"
+                      << "amd_gpu_probe --check-graphics-shaders DIR [--graphics-shader-origin glsl-control|metal-air] (ABI check only, no GPU)\n"
                       << "Without --shader, only identifies the target. Compute requires set 0 / four storage buffers, local 64x1x1.\n";
             return 0;
         }
@@ -523,6 +528,8 @@ int main(int argc, char** argv) {
             if (arg == "--list") report.mode = "list";
             else if (arg == "--graphics") graphics = true;
             else if (arg == "--shader-directory") shaderDirectory = value();
+            else if (arg == "--graphics-shader-origin") { report.graphicsShaderOrigin = value(); graphicsOriginSpecified = true; }
+            else if (arg == "--check-graphics-shaders") { report.mode = "graphics-contract"; shaderDirectory = value(); }
             else if (arg == "--image-directory") imageDirectory = value();
             else if (arg == "--check-shader") { report.mode = "shader-contract"; report.shader = value(); }
             else if (arg == "--device-id") report.deviceId = parseId(value());
@@ -533,27 +540,37 @@ int main(int argc, char** argv) {
             else if (arg == "--sync-validation") { report.validation = true; report.synchronizationValidation = true; }
             else throw std::runtime_error("Unknown option: " + arg);
         }
+        if (report.graphicsShaderOrigin != "glsl-control" && report.graphicsShaderOrigin != "metal-air") throw std::runtime_error("Unsupported graphics shader origin");
         if (graphics) {
             if (!report.mode.empty() || !report.shader.empty() || report.entry != "main") throw std::runtime_error("Graphics cannot be combined with list/compute/shader-contract options");
             report.mode = "graphics";
             if (shaderDirectory.empty() || imageDirectory.empty()) throw std::runtime_error("Graphics requires shader and image directories");
-        } else if (!shaderDirectory.empty() || !imageDirectory.empty()) throw std::runtime_error("Image/shader directories require --graphics");
+        } else if (report.mode == "graphics-contract") {
+            if (shaderDirectory.empty() || !imageDirectory.empty() || report.deviceId || !report.shader.empty() || report.entry != "main")
+                throw std::runtime_error("Graphics admission cannot select a GPU or combine compute/image options");
+        } else if (!shaderDirectory.empty() || !imageDirectory.empty() || graphicsOriginSpecified) throw std::runtime_error("Graphics options require --graphics or --check-graphics-shaders");
         if (report.mode == "list" && (report.deviceId || !report.shader.empty())) throw std::runtime_error("--list cannot be combined with target/compute options");
         if (report.mode == "shader-contract" && report.deviceId) throw std::runtime_error("--check-shader cannot select a GPU");
-        if (report.mode != "list" && report.mode != "shader-contract") {
+        if (report.mode != "list" && report.mode != "shader-contract" && report.mode != "graphics-contract") {
             if (!report.deviceId) throw std::runtime_error("Explicit --device-id from the target inventory is required");
             if (!graphics) report.mode = report.shader.empty() ? "identify" : "compute";
         }
         auto words = report.shader.empty() ? std::vector<uint32_t>{} : readShader(report.shader);
         if (!words.empty()) report.shaderInt64 = shaderContract(words, report.entry).int64;
-        if (report.mode != "shader-contract") {
+        if (report.mode == "graphics" || report.mode == "graphics-contract") {
+            for (size_t i = 0; i < graphicsWords.size(); ++i) {
+                graphicsWords[i] = readShader((std::filesystem::path(shaderDirectory) / (std::string(offscreen::shaderNames[i]) + ".spv")).string());
+                report.shaderInt8 |= offscreen::shaderContract(graphicsWords[i], i, report.graphicsShaderOrigin == "metal-air");
+            }
+        }
+        if (report.mode != "shader-contract" && report.mode != "graphics-contract") {
             Harness harness;
             harness.enumerate(report);
             if (report.mode == "compute") harness.compute(report, words);
-            if (report.mode == "graphics") { OffscreenHarness images(harness, report); images.run(shaderDirectory, imageDirectory); }
+            if (report.mode == "graphics") { OffscreenHarness images(harness, report); images.run(graphicsWords, imageDirectory); }
         }
         if (report.validationErrors.load()) throw std::runtime_error("Vulkan validation reported an error");
-        report.status = report.mode == "compute" || report.mode == "graphics" ? "passed" : report.mode == "list" ? "enumerated" : report.mode == "shader-contract" ? "contract-checked" : "identified";
+        report.status = report.mode == "compute" || report.mode == "graphics" ? "passed" : report.mode == "list" ? "enumerated" : report.mode == "shader-contract" || report.mode == "graphics-contract" ? "contract-checked" : "identified";
         exitCode = 0;
     } catch (const std::exception& e) { report.status = "failed"; report.error = e.what(); }
     const auto json = report.json();

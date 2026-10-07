@@ -87,8 +87,10 @@ bash tools/compile-metal-reference.sh out/metal-reference-new
 (cd out/metal-reference-new && shasum -a 256 -c SHA256SUMS)
 ```
 
-`build-translator.sh` exécute 11 tests autonomes avec `--locked` et réflexion
-JSON, dont `apple_vector_add`. Quatre balayages du corpus amont absent sont
+`build-translator.sh` exécute désormais 15 tests autonomes avec `--locked` et
+réflexion JSON, dont `apple_vector_add` et quatre cas `apple_graphics`.
+Les 15 passent sur Mac ; les 11 précédents sont validés sous Windows.
+Quatre balayages du corpus amont absent sont
 filtrés ; `cargo test --lib` reste bloqué par trois fixtures manquantes.
 Le cas synthétique reste distinct du shader compilé par Apple.
 
@@ -110,6 +112,36 @@ Cargo/Metal neuves, avec `CARGO_NET_OFFLINE=true` et les crates du lockfile
 **déjà en cache**. Sept artefacts sont identiques, y compris AIR et metallib.
 Les exécutables Rust de debug et les métadonnées datées ne sont pas annoncés
 identiques. Ce résultat ne qualifie pas l'assemblage AMD complet.
+
+## Produire les shaders graphiques
+
+Avec les mêmes overrides et le traducteur construit :
+
+```bash
+python3 tools/compile-metal-graphics.py out/metal-graphics-new
+python3 tools/compile-metal-graphics.py --check tests/shaders/apple/graphics
+python3 -B -m unittest discover -s tests/tools -v
+cmake -S tests/vulkan -B out/graphics-software -DPROBE_SOFTWARE_ONLY=ON
+cmake --build out/graphics-software
+ctest --test-dir out/graphics-software --output-on-failure
+```
+
+Le nouveau script conserve les quatre sources, AIR, metallibs, SPIR-V,
+désassemblages et réflexions ; il écrit une provenance et un manifeste à noms
+relatifs. La sortie doit être neuve/vide. La compilation sélectionne
+`NVMTL_NO_BINDLESS_ALL=1` : les ressources sont des descriptors directs, sans
+heap NVIDIA. Le script refuse un désaccord entre réflexion et SPIR-V.
+La texture utilise image 32 et sampler 160 ; elle exige shaderInt8.
+Les deux shaders colorés partagent un buffer DrawParams de 32 octets au binding 0.
+Ce sont des contrats de tests, pas la qualification du backend Metal AMD.
+
+Les 28 artefacts de ce corpus sont reproduits depuis une copie des sources
+avec target Cargo neuf et dépendances déjà en cache. Le build CMake sans SDK
+lance quatre tests C++ d'admission et de référence sans loader ni GPU.
+Un build complet du banc C++ et ses 13 CTest a également été exécuté sur Mac,
+avec headers/loader Vulkan et glslang construits localement ; aucun dispatch
+GPU n'est nécessaire à ces tests. Voir [rapport graphique Metal/Mac](reports/2026-10-07-metal-graphics.md).
+La commande Radeon est dans [Validation graphique](VALIDATION-GRAPHICS.md).
 
 ## Transférer et exécuter sur Windows
 

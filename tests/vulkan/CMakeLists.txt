@@ -1,6 +1,22 @@
 cmake_minimum_required(VERSION 3.21)
 project(amd_gpu_probe LANGUAGES CXX)
 
+option(PROBE_SOFTWARE_ONLY "Build GPU-free graphics admission/reference tests without a Vulkan SDK" OFF)
+add_executable(graphics_contract_test graphics_contract_test.cpp)
+target_compile_features(graphics_contract_test PRIVATE cxx_std_17)
+enable_testing()
+add_test(NAME graphics_reference_standalone COMMAND graphics_contract_test --reference)
+set(METAL_GRAPHICS "${CMAKE_CURRENT_SOURCE_DIR}/../shaders/apple/graphics")
+if(EXISTS "${METAL_GRAPHICS}/texture.frag.spv")
+    add_test(NAME metal_graphics_contract COMMAND graphics_contract_test "${METAL_GRAPHICS}" metal-air)
+    add_test(NAME metal_graphics_contract_mutations COMMAND graphics_contract_test "${METAL_GRAPHICS}" metal-air --mutations)
+    add_test(NAME reject_metal_under_glsl_profile COMMAND graphics_contract_test "${METAL_GRAPHICS}" glsl-control)
+    set_tests_properties(reject_metal_under_glsl_profile PROPERTIES WILL_FAIL TRUE)
+endif()
+if(PROBE_SOFTWARE_ONLY)
+    return()
+endif()
+
 find_package(Vulkan 1.2 REQUIRED COMPONENTS glslangValidator)
 find_program(SPIRV_VAL spirv-val HINTS "$ENV{VULKAN_SDK}/Bin" REQUIRED)
 execute_process(COMMAND git rev-parse HEAD WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -13,7 +29,8 @@ add_executable(amd_gpu_probe main.cpp)
 # Keep the reference and GPU harness explicit build inputs, including existing
 # build directories configured with a different MSVC diagnostic language.
 set_property(SOURCE main.cpp APPEND PROPERTY OBJECT_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/offscreen.h" "${CMAKE_CURRENT_SOURCE_DIR}/offscreen_reference.h")
+    "${CMAKE_CURRENT_SOURCE_DIR}/offscreen.h" "${CMAKE_CURRENT_SOURCE_DIR}/offscreen_reference.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/graphics_shader_contract.h")
 target_compile_features(amd_gpu_probe PRIVATE cxx_std_17)
 target_link_libraries(amd_gpu_probe PRIVATE Vulkan::Vulkan)
 target_compile_definitions(amd_gpu_probe PRIVATE CODE_REVISION="${CODE_REVISION}")
@@ -55,3 +72,6 @@ add_test(NAME graphics_require_explicit_pci_id COMMAND amd_gpu_probe --graphics
 set_tests_properties(graphics_require_explicit_pci_id PROPERTIES WILL_FAIL TRUE)
 add_test(NAME reject_mixed_graphics_compute COMMAND amd_gpu_probe --graphics --shader "${CMAKE_CURRENT_BINARY_DIR}/vector_add.spv")
 set_tests_properties(reject_mixed_graphics_compute PROPERTIES WILL_FAIL TRUE)
+add_test(NAME glsl_graphics_contract COMMAND amd_gpu_probe --check-graphics-shaders "${CMAKE_CURRENT_BINARY_DIR}")
+add_test(NAME reject_glsl_under_metal_profile COMMAND amd_gpu_probe --check-graphics-shaders "${CMAKE_CURRENT_BINARY_DIR}" --graphics-shader-origin metal-air)
+set_tests_properties(reject_glsl_under_metal_profile PROPERTIES WILL_FAIL TRUE)

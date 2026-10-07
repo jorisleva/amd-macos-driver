@@ -1,0 +1,68 @@
+; SPIR-V
+; Version: 1.4
+; Generator: Google rspirv; 0
+; Bound: 47
+; Schema: 0
+               OpCapability Shader
+               OpCapability Int8
+               OpCapability ImageQuery
+               OpMemoryModel Logical GLSL450
+               OpEntryPoint Fragment %texture_fragment "main" %gl_FragCoord %16 %19 %21
+               OpExecutionMode %texture_fragment OriginUpperLeft
+               OpSource Unknown 0
+               OpName %texture_fragment "texture_fragment"
+               OpDecorate %gl_FragCoord BuiltIn FragCoord
+               OpDecorate %16 DescriptorSet 0
+               OpDecorate %16 Binding 32
+               OpDecorate %19 DescriptorSet 0
+               OpDecorate %19 Binding 160
+               OpDecorate %21 Location 0
+      %float = OpTypeFloat 32
+       %uint = OpTypeInt 32 0
+      %uchar = OpTypeInt 8 0
+    %v4float = OpTypeVector %float 4
+  %_struct_5 = OpTypeStruct %v4float %uchar
+    %v2float = OpTypeVector %float 2
+     %v2uint = OpTypeVector %uint 2
+     %uint_0 = OpConstant %uint 0
+          %9 = OpUndef %v2float
+         %10 = OpUndef %v4float
+    %float_0 = OpConstant %float 0
+%_ptr_Input_v4float = OpTypePointer Input %v4float
+%gl_FragCoord = OpVariable %_ptr_Input_v4float Input
+         %14 = OpTypeImage %float 2D 0 0 0 1 Unknown
+%_ptr_UniformConstant_14 = OpTypePointer UniformConstant %14
+         %16 = OpVariable %_ptr_UniformConstant_14 UniformConstant
+         %17 = OpTypeSampler
+%_ptr_UniformConstant_17 = OpTypePointer UniformConstant %17
+         %19 = OpVariable %_ptr_UniformConstant_17 UniformConstant
+%_ptr_Output_v4float = OpTypePointer Output %v4float
+         %21 = OpVariable %_ptr_Output_v4float Output
+         %22 = OpTypeSampledImage %14
+       %void = OpTypeVoid
+         %24 = OpTypeFunction %void
+%texture_fragment = OpFunction %void None %24
+         %26 = OpLabel
+         %27 = OpLoad %v4float %gl_FragCoord
+         %28 = OpLoad %14 %16
+         %29 = OpLoad %17 %19
+         %30 = OpImageQuerySizeLod %v2uint %28 %uint_0
+         %31 = OpCompositeExtract %uint %30 0
+         %32 = OpCopyObject %uint %31
+         %33 = OpConvertUToF %float %32
+         %34 = OpCompositeInsert %v2float %33 %9 0
+         %35 = OpImageQuerySizeLod %v2uint %28 %uint_0
+         %36 = OpCompositeExtract %uint %35 1
+         %37 = OpCopyObject %uint %36
+         %38 = OpConvertUToF %float %37
+         %39 = OpCompositeInsert %v2float %38 %34 1
+         %40 = OpVectorShuffle %v2float %27 %10 0 1
+         %41 = OpFDiv %v2float %40 %39
+         %42 = OpSampledImage %22 %28 %29
+         %43 = OpImageSampleExplicitLod %v4float %42 %41 Lod %float_0
+         %44 = OpUndef %uchar
+         %45 = OpCompositeConstruct %_struct_5 %43 %44
+         %46 = OpCompositeExtract %v4float %45 0
+               OpStore %21 %46
+               OpReturn
+               OpFunctionEnd

@@ -9,7 +9,7 @@ struct Image {
 struct ImageResources {
     Harness& h;
     Image source, target;
-    Buffer upload, readback;
+    Buffer upload, readback, drawParams;
     VkFramebuffer framebuffer = VK_NULL_HANDLE;
     explicit ImageResources(Harness& harness) : h(harness) {}
     ~ImageResources() {
@@ -20,7 +20,7 @@ struct ImageResources {
             if (image->image) vkDestroyImage(h.device, image->image, nullptr);
             if (image->memory) vkFreeMemory(h.device, image->memory, nullptr);
         }
-        for (auto* b : {&upload, &readback}) {
+        for (auto* b : {&upload, &readback, &drawParams}) {
             if (b->mapped) vkUnmapMemory(h.device, b->memory);
             if (b->buffer) vkDestroyBuffer(h.device, b->buffer, nullptr);
             if (b->memory) vkFreeMemory(h.device, b->memory, nullptr);
@@ -99,7 +99,8 @@ struct OffscreenHarness {
         VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER}; barrier.srcAccessMask = srcAccess; barrier.dstAccessMask = dstAccess;
         vkCmdPipelineBarrier(command, src, dst, 0, 1, &barrier, 0, nullptr, 0, nullptr);
     }
-    void initialize(const std::filesystem::path& shaderDirectory) {
+    bool metal() const { return report.graphicsShaderOrigin == "metal-air"; }
+    void initialize(const std::array<std::vector<uint32_t>, 4>& shaderWords) {
         const auto& limits = report.devices[size_t(report.selected)].properties.limits;
         report.subPixelPrecisionBits = limits.subPixelPrecisionBits;
         if (limits.subPixelPrecisionBits < 8 || limits.maxFramebufferWidth < 257 || limits.maxFramebufferHeight < 129 ||
@@ -113,15 +114,25 @@ struct OffscreenHarness {
         float priority = 1;
         VkDeviceQueueCreateInfo q{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
         q.queueFamilyIndex = report.queueFamily; q.queueCount = 1; q.pQueuePriorities = &priority;
+        VkPhysicalDeviceVulkan12Features supported{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+        VkPhysicalDeviceFeatures2 features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2}; features.pNext = &supported;
+        vkGetPhysicalDeviceFeatures2(h.physical, &features);
+        if (report.shaderInt8 && !supported.shaderInt8) throw std::runtime_error("Apple texture AIR requires unavailable shaderInt8");
+        VkPhysicalDeviceVulkan12Features requested{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES}; requested.shaderInt8 = report.shaderInt8;
         VkDeviceCreateInfo create{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO}; create.queueCreateInfoCount = 1; create.pQueueCreateInfos = &q;
+        if (report.shaderInt8) create.pNext = &requested;
         check(vkCreateDevice(h.physical, &create, nullptr, &h.device), "vkCreateDevice(graphics)");
         vkGetDeviceQueue(h.device, report.queueFamily, 0, &h.queue);
-        VkDescriptorSetLayoutBinding binding{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
-        VkDescriptorSetLayoutCreateInfo set{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO}; set.bindingCount = 1; set.pBindings = &binding;
+        const std::vector<VkDescriptorSetLayoutBinding> bindings = metal() ? std::vector<VkDescriptorSetLayoutBinding>{
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            {32, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            {160, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}}
+            : std::vector<VkDescriptorSetLayoutBinding>{{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}};
+        VkDescriptorSetLayoutCreateInfo set{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO}; set.bindingCount = uint32_t(bindings.size()); set.pBindings = bindings.data();
         check(vkCreateDescriptorSetLayout(h.device, &set, nullptr, &h.setLayout), "vkCreateDescriptorSetLayout(graphics)");
         VkPushConstantRange push{VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Draw)};
         VkPipelineLayoutCreateInfo layout{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-        layout.setLayoutCount = 1; layout.pSetLayouts = &h.setLayout; layout.pushConstantRangeCount = 1; layout.pPushConstantRanges = &push;
+        layout.setLayoutCount = 1; layout.pSetLayouts = &h.setLayout; layout.pushConstantRangeCount = metal() ? 0 : 1; layout.pPushConstantRanges = &push;
         check(vkCreatePipelineLayout(h.device, &layout, nullptr, &h.pipelineLayout), "vkCreatePipelineLayout(graphics)");
         VkAttachmentDescription attachment{}; attachment.format = kImageFormat; attachment.samples = VK_SAMPLE_COUNT_1_BIT;
         attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -132,9 +143,8 @@ struct OffscreenHarness {
         VkRenderPassCreateInfo render{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
         render.attachmentCount = 1; render.pAttachments = &attachment; render.subpassCount = 1; render.pSubpasses = &subpass;
         check(vkCreateRenderPass(h.device, &render, nullptr, &renderPass), "vkCreateRenderPass");
-        const std::array<const char*, 4> names{"fullscreen.vert.spv", "texture.frag.spv", "triangle.vert.spv", "solid.frag.spv"};
-        for (size_t i = 0; i < names.size(); ++i) {
-            auto words = readShader((shaderDirectory / names[i]).string());
+        for (size_t i = 0; i < shaderWords.size(); ++i) {
+            const auto& words = shaderWords[i]; // Exactly the bytes admitted before GPU enumeration.
             VkShaderModuleCreateInfo module{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO}; module.codeSize = words.size() * 4; module.pCode = words.data();
             check(vkCreateShaderModule(h.device, &module, nullptr, &modules[i]), "vkCreateShaderModule(graphics)");
         }
@@ -168,8 +178,10 @@ struct OffscreenHarness {
         sample.magFilter = VK_FILTER_NEAREST; sample.minFilter = VK_FILTER_NEAREST; sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
         sample.addressModeU = sample.addressModeV = sample.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         check(vkCreateSampler(h.device, &sample, nullptr, &sampler), "vkCreateSampler");
-        VkDescriptorPoolSize poolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1};
-        VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO}; pool.maxSets = 1; pool.poolSizeCount = 1; pool.pPoolSizes = &poolSize;
+        const std::vector<VkDescriptorPoolSize> poolSizes = metal() ? std::vector<VkDescriptorPoolSize>{
+            {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1}, {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1}, {VK_DESCRIPTOR_TYPE_SAMPLER, 1}}
+            : std::vector<VkDescriptorPoolSize>{{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}};
+        VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO}; pool.maxSets = 1; pool.poolSizeCount = uint32_t(poolSizes.size()); pool.pPoolSizes = poolSizes.data();
         check(vkCreateDescriptorPool(h.device, &pool, nullptr, &h.descriptorPool), "vkCreateDescriptorPool(graphics)");
         VkDescriptorSetAllocateInfo da{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO}; da.descriptorPool = h.descriptorPool; da.descriptorSetCount = 1; da.pSetLayouts = &h.setLayout;
         check(vkAllocateDescriptorSets(h.device, &da, &descriptor), "vkAllocateDescriptorSets(graphics)");
@@ -206,17 +218,42 @@ struct OffscreenHarness {
             fb.attachmentCount = 1; fb.pAttachments = &resources.target.view; fb.width = size.width; fb.height = size.height; fb.layers = 1;
             check(vkCreateFramebuffer(h.device, &fb, nullptr, &resources.framebuffer), "vkCreateFramebuffer");
         }
+        std::vector<uint8_t> originalDraw;
+        VkDeviceSize drawStride = 0;
+        if (metal() && !copied) {
+            const auto alignment = std::max<VkDeviceSize>(1, report.devices[size_t(report.selected)].properties.limits.minStorageBufferOffsetAlignment);
+            auto aligned = [alignment](VkDeviceSize n) { return ((n + alignment - 1) / alignment) * alignment; };
+            const auto base = aligned(offscreen::kGuardBytes); drawStride = aligned(sizeof(Draw));
+            if (drawStride > UINT32_MAX) throw std::runtime_error("Dynamic DrawParams offset exceeds uint32");
+            originalDraw.assign(size_t(base + 2 * drawStride + offscreen::kGuardBytes), offscreen::kGuardValue);
+            for (uint32_t draw = 0; draw < 2; ++draw) {
+                const Draw params{offscreen::color(iteration, draw, blend), draw, {}};
+                std::memcpy(originalDraw.data() + base + draw * drawStride, &params, sizeof(params));
+            }
+            h.allocate(resources.drawParams, originalDraw.size(), false, report, result.name, "draw-params", 0);
+            std::memcpy(resources.drawParams.mapped, originalDraw.data(), originalDraw.size());
+            VkDescriptorBufferInfo info{resources.drawParams.buffer, base, sizeof(Draw)};
+            VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET}; write.dstSet = descriptor; write.dstBinding = 0; write.descriptorCount = 1;
+            write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC; write.pBufferInfo = &info;
+            vkUpdateDescriptorSets(h.device, 1, &write, 0, nullptr);
+        }
         if (sampled) {
             VkDescriptorImageInfo info{sampler, resources.source.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
             VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET}; write.dstSet = descriptor; write.descriptorCount = 1;
-            write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; write.pImageInfo = &info;
+            write.dstBinding = metal() ? 32 : 0;
+            write.descriptorType = metal() ? VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE : VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; write.pImageInfo = &info;
             vkUpdateDescriptorSets(h.device, 1, &write, 0, nullptr);
+            if (metal()) {
+                write.dstBinding = 160; write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+                vkUpdateDescriptorSets(h.device, 1, &write, 0, nullptr);
+            }
         }
         check(vkResetCommandBuffer(command, 0), "vkResetCommandBuffer(graphics)");
         VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO}; begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         check(vkBeginCommandBuffer(command, &begin), "vkBeginCommandBuffer(graphics)");
         // Include both upload visibility and the host-written readback sentinels before transfer writes.
-        memoryBarrier(VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT);
+        memoryBarrier(VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | (metal() ? VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT : 0),
+            VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | (metal() ? VK_ACCESS_SHADER_READ_BIT : 0));
         VkBufferImageCopy copy{}; copy.bufferOffset = offscreen::kGuardBytes;
         copy.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}; copy.imageExtent = {size.width, size.height, 1};
         if (textured) {
@@ -241,11 +278,17 @@ struct OffscreenHarness {
             vkCmdSetViewport(command, 0, 1, &viewport); vkCmdSetScissor(command, 0, 1, &scissor);
             vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[sampled ? 0 : (blend ? 2 : 1)]);
             if (sampled) {
-                vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS, h.pipelineLayout, 0, 1, &descriptor, 0, nullptr);
+                const uint32_t offset = 0;
+                vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS, h.pipelineLayout, 0, 1, &descriptor, metal() ? 1 : 0, metal() ? &offset : nullptr);
                 vkCmdDraw(command, 3, 1, 0, 0);
             } else for (uint32_t draw = 0; draw < (blend ? 2u : 1u); ++draw) {
-                const Draw push{offscreen::color(iteration, draw, blend), draw, {}};
-                vkCmdPushConstants(command, h.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push), &push);
+                if (metal()) {
+                    const uint32_t offset = uint32_t(draw * drawStride);
+                    vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS, h.pipelineLayout, 0, 1, &descriptor, 1, &offset);
+                } else {
+                    const Draw push{offscreen::color(iteration, draw, blend), draw, {}};
+                    vkCmdPushConstants(command, h.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push), &push);
+                }
                 vkCmdDraw(command, 3, 1, 0, 0);
             }
             vkCmdEndRenderPass(command);
@@ -268,6 +311,10 @@ struct OffscreenHarness {
             result.differences.guards += offscreen::guards(upload, size_t(activeBytes));
             for (size_t i = 0; i < originalUpload.size(); ++i) result.differences.upload += upload[i] != originalUpload[i];
         }
+        if (!originalDraw.empty()) {
+            const auto* params = static_cast<const uint8_t*>(resources.drawParams.mapped);
+            for (size_t i = 0; i < originalDraw.size(); ++i) result.differences.upload += params[i] != originalDraw[i];
+        }
         result.outputChecksum = byteChecksum(actual); result.referenceChecksum = byteChecksum(expected.pixels);
         writePixels(imageDirectory / (result.name + ".rgba"), actual);
         writePixels(imageDirectory / (result.name + ".reference.rgba"), expected.pixels);
@@ -276,8 +323,8 @@ struct OffscreenHarness {
             throw std::runtime_error("Offscreen image verification failed: " + result.name);
         if (report.validationErrors.load()) throw std::runtime_error("Vulkan graphics validation error");
     }
-    void run(const std::filesystem::path& shaders, const std::filesystem::path& images) {
-        if (shaders.empty() || images.empty()) throw std::runtime_error("Graphics requires --shader-directory and --image-directory");
+    void run(const std::array<std::vector<uint32_t>, 4>& shaders, const std::filesystem::path& images) {
+        if (images.empty()) throw std::runtime_error("Graphics requires --image-directory");
         std::filesystem::create_directories(images);
         initialize(shaders);
         const std::array<offscreen::Size, 5> textures{{{1, 1}, {3, 5}, {64, 64}, {65, 37}, {257, 129}}};

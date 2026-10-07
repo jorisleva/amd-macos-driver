@@ -1,0 +1,832 @@
+{
+  "schema_version": 1,
+  "test_id": "step-2-mac-metal-graphics-1",
+  "timestamp_utc": "2026-10-07T16:01:51.779676+00:00",
+  "scope": "Apple AIR compilation, software translation and GPU-free admission; no rendered GPU images",
+  "compilation": {
+    "schema_version": 1,
+    "timestamp_utc": "2026-10-07T15:51:57.680385+00:00",
+    "code_revision": "d88a37dd716afee945a2ff8169412b1f2dd89f6b",
+    "working_tree": [
+      "M .gitattributes",
+      " M tests/vulkan/CMakeLists.txt",
+      " M tests/vulkan/main.cpp",
+      " M tests/vulkan/offscreen.h",
+      " M tools/build-translator.ps1",
+      " M tools/build-translator.sh",
+      " M tools/run-windows-graphics-probe.ps1",
+      "?? tests/shaders/apple/graphics/",
+      "?? tests/shaders/graphics/",
+      "?? tests/tools/",
+      "?? tests/vulkan/graphics_contract_test.cpp",
+      "?? tests/vulkan/graphics_shader_contract.h",
+      "?? tools/compile-metal-graphics.py",
+      "?? translator/translator/tests/apple_graphics.rs"
+    ],
+    "machine": {
+      "model": "MacBookAir7,2",
+      "architecture": "x86_64",
+      "macos_version": "15.7.8",
+      "macos_build": "24G824"
+    },
+    "versions": {
+      "llvm-dis": "Homebrew LLVM version 20.1.8\n  Optimized build.",
+      "spirv-val": "SPIRV-Tools v2026.2 v2026.2-0-g0539c81\nTargets:\n  SPIR-V 1.0\n  SPIR-V 1.1\n  SPIR-V 1.2\n  SPIR-V 1.3\n  SPIR-V 1.4\n  SPIR-V 1.5\n  SPIR-V 1.6\n  SPIR-V 1.2 (under OpenCL 2.2 Full Profile semantics)\n  SPIR-V 1.0 (under Vulkan 1.0 semantics)\n  SPIR-V 1.3 (under Vulkan 1.1 semantics)\n  SPIR-V 1.4 (under Vulkan 1.1 semantics)\n  SPIR-V 1.5 (under Vulkan 1.2 semantics)\n  SPIR-V 1.6 (under Vulkan 1.3 semantics) SPIR-V 1.6 (under Vulkan 1.4 semantics)",
+      "spirv-dis": "SPIRV-Tools v2026.2 v2026.2-0-g0539c81\nTarget: SPIR-V 1.5",
+      "metal": "Apple metal version 32023.864 (metalfe-32023.864)\nTarget: air64-apple-darwin24.6.0\nThread model: posix",
+      "metallib": "AIR-LLD 32023.864 (metalfe-32023.864) (compatible with legacy metallib linker)",
+      "xcode": "Xcode 26.3\nBuild version 17C529",
+      "macos_sdk": "26.2",
+      "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)"
+    },
+    "tools": [
+      {
+        "name": "llvm-dis",
+        "sha256": "1dceab3f4ff2ecd5c20f9fed3d429dd1fa30f6198b25564a9ea34238d72c285d"
+      },
+      {
+        "name": "spirv-val",
+        "sha256": "6c0cf86c7c1d65cdab7afc63bb15e829e7b787dac108fe79abbf07da0c85bc8d"
+      },
+      {
+        "name": "spirv-dis",
+        "sha256": "2eef564e6c989f1cd4f85e2ec3f6c510f19086bc404b83c279e5ce7780f39e7a"
+      },
+      {
+        "name": "metal2vulkan",
+        "sha256": "6012ca304977fdf3ac527e973fd994b5730174ddcb0810591ce4ba5a85dbdbc4"
+      }
+    ],
+    "options": {
+      "air_target": "air64-apple-macosx26.0",
+      "metal_standard": "metal4.0",
+      "optimization": "-O2",
+      "source_input": "stdin",
+      "NVMTL_NO_BINDLESS_ALL": "1",
+      "validation_target": "vulkan1.2"
+    },
+    "contract": {
+      "fullscreen.vert": {
+        "stage": "Vertex",
+        "air_entry_point": "fullscreen_vertex",
+        "spirv_entry_point": "main",
+        "descriptors": [],
+        "capabilities": [
+          1
+        ],
+        "requires_shader_int8": false
+      },
+      "texture.frag": {
+        "stage": "Fragment",
+        "air_entry_point": "texture_fragment",
+        "spirv_entry_point": "main",
+        "descriptors": [
+          [
+            0,
+            32
+          ],
+          [
+            0,
+            160
+          ]
+        ],
+        "capabilities": [
+          1,
+          39,
+          50
+        ],
+        "requires_shader_int8": true
+      },
+      "triangle.vert": {
+        "stage": "Vertex",
+        "air_entry_point": "triangle_vertex",
+        "spirv_entry_point": "main",
+        "descriptors": [
+          [
+            0,
+            0
+          ]
+        ],
+        "capabilities": [
+          1
+        ],
+        "requires_shader_int8": false
+      },
+      "solid.frag": {
+        "stage": "Fragment",
+        "air_entry_point": "solid_fragment",
+        "spirv_entry_point": "main",
+        "descriptors": [
+          [
+            0,
+            0
+          ]
+        ],
+        "capabilities": [
+          1
+        ],
+        "requires_shader_int8": false
+      }
+    },
+    "draw_params_size": 32,
+    "draw_params_offsets": [
+      0,
+      16,
+      20,
+      24,
+      28
+    ],
+    "translator_sources_sha256": "036fd674d72dda8ab45472f5891838352522c6e6ccaebeee1855a348c0e00c53",
+    "inputs": [
+      {
+        "name": "tools/compile-metal-graphics.py",
+        "sha256": "548a681e29589706024ec2e67de607663aaf8302cb03dfe25b54a82132ec047e"
+      },
+      {
+        "name": "tests/shaders/graphics/fullscreen.vert.metal",
+        "sha256": "b4a1b15fd1ba5118f77cf8b7a3912fdf5e5aac295f4940c06366ae9bb1f77550"
+      },
+      {
+        "name": "tests/shaders/graphics/texture.frag.metal",
+        "sha256": "e499982886913cd5d928a4af8559aaf50461246cff144b755688d67a716e5143"
+      },
+      {
+        "name": "tests/shaders/graphics/triangle.vert.metal",
+        "sha256": "04caad29b3dc85af1a3a1670e2b4a0082e2ac171e2608423e3e1ae998e2f3b06"
+      },
+      {
+        "name": "tests/shaders/graphics/solid.frag.metal",
+        "sha256": "4bb86f8392fab260c53cbc76cb6fc145d48c7108114c6d75858886733b6cb1b3"
+      }
+    ],
+    "artifacts": [
+      {
+        "name": "fullscreen.vert.metal",
+        "sha256": "b4a1b15fd1ba5118f77cf8b7a3912fdf5e5aac295f4940c06366ae9bb1f77550",
+        "size_bytes": 418
+      },
+      {
+        "name": "fullscreen.vert.air",
+        "sha256": "547fef7ee7ebf7a27ac8126ea1a4e2227ee3f30877c896d7aad391752106b032",
+        "size_bytes": 2976
+      },
+      {
+        "name": "fullscreen.vert.air.ll",
+        "sha256": "07d57b6dfd52f82d56138d9f7544dd50587dc427306ba213d36e83c272f51fc6",
+        "size_bytes": 2584
+      },
+      {
+        "name": "fullscreen.vert.metallib",
+        "sha256": "7a0a580c18f3eec417fd807a65203fc53d6cde760b91310627ae48c78967a979",
+        "size_bytes": 3287
+      },
+      {
+        "name": "fullscreen.vert.spv",
+        "sha256": "14c3f92353039b6794ee1835f754ead96f283bca44787fbfd56f4aa9b8295a12",
+        "size_bytes": 792
+      },
+      {
+        "name": "fullscreen.vert.spvasm",
+        "sha256": "4dd5614165774dea0f1544d2acf0df520abe4728afa5320d4a3c0c628929b41d",
+        "size_bytes": 2110
+      },
+      {
+        "name": "fullscreen.vert.reflection.json",
+        "sha256": "ca2670bcc1ed8d033732d2d62f79126c959c285b9b208b1b1291cb340e8d9053",
+        "size_bytes": 1584
+      },
+      {
+        "name": "texture.frag.metal",
+        "sha256": "e499982886913cd5d928a4af8559aaf50461246cff144b755688d67a716e5143",
+        "size_bytes": 628
+      },
+      {
+        "name": "texture.frag.air",
+        "sha256": "8f2d68d543946b762607afd332e02190fbc485159f7a8bf35ed265c47c98b2af",
+        "size_bytes": 3808
+      },
+      {
+        "name": "texture.frag.air.ll",
+        "sha256": "c1c723dd19e8f1077fde09d249d1439972bb1b4a457cbfd3637666ec01ada079",
+        "size_bytes": 4786
+      },
+      {
+        "name": "texture.frag.metallib",
+        "sha256": "42043866c6cb5501fedd038bcb7c85cd6affb9c7ebce7a39216fc1a38005fc1b",
+        "size_bytes": 4118
+      },
+      {
+        "name": "texture.frag.spv",
+        "sha256": "d198f7c756892bdf3e58b14e3353b43c19cf6323dcf2ba091ee1a76ae0abcbb2",
+        "size_bytes": 1044
+      },
+      {
+        "name": "texture.frag.spvasm",
+        "sha256": "3db5f554ed742f42c18dd43b59ce3513232608ad3ddb7748a64cc675324cabef",
+        "size_bytes": 2831
+      },
+      {
+        "name": "texture.frag.reflection.json",
+        "sha256": "0166008633bee6f98855ddc8ce77f697ac1ae8ef2f14eaf1d75817e5818e1d0f",
+        "size_bytes": 2807
+      },
+      {
+        "name": "triangle.vert.metal",
+        "sha256": "04caad29b3dc85af1a3a1670e2b4a0082e2ac171e2608423e3e1ae998e2f3b06",
+        "size_bytes": 860
+      },
+      {
+        "name": "triangle.vert.air",
+        "sha256": "a172b57a46fb3e3116ea0c47ac9a26d76ec4c0b77c56f8b53eb83a7ffdd206fd",
+        "size_bytes": 3632
+      },
+      {
+        "name": "triangle.vert.air.ll",
+        "sha256": "69e562f1ebf56502db3b91c2147bcd0af32528f5b81ddfea56e6e7ff7b8b8615",
+        "size_bytes": 4109
+      },
+      {
+        "name": "triangle.vert.metallib",
+        "sha256": "e23f20572a1599aa86f20bcabead0559532f508e92032f2fc5c6c4044e183ff1",
+        "size_bytes": 3941
+      },
+      {
+        "name": "triangle.vert.spv",
+        "sha256": "fc940612e95a4bd0eacf509ada80e9ebc7b8a36605fe50f406cf227ed4f859f1",
+        "size_bytes": 1212
+      },
+      {
+        "name": "triangle.vert.spvasm",
+        "sha256": "7ac96fc440f3ab66780d3d5f26a76bd24211f842aa4e0c2969f1f1ff17337087",
+        "size_bytes": 3302
+      },
+      {
+        "name": "triangle.vert.reflection.json",
+        "sha256": "49036743e506fd556cd6370f681cf10a6bf3da3cbd35cf18e2dd20e8ac5c8d9b",
+        "size_bytes": 2997
+      },
+      {
+        "name": "solid.frag.metal",
+        "sha256": "4bb86f8392fab260c53cbc76cb6fc145d48c7108114c6d75858886733b6cb1b3",
+        "size_bytes": 377
+      },
+      {
+        "name": "solid.frag.air",
+        "sha256": "04af7fd40b5cf67d63b446bde718db58b13de4fb9ffccd4c0faf88269561d8c5",
+        "size_bytes": 3344
+      },
+      {
+        "name": "solid.frag.air.ll",
+        "sha256": "31255a8b6c324abea40558b88db7ad0fb62db1e47e462d3a26cd95efbd647a87",
+        "size_bytes": 2925
+      },
+      {
+        "name": "solid.frag.metallib",
+        "sha256": "3ef56a5d1423d3e5808163085ec980ee555dd6cc2126dd3ead9fa64d0bd7e356",
+        "size_bytes": 3652
+      },
+      {
+        "name": "solid.frag.spv",
+        "sha256": "f774819d177b9db7a0eb30feb350cd4b54c4316cba45f7aa06895eec9622f8e4",
+        "size_bytes": 568
+      },
+      {
+        "name": "solid.frag.spvasm",
+        "sha256": "8967fe8cc079410a39094fb250a9457750a39082bc6d98dfd32936d34801b245",
+        "size_bytes": 1702
+      },
+      {
+        "name": "solid.frag.reflection.json",
+        "sha256": "c8576f2ecea56ba7e08f16a6c1beb30b5c9368c4fc972c44e54713c852d20136",
+        "size_bytes": 2993
+      }
+    ],
+    "results": {
+      "compilation": "passed",
+      "translation": "passed",
+      "spirv_validation": "passed",
+      "reflection_spirv_contract": "passed",
+      "metal_execution": "not-run",
+      "radeon_execution": "not-run"
+    }
+  },
+  "tool_sources": [
+    {
+      "name": "Vulkan-Headers",
+      "tag": "vulkan-sdk-1.4.350.0",
+      "revision": "8864cdc896bbc2a9b6eb36b3218fc9ef57908d77"
+    },
+    {
+      "name": "Vulkan-Loader",
+      "tag": "vulkan-sdk-1.4.350.0",
+      "revision": "a9e72c66d5cb79911eb9a9063bf4016dd0a3a123"
+    },
+    {
+      "name": "glslang",
+      "tag": "vulkan-sdk-1.4.350.0",
+      "revision": "275822a6261ee689aadb1da5f09a0ec2f058685c"
+    }
+  ],
+  "additional_versions": {
+    "glslang": "16.3.0",
+    "vulkan_loader": "1.4.350",
+    "cmake": "4.4.3",
+    "python": "3.9.6",
+    "cargo": "1.98.1",
+    "clang": "17.0.0 (clang-1700.6.4.2)"
+  },
+  "tests": {
+    "rust": {
+      "passed": 15,
+      "failed": 0,
+      "filtered": 4,
+      "suites": [
+        {
+          "name": "apple_graphics",
+          "passed": 4,
+          "failed": 0,
+          "filtered": 0
+        },
+        {
+          "name": "apple_vector_add",
+          "passed": 1,
+          "failed": 0,
+          "filtered": 0
+        },
+        {
+          "name": "deterministic_output",
+          "passed": 4,
+          "failed": 0,
+          "filtered": 2
+        },
+        {
+          "name": "env_registry",
+          "passed": 3,
+          "failed": 0,
+          "filtered": 0
+        },
+        {
+          "name": "reflection_access_covers_the_module",
+          "passed": 1,
+          "failed": 0,
+          "filtered": 1
+        },
+        {
+          "name": "reflection_describes_each_resource_once",
+          "passed": 2,
+          "failed": 0,
+          "filtered": 1
+        }
+      ]
+    },
+    "ctest": {
+      "passed": 13,
+      "failed": 0,
+      "tests": [
+        "graphics_reference_standalone",
+        "metal_graphics_contract",
+        "metal_graphics_contract_mutations",
+        "reject_metal_under_glsl_profile",
+        "verifier_and_device_selection",
+        "control_shader_contract",
+        "reject_wrong_entry",
+        "require_explicit_pci_id",
+        "graphics_reference_and_verifier",
+        "graphics_require_explicit_pci_id",
+        "reject_mixed_graphics_compute",
+        "glsl_graphics_contract",
+        "reject_glsl_under_metal_profile"
+      ],
+      "gpu_execution": false
+    },
+    "ctest_software_only": {
+      "passed": 4,
+      "failed": 0,
+      "vulkan_sdk_required": false
+    },
+    "python": {
+      "passed": 8,
+      "failed": 0
+    },
+    "full_rust_suite": {
+      "status": "blocked-by-previously-documented-missing-fixtures",
+      "missing_fixtures": 3,
+      "new_full_suite_run": false
+    }
+  },
+  "rebuild": {
+    "status": "passed",
+    "source_copy": "baseline plus tested changes; no old target or private fixtures",
+    "cargo_offline": true,
+    "dependencies_previously_cached": true,
+    "rust_suites": [
+      {
+        "name": "apple_graphics",
+        "passed": 4,
+        "failed": 0,
+        "filtered": 0
+      },
+      {
+        "name": "apple_vector_add",
+        "passed": 1,
+        "failed": 0,
+        "filtered": 0
+      },
+      {
+        "name": "deterministic_output",
+        "passed": 4,
+        "failed": 0,
+        "filtered": 2
+      },
+      {
+        "name": "env_registry",
+        "passed": 3,
+        "failed": 0,
+        "filtered": 0
+      },
+      {
+        "name": "reflection_access_covers_the_module",
+        "passed": 1,
+        "failed": 0,
+        "filtered": 1
+      },
+      {
+        "name": "reflection_describes_each_resource_once",
+        "passed": 2,
+        "failed": 0,
+        "filtered": 1
+      }
+    ],
+    "source_fingerprint_matches": true,
+    "comparisons": [
+      {
+        "name": "fullscreen.vert.metal",
+        "sha256": "b4a1b15fd1ba5118f77cf8b7a3912fdf5e5aac295f4940c06366ae9bb1f77550",
+        "identical": true
+      },
+      {
+        "name": "fullscreen.vert.air",
+        "sha256": "547fef7ee7ebf7a27ac8126ea1a4e2227ee3f30877c896d7aad391752106b032",
+        "identical": true
+      },
+      {
+        "name": "fullscreen.vert.air.ll",
+        "sha256": "07d57b6dfd52f82d56138d9f7544dd50587dc427306ba213d36e83c272f51fc6",
+        "identical": true
+      },
+      {
+        "name": "fullscreen.vert.metallib",
+        "sha256": "7a0a580c18f3eec417fd807a65203fc53d6cde760b91310627ae48c78967a979",
+        "identical": true
+      },
+      {
+        "name": "fullscreen.vert.spv",
+        "sha256": "14c3f92353039b6794ee1835f754ead96f283bca44787fbfd56f4aa9b8295a12",
+        "identical": true
+      },
+      {
+        "name": "fullscreen.vert.spvasm",
+        "sha256": "4dd5614165774dea0f1544d2acf0df520abe4728afa5320d4a3c0c628929b41d",
+        "identical": true
+      },
+      {
+        "name": "fullscreen.vert.reflection.json",
+        "sha256": "ca2670bcc1ed8d033732d2d62f79126c959c285b9b208b1b1291cb340e8d9053",
+        "identical": true
+      },
+      {
+        "name": "texture.frag.metal",
+        "sha256": "e499982886913cd5d928a4af8559aaf50461246cff144b755688d67a716e5143",
+        "identical": true
+      },
+      {
+        "name": "texture.frag.air",
+        "sha256": "8f2d68d543946b762607afd332e02190fbc485159f7a8bf35ed265c47c98b2af",
+        "identical": true
+      },
+      {
+        "name": "texture.frag.air.ll",
+        "sha256": "c1c723dd19e8f1077fde09d249d1439972bb1b4a457cbfd3637666ec01ada079",
+        "identical": true
+      },
+      {
+        "name": "texture.frag.metallib",
+        "sha256": "42043866c6cb5501fedd038bcb7c85cd6affb9c7ebce7a39216fc1a38005fc1b",
+        "identical": true
+      },
+      {
+        "name": "texture.frag.spv",
+        "sha256": "d198f7c756892bdf3e58b14e3353b43c19cf6323dcf2ba091ee1a76ae0abcbb2",
+        "identical": true
+      },
+      {
+        "name": "texture.frag.spvasm",
+        "sha256": "3db5f554ed742f42c18dd43b59ce3513232608ad3ddb7748a64cc675324cabef",
+        "identical": true
+      },
+      {
+        "name": "texture.frag.reflection.json",
+        "sha256": "0166008633bee6f98855ddc8ce77f697ac1ae8ef2f14eaf1d75817e5818e1d0f",
+        "identical": true
+      },
+      {
+        "name": "triangle.vert.metal",
+        "sha256": "04caad29b3dc85af1a3a1670e2b4a0082e2ac171e2608423e3e1ae998e2f3b06",
+        "identical": true
+      },
+      {
+        "name": "triangle.vert.air",
+        "sha256": "a172b57a46fb3e3116ea0c47ac9a26d76ec4c0b77c56f8b53eb83a7ffdd206fd",
+        "identical": true
+      },
+      {
+        "name": "triangle.vert.air.ll",
+        "sha256": "69e562f1ebf56502db3b91c2147bcd0af32528f5b81ddfea56e6e7ff7b8b8615",
+        "identical": true
+      },
+      {
+        "name": "triangle.vert.metallib",
+        "sha256": "e23f20572a1599aa86f20bcabead0559532f508e92032f2fc5c6c4044e183ff1",
+        "identical": true
+      },
+      {
+        "name": "triangle.vert.spv",
+        "sha256": "fc940612e95a4bd0eacf509ada80e9ebc7b8a36605fe50f406cf227ed4f859f1",
+        "identical": true
+      },
+      {
+        "name": "triangle.vert.spvasm",
+        "sha256": "7ac96fc440f3ab66780d3d5f26a76bd24211f842aa4e0c2969f1f1ff17337087",
+        "identical": true
+      },
+      {
+        "name": "triangle.vert.reflection.json",
+        "sha256": "49036743e506fd556cd6370f681cf10a6bf3da3cbd35cf18e2dd20e8ac5c8d9b",
+        "identical": true
+      },
+      {
+        "name": "solid.frag.metal",
+        "sha256": "4bb86f8392fab260c53cbc76cb6fc145d48c7108114c6d75858886733b6cb1b3",
+        "identical": true
+      },
+      {
+        "name": "solid.frag.air",
+        "sha256": "04af7fd40b5cf67d63b446bde718db58b13de4fb9ffccd4c0faf88269561d8c5",
+        "identical": true
+      },
+      {
+        "name": "solid.frag.air.ll",
+        "sha256": "31255a8b6c324abea40558b88db7ad0fb62db1e47e462d3a26cd95efbd647a87",
+        "identical": true
+      },
+      {
+        "name": "solid.frag.metallib",
+        "sha256": "3ef56a5d1423d3e5808163085ec980ee555dd6cc2126dd3ead9fa64d0bd7e356",
+        "identical": true
+      },
+      {
+        "name": "solid.frag.spv",
+        "sha256": "f774819d177b9db7a0eb30feb350cd4b54c4316cba45f7aa06895eec9622f8e4",
+        "identical": true
+      },
+      {
+        "name": "solid.frag.spvasm",
+        "sha256": "8967fe8cc079410a39094fb250a9457750a39082bc6d98dfd32936d34801b245",
+        "identical": true
+      },
+      {
+        "name": "solid.frag.reflection.json",
+        "sha256": "c8576f2ecea56ba7e08f16a6c1beb30b5c9368c4fc972c44e54713c852d20136",
+        "identical": true
+      }
+    ],
+    "clean_translator_sha256": "87954bb14a46f085bde76fd0be6a6319bd046544d69eee5914b83ac34a6dbc8b",
+    "debug_executable_identity_claimed": false
+  },
+  "admission": {
+    "schema_version": 2,
+    "status": "contract-checked",
+    "mode": "graphics-contract",
+    "code_revision": "d88a37dd716afee945a2ff8169412b1f2dd89f6b",
+    "error": "",
+    "expected_vendor_id": 4098,
+    "expected_device_id": 0,
+    "shader": "",
+    "entry_point": "main",
+    "fence_timeout_ns": 5000000000,
+    "shader_int64_required": false,
+    "shader_int8_required": true,
+    "validation_enabled": false,
+    "synchronization_validation_enabled": false,
+    "validation_errors": 0,
+    "devices": [],
+    "selected_device": null,
+    "queue_family": 0,
+    "allocations": [],
+    "cases": [],
+    "graphics": {
+      "shader_origin": "metal-air",
+      "format": "R8G8B8A8_UNORM",
+      "samples": 1,
+      "guard_bytes_each_side": 64,
+      "subpixel_precision_bits": 0,
+      "optimal_tiling_format_features": 0,
+      "cases": []
+    }
+  },
+  "default_bindless_rejection": {
+    "status": "expected-failure",
+    "python_error": "texture.frag: descriptor ABI",
+    "reflected_descriptors": [
+      [
+        0,
+        32
+      ],
+      [
+        0,
+        160
+      ],
+      [
+        0,
+        640
+      ]
+    ],
+    "emitted_descriptors": [
+      [
+        0,
+        160
+      ],
+      [
+        0,
+        640
+      ],
+      [
+        2,
+        0
+      ]
+    ],
+    "cpp_result": {
+      "schema_version": 2,
+      "status": "failed",
+      "mode": "graphics-contract",
+      "code_revision": "d88a37dd716afee945a2ff8169412b1f2dd89f6b",
+      "error": "Capability outside graphics profile (bindless is unsupported)",
+      "expected_vendor_id": 4098,
+      "expected_device_id": 0,
+      "shader": "",
+      "entry_point": "main",
+      "fence_timeout_ns": 5000000000,
+      "shader_int64_required": false,
+      "shader_int8_required": false,
+      "validation_enabled": false,
+      "synchronization_validation_enabled": false,
+      "validation_errors": 0,
+      "devices": [],
+      "selected_device": null,
+      "queue_family": 0,
+      "allocations": [],
+      "cases": [],
+      "graphics": {
+        "shader_origin": "metal-air",
+        "format": "R8G8B8A8_UNORM",
+        "samples": 1,
+        "guard_bytes_each_side": 64,
+        "subpixel_precision_bits": 0,
+        "optimal_tiling_format_features": 0,
+        "cases": []
+      }
+    },
+    "default_shader_sha256": "438dba7da6fb3789376f3978599a9a2e0337182c001948419b8a4af048e4e6be",
+    "general_bindless_reflection_fixed": false
+  },
+  "harness_changes": {
+    "profiles": [
+      "glsl-control",
+      "metal-air"
+    ],
+    "metal_descriptors": {
+      "image": [
+        0,
+        32
+      ],
+      "sampler": [
+        0,
+        160
+      ],
+      "draw_params": [
+        0,
+        0
+      ]
+    },
+    "draw_params_bytes": 32,
+    "draw_buffer_descriptor": "STORAGE_BUFFER_DYNAMIC",
+    "draw_offsets_aligned_to": "minStorageBufferOffsetAlignment",
+    "draw_regions_written_before_submission": true,
+    "draw_buffer_entire_allocation_compared_after_fence": true,
+    "shader_int8_checked_and_enabled_when_required": true,
+    "cached_admitted_shader_bytes_used_for_module_creation": true,
+    "windows_wrapper_execution": "not-run"
+  },
+  "build_diagnostics": {
+    "status": "passed",
+    "missing_field_initializer_warnings": 56,
+    "errors": 0
+  },
+  "tested_inputs": [
+    {
+      "name": ".gitattributes",
+      "sha256": "831489bc887e912dbd7a6eef380e41ff75881130b18847fcc91c623709716d5b"
+    },
+    {
+      "name": "tests/vulkan/CMakeLists.txt",
+      "sha256": "0ceb37da96158d9886ba20c9fdbd77c695c75cebb60444803c9ef09530aed1b2"
+    },
+    {
+      "name": "tests/vulkan/main.cpp",
+      "sha256": "9b217726ce89ee3eaa6394a99f45934becb8d38f00fa35ffe1d596e18b72e1d9"
+    },
+    {
+      "name": "tests/vulkan/offscreen.h",
+      "sha256": "2451bb2936b6453b160b4323b081c3f410244b3f54d3e026181957fab45a37a8"
+    },
+    {
+      "name": "tests/vulkan/offscreen_reference.h",
+      "sha256": "1083215cd409e704f172a929745c439a2f6708037a8c7673d858dd89d01f7acf"
+    },
+    {
+      "name": "tests/vulkan/graphics_shader_contract.h",
+      "sha256": "f757f4b5a13cefb7e373b81885300e7fd9556a3a8d6ff7e843b5853cc7c9b8d5"
+    },
+    {
+      "name": "tests/vulkan/graphics_contract_test.cpp",
+      "sha256": "3c01205e31bd5ce2ba39411f3de5b8be2722d7582426a20a00910faea5f3fb03"
+    },
+    {
+      "name": "tools/build-translator.sh",
+      "sha256": "f826a87208ae9eb7e7936953fcb69826a3b0eb64b45392c5a967c8106781a52e"
+    },
+    {
+      "name": "tools/build-translator.ps1",
+      "sha256": "ebc639dd67eedf646af3d7b2fad6eaa6a8bd90e1e5a3fc9e1d17054adce6015a"
+    },
+    {
+      "name": "tools/run-windows-graphics-probe.ps1",
+      "sha256": "d92d59ff14e68e826c534f44e70657657f218738f849ad9317beaadb0247f593"
+    },
+    {
+      "name": "tools/compile-metal-graphics.py",
+      "sha256": "548a681e29589706024ec2e67de607663aaf8302cb03dfe25b54a82132ec047e"
+    },
+    {
+      "name": "tests/tools/test_metal_graphics.py",
+      "sha256": "100642f70b423fcef015772026fdde551b790d7e58552b1000b57093878bb78b"
+    },
+    {
+      "name": "translator/translator/tests/apple_graphics.rs",
+      "sha256": "0cbfe1aa0190f511b0a59e886b408f4d70df18626be5c17c4b7c81dcd2dc3f45"
+    }
+  ],
+  "test_binaries": [
+    {
+      "name": "amd_gpu_probe",
+      "sha256": "177f1c68e6f9efd3a17f9ca030f75317b98ce7ebbe26a5c42986404710015c6f"
+    },
+    {
+      "name": "graphics_contract_test",
+      "sha256": "387d949f15341475a3f8d949ebc367001fb648751a4eca9e52e07e0c0f5c0b3d"
+    }
+  ],
+  "gpu_execution": {
+    "selected_device": null,
+    "cases_executed": 0,
+    "metal": "not-run",
+    "radeon": "not-run",
+    "expected_next_cases": 48,
+    "shader_render_cases": 33,
+    "transfer_only_cases": 15,
+    "texture_tolerance": 0,
+    "colored_scene_tolerance": 1,
+    "maximum_error_observed": null
+  },
+  "limits": [
+    "No numerical/pixel equivalence established for these new shaders",
+    "Modified Windows wrapper and Radeon harness must be replayed",
+    "Default bindless reflection remains inconsistent for this texture",
+    "shaderInt8 availability on the Radeon not probed here",
+    "No texture filtering beyond nearest/single mip",
+    "No RADV Darwin, AMD kext or Metal plugin validation"
+  ],
+  "local_evidence": [
+    "out/translator-graphics-build.log",
+    "out/metal-graphics-python-tests.log",
+    "out/vulkan-graphics-mac-build.log",
+    "out/vulkan-graphics-mac-tests.log",
+    "out/metal-graphics-admission.json",
+    "out/graphics-clean-translator.log",
+    "out/graphics-clean-metal/",
+    "out/metal-graphics-bindless-rejected/",
+    "out/glslang-graphics-build.log",
+    "out/vulkan-loader-graphics-build.log"
+  ],
+  "recovery": "not required; no experimental driver installed and no GPU work submitted"
+}
