@@ -1,0 +1,11 @@
+#version 450
+// Infrastructure control shader. This is not evidence for Metal -> AIR translation.
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+layout(set = 0, binding = 0, std430) readonly buffer A { uint a[]; };
+layout(set = 0, binding = 1, std430) readonly buffer B { uint b[]; };
+layout(set = 0, binding = 2, std430) buffer Output { uint result[]; };
+layout(set = 0, binding = 3, std430) readonly buffer Params { uint count; uint offset; };
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i < count) result[i + offset] = a[i + offset] + b[i + offset];
+}

@@ -4,7 +4,7 @@ Cette feuille de route décrit le développement pour le PC **Ryzen 5 5600X + RX
 
 L'architecture, le périmètre et les références sont détaillés dans [README.md](README.md).
 
-**État initial : documentation créée ; aucune étape technique validée.** Les cases ci-dessous restent ouvertes tant que les preuves correspondantes n'existent pas.
+**État au 7 octobre 2026 : étapes 0 et 1 commencées, banc Windows de l'étape 2 compilé.** Le traducteur et 10 tests logiciels ciblés passent sous Windows ; 4 tests du banc et le refus d'une cible absente sont vérifiés. Aucune étape complète ni exécution sur Radeon n'est validée. Preuves et limites : [premier rapport](docs/reports/2026-10-07-bootstrap.md).
 
 ## Principes de progression
 
@@ -38,11 +38,11 @@ La préparation de Tahoe peut avancer en parallèle des étapes 1 et 2. L'intég
 - [ ] Relever le fabricant de la Radeon, son VBIOS, ses identifiants PCI et de sous-système.
 - [ ] Choisir l'écran et le connecteur utilisés pour la première qualification.
 - [ ] Relever le modèle du Mac, son système, Xcode et les SDK disponibles.
-- [ ] Créer une branche de développement dédiée dans le fork.
+- [x] Créer une branche de développement dédiée dans le fork (`codex/amd-validation-bootstrap`).
 - [ ] Fixer les révisions du fork, du projet AMD, de Mesa, de MacKernelSDK et des firmwares.
-- [ ] Inventorier les fonctions Metal génériques et les dépendances directes à NVK, NVRM, NVIDIAShared et NVENC.
-- [ ] Définir les contrats du backend AMD : buffers, images, mémoire partagée, commandes, synchronisation et présentation.
-- [ ] Inventorier les licences et notices à conserver.
+- [x] Inventorier les fonctions Metal génériques et les dépendances directes à NVK, NVRM, NVIDIAShared et NVENC ([audit initial](docs/AMD-INTEGRATION.md), wrapper à approfondir).
+- [x] Définir les contrats du backend AMD : buffers, images, mémoire partagée, commandes, synchronisation et présentation ([contrat proposé](docs/AMD-INTEGRATION.md), implémentation et qualification à faire).
+- [x] Inventorier les licences et notices à conserver ([inventaire initial](docs/AMD-INTEGRATION.md), MacKernelSDK et redistribution à vérifier).
 
 **Livrable :** inventaire matériel et logiciel, architecture d'intégration et liste des dépendances figées.
 
@@ -50,7 +50,7 @@ La préparation de Tahoe peut avancer en parallèle des étapes 1 et 2. L'intég
 
 ## Étape 1 — Rendre la compilation reproductible
 
-- [ ] Compiler le traducteur Rust et lancer ses tests logiciels pertinents.
+- [x] Compiler le traducteur Rust et lancer ses tests logiciels pertinents (CLI Windows, 10 tests ciblés réussis ; suite complète bloquée par corpus absent ; Mac à vérifier).
 - [ ] Installer et qualifier les outils de compilation Metal et de validation SPIR-V.
 - [ ] Compiler le pilote AMD pour x86_64 avec MacKernelSDK.
 - [ ] Construire Mesa à la révision attendue et appliquer les adaptations RADV Darwin dans l'ordre prévu.
@@ -69,7 +69,7 @@ Les éléments produits ici sont des artefacts de test. Ils ne sont pas encore q
 
 ## Étape 2 — Vérifier les shaders AMD sous Windows
 
-- [ ] Développer un petit programme Vulkan Windows sélectionnant explicitement la RX 9070 XT.
+- [x] Développer un petit programme Vulkan Windows sélectionnant explicitement la RX 9070 XT (compilé, refus d'autres GPU vérifié ; exécution Radeon à faire).
 - [ ] Enregistrer l'identité du GPU, le pilote et les capacités utilisées.
 - [ ] Compiler sur le Mac des shaders Metal écrits pour le projet et conserver leurs sources et leur AIR.
 - [ ] Traduire ces shaders avec le traducteur du fork et valider le SPIR-V.
@@ -220,6 +220,8 @@ Ces travaux seront classés après les premiers résultats :
 
 ## Prochaine action
 
-Commencer par les **étapes 0 et 1**, puis construire le **banc de tests Windows de l'étape 2**. En parallèle, préparer le démarrage Tahoe de référence et son moyen de récupération.
+La liste opérationnelle des tâches et blocages est dans [Travail restant](docs/NEXT-STEPS.md).
+
+Compléter l'inventaire sur le PC cible et le Mac, puis exécuter le [banc Windows](docs/VALIDATION-WINDOWS.md) déjà compilé sur la Radeon. Produire ensuite le premier AIR sur le Mac et comparer son calcul traduit. Poursuivre le verrouillage MacKernelSDK/firmwares et la compilation AMD des **étapes 0 et 1**. La préparation du démarrage Tahoe et de son moyen de récupération reste ouverte.
 
 Le premier succès à rechercher est un shader Metal écrit pour le projet, traduit en SPIR-V et exécuté avec un résultat correct sur la RX 9070 XT sous Windows. Il permettra de qualifier une partie réutilisable du fork avant les essais noyau sous macOS.

@@ -1,0 +1,4 @@
+/out/
+/reports/local/
+**/target/
+**/.DS_Store

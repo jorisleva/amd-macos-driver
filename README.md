@@ -4,9 +4,13 @@ Projet expérimental de développement d'un pilote graphique pour une **AMD Rade
 
 L'objectif est de réutiliser la couche Metal du fork NVIDIA de NullMoth, puis de la raccorder à un backend AMD composé de **Mesa RADV** et d'un pilote noyau pour Navi 48.
 
-**Statut : cadrage technique et documentation.** Ce dossier ne fournit pas encore de pilote installable. Aucune compilation ni aucun essai matériel du futur assemblage AMD n'a été réalisé. Le fork existant contient toujours le pilote NVIDIA.
+**Statut : premier banc de validation Windows et compilation du traducteur.** Le CLI Rust compile, 10 tests logiciels ciblés passent et le banc Vulkan x64 compile avec 4 tests logiciels réussis. Le refus d'une Radeon absente est vérifié. Aucun calcul sur RX 9070 XT, aucune compilation macOS ni aucun essai matériel du futur assemblage AMD n'a été réalisé. Ce dossier ne fournit pas encore de pilote installable ; le fork contient toujours le pilote NVIDIA.
 
 La progression et les conditions de passage entre étapes sont décrites dans [ROADMAP.md](ROADMAP.md).
+
+Le [guide du banc Windows](docs/VALIDATION-WINDOWS.md) donne les commandes de compilation, d'inventaire et de test. L'[audit AMD](docs/AMD-INTEGRATION.md), le [manifeste des sources](dependencies/sources.lock.json) et le [premier rapport](docs/reports/2026-10-07-bootstrap.md) distinguent les résultats obtenus des dépendances et essais encore manquants.
+
+Les prochaines actions et blocages sont résumés dans [Travail restant](docs/NEXT-STEPS.md).
 
 ## Configuration cible
 
