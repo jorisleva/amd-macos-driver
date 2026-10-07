@@ -47,7 +47,7 @@ $artifacts = foreach ($path in @($exe, $Shader, $Reflection) | Where-Object { $_
     [ordered]@{ name = [IO.Path]::GetFileName($path); sha256 = $hash.Hash.ToLowerInvariant() }
 }
 # Include hashes of all build inputs so uncommitted edits are distinguishable without personal paths.
-$inputs = foreach ($path in @('tests/vulkan/main.cpp', 'tests/vulkan/CMakeLists.txt', 'tests/vulkan/shaders/vector_add.comp', 'tests/shaders/vector_add.metal', 'tests/shaders/vector_add.synthetic.ll', 'tools/run-windows-probe.ps1', 'tools/initialize-windows-dev.ps1', 'tools/prepare-windows-vulkan-sdk.ps1')) {
+$inputs = foreach ($path in @('tests/vulkan/main.cpp', 'tests/vulkan/offscreen.h', 'tests/vulkan/offscreen_reference.h', 'tests/vulkan/CMakeLists.txt', 'tests/vulkan/shaders/vector_add.comp', 'tests/vulkan/shaders/fullscreen.vert', 'tests/vulkan/shaders/triangle.vert', 'tests/vulkan/shaders/texture.frag', 'tests/vulkan/shaders/solid.frag', 'tests/shaders/vector_add.metal', 'tests/shaders/vector_add.synthetic.ll', 'tools/run-windows-probe.ps1', 'tools/initialize-windows-dev.ps1', 'tools/prepare-windows-vulkan-sdk.ps1')) {
     [ordered]@{ name = $path; sha256 = (Get-FileHash -LiteralPath (Join-Path $repoRoot $path) -Algorithm SHA256).Hash.ToLowerInvariant() }
 }
 [ordered]@{
