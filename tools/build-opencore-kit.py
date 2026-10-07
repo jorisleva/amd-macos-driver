@@ -198,6 +198,9 @@ def main():
     for folder in ('BOOT', 'OC/Drivers', 'OC/Kexts', 'OC/ACPI', 'OC/Tools'):
         (efi/folder).mkdir(parents=True)
     shutil.copyfile(oc_src/'BOOT/BOOTx64.efi', efi/'BOOT/BOOTx64.efi')
+    # The first USB trial exposed BOOTx64 as a second, self-launching entry.
+    # OpenCore honours this marker when scanning; firmware boot remains available.
+    (efi/'BOOT/.contentVisibility').write_bytes(b'Disabled')
     shutil.copyfile(oc_src/'OC/OpenCore.efi', efi/'OC/OpenCore.efi')
     for name in ('OpenRuntime.efi', 'OpenHfsPlus.efi'):
         shutil.copyfile(oc_src/'OC/Drivers'/name, efi/'OC/Drivers'/name)
@@ -237,6 +240,9 @@ def main():
     shutil.copyfile(PROFILE/'sources.lock.json', notices/'sources.lock.json')
     shutil.copyfile(PROFILE/'profile.json', output/'machine-profile.json')
     shutil.copyfile(ROOT/'docs/OPENCORE-TAHOE.md', output/'LIRE-AVANT-DEMARRAGE.md')
+    recovery_boot = output/'com.apple.recovery.boot'
+    recovery_boot.mkdir()
+    (recovery_boot/'.contentDetails').write_bytes(b'Installer macOS Tahoe (Recovery)')
     readme = 'EFI pour essais Tahoe / Ryzen 5600X / B550M DS3H FD / RX 9070 XT.\n'
     readme += 'Préparation validée par ocvalidate, démarrage matériel NON testé.\n'
     readme += 'Aucun installateur macOS inclus. Voir LIRE-AVANT-DEMARRAGE.md.\n'

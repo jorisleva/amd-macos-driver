@@ -26,6 +26,10 @@ Vulkan : leurs 96 fichiers RGBA correspondent au contrôle GLSL rejoué.
 Les deux calculs passent 36 cas chacun et les trois rejets attendus passent.
 Preuve : [rapport Metal/Radeon et support USB](reports/2026-10-07-metal-graphics-radeon.md).
 Le support USB est préparé ; le boot Tahoe et le pilote macOS restent ouverts.
+Le premier essai charge la récupération jusqu'au passage vers macOS, mais
+l'utilisateur signale un blocage. Le menu a été corrigé ; la dernière ligne
+visible à l'écran manque pour cibler le correctif suivant.
+Preuve : [diagnostic des journaux USB](reports/2026-10-07-tahoe-boot.md).
 
 ## Prochaines actions, dans l'ordre
 
@@ -48,7 +52,9 @@ Le support USB est préparé ; le boot Tahoe et le pilote macOS restent ouverts.
    D: OPENCORE contient l'EFI sans accélération et la récupération Apple
    26.6.2 / 25G83 ; E: TAHOEFILES contient le paquet complet 26.7.1 / 25G241
    et l'EFI de secours. Régler l'UEFI selon le [guide](OPENCORE-TAHOE.md),
-   choisir le disque USB via F12 puis macOS Base System, Ethernet branché.
+   choisir le disque USB via F12 puis **Installer macOS Tahoe (Recovery)**,
+   Ethernet branché. Au blocage, relever les dernières lignes visibles à
+   l'écran : le journal OpenCore seul s'arrête à `EXITBS:START`.
    Qualifier affichage, clavier, stockage, réseau, build installé et secours.
    Les fichiers et les deux EFI copiés sont validés ; le boot physique reste ouvert.
 4. **Construire et auditer l'assemblage AMD sur Mac.** Qualifier Navi48,

@@ -48,6 +48,8 @@ voisine `.zip`. Dans le kit :
 
 - `EFI/` : profil de référence sans accélération, menu OpenCore avec choix manuel.
 - `recovery/EFI/` : même identité et mêmes composants, avec `-x` (mode sans échec).
+- `com.apple.recovery.boot/.contentDetails` : libellé de la récupération,
+  à copier avec les fichiers Apple sur le support USB ; aucun DMG dans le kit.
 - `validation/` : journaux de compilation ACPI, deux validations `ocvalidate`
   et vérification des invariants du profil.
 - `SHA256SUMS.json`, `machine-profile.json`, `NOTICES/` : empreintes,
@@ -74,6 +76,19 @@ mais son installation nécessite Ethernet et Internet. Le paquet complet
 26.7.1 / 25G241 sur E: sert au transfert vers le Mac pour préparer un
 installateur hors ligne ; il n'est pas utilisé hors ligne par la récupération.
 Le démarrage physique et l'affichage de base restent à qualifier.
+
+Les deux essais USB du 7 octobre sont maintenant relevés : le premier a
+sélectionné une entrée qui relançait OpenCore, le second a chargé la récupération
+jusqu'à `EXITBS:START`. Ce dernier message est une frontière de journalisation,
+pas à lui seul la preuve de la cause du blocage signalé. Les messages visibles
+ensuite à l'écran restent à relever. Voir le [diagnostic](reports/2026-10-07-tahoe-boot.md).
+
+Le menu corrigé masque cette entrée OpenCore avec
+`EFI/BOOT/.contentVisibility` contenant `Disabled`, et nomme la récupération
+**Installer macOS Tahoe (Recovery)** avec
+`com.apple.recovery.boot/.contentDetails`. Ces marqueurs sont documentés par
+[OpenCore 1.0.8](https://github.com/acidanthera/OpenCorePkg/blob/1.0.8/Docs/Configuration.tex).
+Ils ne modifient pas le fichier `config.plist` ni le démarrage USB depuis F12.
 
 OpenCore **1.0.8 DEBUG**, Lilu **1.7.2**, VirtualSMC **1.3.8**, WhateverGreen
 **1.7.1**, RestrictEvents **1.1.6**, RealtekRTL8111 **3.0.0**, USBToolBox
@@ -164,7 +179,7 @@ le démarrage effectif d'un OS peut néanmoins modifier la NVRAM.
    Utiliser le menu Gigabyte **F12**
    pour ce premier démarrage et sélectionner la clé en UEFI. Le générateur
    ne réalise pas cette copie et n'altère pas l'EFI Windows.
-5. **Choisir l'installateur dans le menu OpenCore.** Un seul écran directement
+5. **Choisir Installer macOS Tahoe (Recovery) dans le menu OpenCore.** Un seul écran directement
    connecté à la Radeon, clavier USB filaire et câble Ethernet. Si un blocage
    survient : relever le dernier message, le connecteur, le build Tahoe et
    conserver le journal `opencore-*.txt` de la clé. Ne pas activer de pilote
