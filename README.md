@@ -4,7 +4,7 @@ Projet expérimental de développement d'un pilote graphique pour une **AMD Rade
 
 L'objectif est de réutiliser la couche Metal du fork NVIDIA de NullMoth, puis de la raccorder à un backend AMD composé de **Mesa RADV** et d'un pilote noyau pour Navi 48.
 
-**Statut : calcul Apple AIR et premier rendu de contrôle validés sur la RX 9070 XT sous Windows.** Le shader `vector_add`, compilé sur Mac puis traduit en SPIR-V par le fork, passe les 36 cas en mémoire hôte et via staging/VRAM. Le nouveau banc graphique passe 48 cas de copie de texture, échantillonnage, triangle et mélange alpha : tous les pixels RGBA correspondent exactement à la référence CPU, avec zéro écart de gardes/entrées et zéro erreur Vulkan/synchronisation. Les quatre équivalents graphiques Metal sont maintenant compilés en AIR et traduits en SPIR-V ; 28 artefacts sont reproduits à l'identique, avec 15 tests Rust ciblés, 13 CTest et 8 tests Python réussis sur Mac. Les 11 tests Rust et 7 CTest précédents restent validés sous Windows. **Le rendu GPU du nouveau corpus graphique Metal/AIR et le banc adapté restent à rejouer sur Radeon.** L'assemblage AMD et le rendu sous macOS restent à valider. Ce dossier ne fournit pas encore de pilote installable ; le fork contient toujours le pilote NVIDIA.
+**Statut : calcul et rendu Apple AIR validés sur la RX 9070 XT sous Windows.** Les quatre shaders graphiques compilés sur Mac et traduits en SPIR-V passent les 48 cas du banc Radeon : 330 984 pixels RGBA exactement conformes, aucun écart de gardes/entrées et aucune erreur Vulkan/synchronisation. Leurs 96 fichiers RGBA sont identiques à ceux du contrôle GLSL rejoué. Le calcul Apple et le contrôle GLSL passent 36 cas chacun ; les trois rejets attendus, 15 tests Rust ciblés, 13 CTest et huit tests Python passent sous Windows. Preuves : [rapport Metal/Radeon](docs/reports/2026-10-07-metal-graphics-radeon.md). Le support USB OpenCore/Tahoe est préparé et vérifié ; le premier boot, le pilote noyau AMD, RADV Darwin et le rendu via Metal sous macOS restent à qualifier. Ce dossier ne fournit pas encore de pilote installable ; le fork contient toujours le pilote NVIDIA.
 
 La progression et les conditions de passage entre étapes sont décrites dans [ROADMAP.md](ROADMAP.md).
 
@@ -16,8 +16,8 @@ Les prochaines actions et blocages sont résumés dans [Travail restant](docs/NE
 
 La [préparation OpenCore pour ce PC](docs/OPENCORE-TAHOE.md) fournit maintenant
 un générateur d'EFI de référence sans accélération et un profil de secours.
-Les deux configurations passent `ocvalidate` 1.0.8 ; le premier boot reste à
-essayer sur clé USB. Le SDK et les dix firmwares sont désormais épinglés et
+Le support USB est préparé avec récupération Apple et paquet complet séparé ;
+les deux configurations copiées passent `ocvalidate` 1.0.8. Le premier boot reste à essayer. Le SDK et les dix firmwares sont désormais épinglés et
 vérifiés : [préparation des dépendances AMD](docs/AMD-DEPENDENCIES.md),
 [rapport de préparation](docs/reports/2026-10-07-boot-preparation.md).
 
@@ -28,7 +28,7 @@ vérifiés : [préparation des dépendances AMD](docs/AMD-DEPENDENCIES.md),
 | Processeur | AMD Ryzen 5 5600X |
 | Carte graphique | AMD Radeon RX 9070 XT, RDNA 4 / Navi 48 |
 | Système actuel du PC | Windows 11 Professionnel, build 26300 |
-| Système cible | macOS Tahoe 26.x, version et numéro de build à fixer |
+| Système cible | Récupération Tahoe 26.6.2 / 25G83 ; paquet complet 26.7.1 / 25G241 disponible ; build installé à relever |
 | Démarrage cible | OpenCore avec les correctifs CPU AMD adaptés |
 | Machine de compilation | MacBookAir7,2 x86_64, 8 Gio, macOS 15.7.8 / 24G824, Xcode 26.3 / 17C529, SDK macOS 26.2 |
 | Carte mère et BIOS | Gigabyte B550M DS3H, BIOS FD du 22 mars 2024 ; révision matérielle à préciser |

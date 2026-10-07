@@ -20,11 +20,12 @@ et le connecteur utilisé permettront de traiter ce blocage.
 | SATA | Contrôleur AHCI AMD `1022:43EB` ; aucun RAID observé |
 | Réseau | Ethernet Realtek `10EC:8168` ; RealtekRTL8111 3.0.0 inclus |
 | USB | AMD `1022:43EE` : 14 ports racine ; `1022:149C` : 8, selon USBToolBox sous Windows |
-| OS visé | Tahoe 26 / Darwin 25 ; **version exacte et build à fixer avant l'essai** |
+| OS visé | Récupération Tahoe 26.6.2 / 25G83 ; paquet complet 26.7.1 / 25G241 disponible ; relever le build réellement installé |
 | Identité SMBIOS | MacPro7,1 ; identité générée localement, jamais ajoutée à Git |
 
 Le SSD présent est un **inventaire**, pas une sélection de disque à effacer.
-Disque d'installation, clé USB et écran/connecteur restent à désigner.
+Le support USB Hitachi HTS545050A7E de 500 Go, anciennement D:, est préparé.
+La partition d'installation sur le SSD et l'écran/connecteur restent à désigner.
 Le 5600X n'a pas d'iGPU : brancher l'écran sur la RX 9070 XT, pas sur la carte mère.
 
 La table VFCT expose une image ATOMBIOS de 58 880 octets pour `1002:7550`,
@@ -59,6 +60,20 @@ versions épinglées. Le builder conserve l'identité dans
 d'écraser un kit existant.
 
 ## Réglages retenus
+
+Le 7 octobre, le support USB demandé a été repartitionné en GPT après
+sauvegarde vérifiée de l'ancien installateur Umbrel. **D: OPENCORE**, FAT32,
+8 Gio, contient `EFI/` et `com.apple.recovery.boot/`. **E: TAHOEFILES**, exFAT,
+contient le paquet complet et `OpenCore-Secours/EFI/` avec `-x`.
+Les empreintes ont été relues sur le support et les deux EFI copiés passent
+`ocvalidate`. Le SSD Windows n'a pas été modifié par cette préparation.
+Preuve : [rapport USB et shaders Radeon](reports/2026-10-07-metal-graphics-radeon.md).
+
+La récupération Apple 26.6.2 / 25G83 est amorçable avec cette disposition,
+mais son installation nécessite Ethernet et Internet. Le paquet complet
+26.7.1 / 25G241 sur E: sert au transfert vers le Mac pour préparer un
+installateur hors ligne ; il n'est pas utilisé hors ligne par la récupération.
+Le démarrage physique et l'affichage de base restent à qualifier.
 
 OpenCore **1.0.8 DEBUG**, Lilu **1.7.2**, VirtualSMC **1.3.8**, WhateverGreen
 **1.7.1**, RestrictEvents **1.1.6**, RealtekRTL8111 **3.0.0**, USBToolBox
@@ -126,15 +141,17 @@ le démarrage effectif d'un OS peut néanmoins modifier la NVRAM.
 
 ## Prochaines étapes sur le PC, dans l'ordre
 
-1. **Désigner le disque de test et la clé.** Préférer un disque dédié pour
-   Tahoe. Ne pas effacer le Crucial Windows sur la seule base de ce profil.
+1. **Désigner la partition ou le disque de test.** Le support USB est prêt ;
+   préférer un disque dédié pour Tahoe. Ne pas effacer le Crucial Windows sur la seule base de ce profil.
    Conserver une copie du kit EFI de référence séparée du support d'essai.
-2. **Fixer Tahoe version/build et préparer son installateur Apple.** Un
+2. **Conserver les versions préparées et choisir la méthode d'installation.**
+   La récupération USB est 26.6.2 / 25G83, le paquet complet est 26.7.1 / 25G241. Un
    installateur complet créé sur le Mac évite le téléchargement pendant
    l'installation ; à défaut, OpenCore livre `Utilities/macrecovery` pour
    une récupération Internet signée. Un téléchargement « latest » n'est pas
    une version figée : relever la version/build effectivement obtenue avant
-   de qualifier l'essai. Le kit ne contient aucun installateur macOS.
+   de qualifier l'essai. Le kit généré seul ne contient aucun installateur ;
+   le support USB préparé contient désormais la récupération Apple séparée.
 3. **Vérifier les réglages UEFI sans flasher le BIOS.** CSM désactivé,
    démarrage UEFI, Fast Boot désactivé, Secure Boot firmware désactivé,
    Above 4G Decoding activé, XHCI Hand-off activé si l'option existe,
@@ -142,8 +159,9 @@ le démarrage effectif d'un OS peut néanmoins modifier la NVRAM.
    contient aussi `ResizeAppleGpuBars=0` pour macOS. Conserver le TPM et
    disposer de la clé de récupération Windows si BitLocker est actif avant
    les changements de Secure Boot/UEFI. Relever la révision PCB sur la carte.
-4. **Copier `EFI/` sur la partition FAT32 de la clé préparée**, après
-   identification certaine de cette clé. Utiliser le menu Gigabyte **F12**
+4. **Utiliser `EFI/` déjà copié sur D: OPENCORE**, validé après copie.
+   Pour reconstruire un autre support, identifier d'abord la clé avant copie.
+   Utiliser le menu Gigabyte **F12**
    pour ce premier démarrage et sélectionner la clé en UEFI. Le générateur
    ne réalise pas cette copie et n'altère pas l'EFI Windows.
 5. **Choisir l'installateur dans le menu OpenCore.** Un seul écran directement

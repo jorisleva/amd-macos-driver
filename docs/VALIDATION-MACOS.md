@@ -89,7 +89,9 @@ bash tools/compile-metal-reference.sh out/metal-reference-new
 
 `build-translator.sh` exécute désormais 15 tests autonomes avec `--locked` et
 réflexion JSON, dont `apple_vector_add` et quatre cas `apple_graphics`.
-Les 15 passent sur Mac ; les 11 précédents sont validés sous Windows.
+Les 15 passent sur Mac et sous Windows ; le
+[rapport Metal/Radeon](reports/2026-10-07-metal-graphics-radeon.md) conserve
+aussi les 48 cas graphiques Apple AIR exécutés sur la RX 9070 XT.
 Quatre balayages du corpus amont absent sont
 filtrés ; `cargo test --lib` reste bloqué par trois fixtures manquantes.
 Le cas synthétique reste distinct du shader compilé par Apple.

@@ -9,8 +9,10 @@ Le profil par défaut utilise **quatre shaders de contrôle GLSL**, validés dan
 48 cas sous le pilote AMD Windows. Le nouveau profil **metal-air** emploie
 leurs équivalents compilés par Apple sur Mac, traduits et validés en SPIR-V
 Vulkan 1.2, dans [`tests/shaders/apple/graphics/`](../tests/shaders/apple/graphics/).
-Il est vérifié logiciellement, mais son rendu GPU reste à exécuter sur Radeon.
-Preuves et limites : [rapport Metal/Mac](reports/2026-10-07-metal-graphics.md).
+Il passe désormais les 48 cas sur Radeon, sans écart ni erreur Vulkan ; ses
+96 fichiers RGBA sont identiques au contrôle GLSL. Preuves et limites :
+[rapport Metal/Radeon](reports/2026-10-07-metal-graphics-radeon.md) et
+[rapport Metal/Mac](reports/2026-10-07-metal-graphics.md).
 Le calcul `vector_add` issu d'AIR Apple reste un contrôle distinct.
 
 ## Exécuter le corpus
@@ -27,7 +29,7 @@ cmake -S tests/vulkan -B out/vulkan -G Ninja -DCMAKE_BUILD_TYPE=Debug
 Remplacer l'ID par celui de l'inventaire de la cible. Le script configure et
 construit le banc, compile les contrôles, valide le SPIR-V sélectionné, lance
 les **13 CTest actuels** et exécute les **48 cas GPU**. Les 13 tests logiciels
-passent sur Mac ; 7 tests de la version précédente sont validés sous Windows.
+passent sur Mac et sous Windows dans le banc actuel.
 La validation Khronos et sa validation de synchronisation sont obligatoires par défaut. `-WithoutValidation` reste une
 option de diagnostic consignée dans la provenance.
 
@@ -64,7 +66,9 @@ python tools/compile-metal-graphics.py --check tests/shaders/apple/graphics
 python tools/render-graphics-report.py reports/local/graphics-metal-air
 ```
 
-Ce lancement du nouveau profil **n'est pas encore exécuté sur la Radeon**.
+Ce lancement du profil passe **48 cas sur la Radeon**, avec `shaderInt8`
+exercé et aucune erreur Vulkan/synchronisation ; voir le
+[rapport](reports/2026-10-07-metal-graphics-radeon.md).
 Le wrapper vérifie les SHA-256, le schéma 56, les interfaces et les descriptors
 réellement présents dans le SPIR-V, puis lance spirv-val. Le banc C++ refait
 une admission sans accès GPU avant l'énumération et utilise ensuite les mêmes
@@ -202,6 +206,8 @@ Conserver aussi la régression du calcul réel transféré depuis le Mac :
 ```
 
 Le [rapport hors écran du 7 octobre](reports/2026-10-07-offscreen-radeon.md)
-publie les images utiles, les 48 cas, les trois rejets et les 36 paires de
-calcul Apple/GLSL. RADV Darwin, les shaders graphiques AIR, le pilote noyau,
-l'exécution via Metal et le bureau Tahoe restent à qualifier séparément.
+publie les images utiles du contrôle initial. Le
+[rapport Metal/Radeon](reports/2026-10-07-metal-graphics-radeon.md) conserve
+les 48 cas Apple AIR, le contrôle GLSL, les trois rejets et les 36 paires de
+calcul Apple/GLSL du banc modifié. RADV Darwin, le pilote noyau, l'exécution
+via l'API Metal et le bureau Tahoe restent à qualifier séparément.

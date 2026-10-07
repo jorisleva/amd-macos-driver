@@ -1,7 +1,7 @@
 # Travail restant après le premier banc Windows
 
 État du 7 octobre 2026. Le traducteur Rust et le banc Vulkan compilent sur
-le PC Ryzen/Radeon ; 11 tests Rust ciblés et 7 tests CTest sont validés. Le contrôle
+le PC Ryzen/Radeon ; 15 tests Rust ciblés, 13 CTest et huit tests Python sont validés. Le contrôle
 GLSL et la fixture synthétique traduite passent chacun 36 cas sur RX 9070 XT,
 y compris les transferts staging/VRAM, sans écart ni erreur Vulkan/synchronisation.
 Le Mac est désormais inventorié : `vector_add.metal` est compilé en AIR Apple,
@@ -21,7 +21,11 @@ Les quatre shaders graphiques Metal sont maintenant compilés et traduits sur
 Mac ; 28 artefacts sont reproduits octet par octet. La nouvelle sélection
 passe 15 tests Rust, 13 CTest GPU-free et 8 tests Python sur Mac.
 Preuve : [rapport graphique Metal/Mac](reports/2026-10-07-metal-graphics.md).
-L'exécution de ces graphiques sur Radeon et les essais du pilote macOS restent ouverts.
+Ces graphiques passent maintenant 48 cas sur Radeon, sans écart ni erreur
+Vulkan : leurs 96 fichiers RGBA correspondent au contrôle GLSL rejoué.
+Les deux calculs passent 36 cas chacun et les trois rejets attendus passent.
+Preuve : [rapport Metal/Radeon et support USB](reports/2026-10-07-metal-graphics-radeon.md).
+Le support USB est préparé ; le boot Tahoe et le pilote macOS restent ouverts.
 
 ## Prochaines actions, dans l'ordre
 
@@ -40,19 +44,17 @@ L'exécution de ces graphiques sur Radeon et les essais du pilote macOS restent 
    Rejouer aussi `tools/run-windows-graphics-probe.ps1 -DeviceId 0x7550` pour
    les 48 cas hors écran et `tools/test-windows-graphics-rejections.ps1`
    pour leurs scénarios d'échec, selon la [procédure graphique](VALIDATION-GRAPHICS.md).
-3. **Exécuter le corpus graphique Metal/AIR sur la Radeon.** Les quatre
-   équivalents et leurs AIR/SPIR-V/réflexions sont conservés dans
-   `tests/shaders/apple/graphics/`. Lancer
-   `tools/run-windows-graphics-probe.ps1 -DeviceId 0x7550 -ShaderOrigin metal-air`,
-   puis le même script sans ce flag pour le contrôle GLSL, selon la
-   [procédure graphique](VALIDATION-GRAPHICS.md). Le banc dispose d'un profil
-   image/sampler séparés et d'un buffer DrawParams dynamique ; son admission
-   et ses tests logiciels passent sur Mac, mais ce chemin GPU et le wrapper
-   PowerShell modifié restent à rejouer sous Windows. Le sampler texture
-   traduit exige shaderInt8, demandé explicitement ou refusé. La copie d'image
-   reste une opération Vulkan ; les 48 cas devront être vérifiés en entier.
-   Les dispatchs dépendants, files multiples et mémoire non cohérente restent
-   également à étendre.
+3. **Essayer le premier démarrage Tahoe depuis le support USB préparé.**
+   D: OPENCORE contient l'EFI sans accélération et la récupération Apple
+   26.6.2 / 25G83 ; E: TAHOEFILES contient le paquet complet 26.7.1 / 25G241
+   et l'EFI de secours. Régler l'UEFI selon le [guide](OPENCORE-TAHOE.md),
+   choisir le disque USB via F12 puis macOS Base System, Ethernet branché.
+   Qualifier affichage, clavier, stockage, réseau, build installé et secours.
+   Les fichiers et les deux EFI copiés sont validés ; le boot physique reste ouvert.
+4. **Construire et auditer l'assemblage AMD sur Mac.** Qualifier Navi48,
+   MacKernelSDK et Mesa/RADV avant toute installation du pilote sur Tahoe.
+   Les dispatchs dépendants, files multiples et mémoire non cohérente du
+   banc Windows restent également à étendre après un changement pertinent.
 
 Commandes détaillées : [banc Windows](VALIDATION-WINDOWS.md) et
 [compilation AIR sur Mac / transfert](VALIDATION-MACOS.md). Le MacBookAir7,2
@@ -60,7 +62,7 @@ x86_64 sous Sequoia est qualifié pour ce premier shader ; la compilation de
 l'assemblage AMD reste à faire. Le nouveau test `apple_vector_add` est ajouté
 aux scripts Mac/Windows et ses trois traductions de référence sont désormais
 vérifiées sous Windows également. Les quatre régressions `apple_graphics`
-portent la nouvelle sélection à 15 tests ; leur lancement Windows reste à faire.
+portent la sélection à 15 tests, désormais tous rejoués avec succès sous Windows.
 
 ## Compilation et dépendances encore ouvertes
 
@@ -84,8 +86,9 @@ Découpage du fork et contrats proposés : [audit AMD](AMD-INTEGRATION.md).
 ## Avant les essais noyau et l'intégration Metal
 
 - L'EFI de référence pour ce PC et le profil de secours sont générés et
-  passent `ocvalidate` 1.0.8. Choisir disque/clé et version/build Tahoe,
-  puis essayer l'[installation et la récupération](OPENCORE-TAHOE.md)
+  passent `ocvalidate` 1.0.8 après copie sur le support USB choisi. La récupération
+  est 26.6.2 / 25G83 et le paquet complet est 26.7.1 / 25G241. Choisir la
+  partition cible, puis essayer l'[installation et la récupération](OPENCORE-TAHOE.md)
   sur le PC avant toute installation du pilote expérimental. Le kit vise
   l'affichage de base ; il ne prouve pas encore que Tahoe démarre sur cette carte.
 - Auditer ou extraire un module d'identification PCI sans initialisation GPU,
