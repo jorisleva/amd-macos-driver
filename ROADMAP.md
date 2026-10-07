@@ -34,15 +34,15 @@ La préparation de Tahoe peut avancer en parallèle des étapes 1 et 2. L'intég
 
 ## Étape 0 — Cadrer la configuration et l'assemblage
 
-- [ ] Relever le modèle de carte mère, la version du BIOS, la RAM et les périphériques nécessaires au démarrage (B550M DS3H, BIOS FD et 16 Gio relevés ; révision et périphériques de démarrage à compléter).
-- [ ] Relever le fabricant de la Radeon, son VBIOS, ses identifiants PCI et de sous-système (`1002:7550` / `1849:5417` relevés ; fabricant et VBIOS à compléter).
+- [ ] Relever le modèle de carte mère, la version du BIOS, la RAM et les périphériques nécessaires au démarrage (B550M DS3H, BIOS FD, 16 Gio, Crucial P3 Plus 1 To, Realtek Ethernet et deux contrôleurs USB relevés ; révision PCB et supports d'installation à choisir).
+- [ ] Relever le fabricant de la Radeon, son VBIOS, ses identifiants PCI et de sous-système (`1002:7550` / `1849:5417`, ASRock et VBIOS `023.008.000.068.000001` relevés via ACPI VFCT ; modèle commercial et confirmation sur l'étiquette à compléter).
 - [ ] Choisir l'écran et le connecteur utilisés pour la première qualification.
 - [x] Relever le modèle du Mac, son système, Xcode et les SDK disponibles (MacBookAir7,2 x86_64, 8 Gio, macOS 15.7.8 / 24G824, Xcode 26.3 / 17C529 et SDK macOS 26.2 ; [inventaire](docs/reports/2026-10-07-apple-air.md)).
 - [x] Créer une branche de développement dédiée dans le fork (`codex/amd-validation-bootstrap`).
-- [ ] Fixer les révisions du fork, du projet AMD, de Mesa, de MacKernelSDK et des firmwares.
+- [x] Fixer les révisions du fork, du projet AMD, de Mesa, de MacKernelSDK et des firmwares (SDK et dix blobs récupérés avec empreintes conformes ; [préparation](docs/AMD-DEPENDENCIES.md), compilation/hardware encore ouverts).
 - [x] Inventorier les fonctions Metal génériques et les dépendances directes à NVK, NVRM, NVIDIAShared et NVENC ([audit initial](docs/AMD-INTEGRATION.md), wrapper à approfondir).
 - [x] Définir les contrats du backend AMD : buffers, images, mémoire partagée, commandes, synchronisation et présentation ([contrat proposé](docs/AMD-INTEGRATION.md), implémentation et qualification à faire).
-- [x] Inventorier les licences et notices à conserver ([inventaire initial](docs/AMD-INTEGRATION.md), MacKernelSDK et redistribution à vérifier).
+- [x] Inventorier les licences et notices à conserver ([inventaire](docs/AMD-INTEGRATION.md), MacKernelSDK APSL 2.0 et notices firmware désormais récupérés ; redistribution du futur paquet à vérifier).
 
 **Livrable :** inventaire matériel et logiciel, architecture d'intégration et liste des dépendances figées.
 
@@ -90,7 +90,7 @@ La référence CPU sert uniquement à vérifier le résultat. Elle ne remplace p
 
 ## Étape 3 — Préparer Tahoe et identifier la carte
 
-- [ ] Préparer un disque de test et une configuration OpenCore adaptée au Ryzen et à la carte mère.
+- [ ] Préparer un disque de test et une configuration OpenCore adaptée au Ryzen et à la carte mère (EFI et secours générés, deux validations `ocvalidate` 1.0.8 réussies ; [guide](docs/OPENCORE-TAHOE.md). Disque/clé et boot physique à qualifier).
 - [ ] Fixer la version exacte de Tahoe et son numéro de build.
 - [ ] Obtenir un démarrage de référence sans notre accélération graphique.
 - [ ] Vérifier clavier, stockage, réseau et possibilité de récupérer les diagnostics.
@@ -224,6 +224,8 @@ Ces travaux seront classés après les premiers résultats :
 
 La liste opérationnelle des tâches et blocages est dans [Travail restant](docs/NEXT-STEPS.md).
 
-Exécuter le [corpus graphique Metal/AIR produit sur Mac](tests/shaders/apple/graphics/) sur la Radeon avec `tools/run-windows-graphics-probe.ps1 -DeviceId 0x7550 -ShaderOrigin metal-air`, puis rejouer le contrôle GLSL avec le banc modifié. AIR/SPIR-V/réflexion et l'adaptation statique de l'ABI sont livrés ; les pixels restent à qualifier. Commandes et limites : [validation graphique](docs/VALIDATION-GRAPHICS.md) et [rapport Metal/Mac](docs/reports/2026-10-07-metal-graphics.md). Conserver le calcul Apple AIR et les 48 cas hors écran comme contrôles de régression. La [procédure Mac/transfert](docs/VALIDATION-MACOS.md) et le [banc Windows](docs/VALIDATION-WINDOWS.md) permettent de rejouer le calcul. Compléter les champs matériels encore manquants et poursuivre le verrouillage MacKernelSDK/firmwares ainsi que la compilation AMD des **étapes 0 et 1**. L'assemblage AMD et la préparation du démarrage Tahoe avec son moyen de récupération restent ouverts.
+Exécuter le [corpus graphique Metal/AIR produit sur Mac](tests/shaders/apple/graphics/) sur la Radeon avec `tools/run-windows-graphics-probe.ps1 -DeviceId 0x7550 -ShaderOrigin metal-air`, puis rejouer le contrôle GLSL avec le banc modifié. AIR/SPIR-V/réflexion et l'adaptation statique de l'ABI sont livrés ; les pixels restent à qualifier. Commandes et limites : [validation graphique](docs/VALIDATION-GRAPHICS.md) et [rapport Metal/Mac](docs/reports/2026-10-07-metal-graphics.md). Conserver le calcul Apple AIR et les 48 cas hors écran comme contrôles de régression. La [procédure Mac/transfert](docs/VALIDATION-MACOS.md) et le [banc Windows](docs/VALIDATION-WINDOWS.md) permettent de rejouer le calcul.
+
+MacKernelSDK et firmwares sont désormais épinglés et récupérés ; poursuivre la [compilation AMD](docs/AMD-DEPENDENCIES.md) sur Mac. L'EFI sans accélération et sa variante de secours sont préparés : compléter l'inventaire, choisir les supports et qualifier le [premier démarrage Tahoe](docs/OPENCORE-TAHOE.md). L'assemblage AMD, le boot et la récupération physiques restent ouverts.
 
 Le premier succès de calcul est obtenu : un shader Metal écrit pour le projet, compilé en AIR par Apple puis traduit par le fork produit les résultats attendus sur la RX 9070 XT sous Windows. Le banc de rendu Windows est désormais vérifié avec des contrôles GLSL et des références d'images. La traduction graphique est obtenue et vérifiée logiciellement ; son rendu sur Radeon et les essais noyau/rendu sous macOS restent à obtenir.

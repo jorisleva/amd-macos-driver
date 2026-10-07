@@ -27,8 +27,8 @@ cmake -S tests/vulkan -B out/vulkan -G Ninja -DCMAKE_BUILD_TYPE=Debug
 Remplacer l'ID par celui de l'inventaire de la cible. Le script configure et
 construit le banc, compile les contrôles, valide le SPIR-V sélectionné, lance
 les **13 CTest actuels** et exécute les **48 cas GPU**. Les 13 tests logiciels
-passent sur Mac ; 7 tests de la version précédente sont validés sous Windows. La validation Khronos et sa validation de
-synchronisation sont obligatoires par défaut. `-WithoutValidation` reste une
+passent sur Mac ; 7 tests de la version précédente sont validés sous Windows.
+La validation Khronos et sa validation de synchronisation sont obligatoires par défaut. `-WithoutValidation` reste une
 option de diagnostic consignée dans la provenance.
 
 Pour conserver un dossier connu et obtenir des aperçus PNG sans dépendance
@@ -163,8 +163,9 @@ un rapport `failed` et un code de sortie non nul.
 Le dossier local contient :
 
 - `result.json` : état, GPU, capacités, allocations et résultats des 48 cas.
-- `provenance.json` : révision Git, état du checkout, versions, origine GLSL et
-  SHA-256 des binaires, sources et **96 fichiers RGBA**.
+- `provenance.json` : révision Git, état du checkout, versions, origine
+  `glsl-control` ou `metal-air` et SHA-256 des binaires, sources et
+  **96 fichiers RGBA** pour un essai complet réussi.
 - `probe.log` : sortie du banc et diagnostics Vulkan.
 - `images/<cas>.rgba` et `<cas>.reference.rgba` : octets RGBA8 sans en-tête,
   lignes de haut en bas, dimensions dans le JSON. Les PNG facultatifs

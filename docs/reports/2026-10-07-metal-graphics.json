@@ -828,5 +828,33 @@
     "out/glslang-graphics-build.log",
     "out/vulkan-loader-graphics-build.log"
   ],
+  "delivery_verification": {
+    "timestamp_utc": "2026-10-07T16:31:45Z",
+    "code_revision": "d516a2dfe52a770a24fe25ed0b9bc2260504f9ab",
+    "merging_revision": "f680cdf2ae67afdba4c392c87966e32ba9e0f06c",
+    "state_at_replay": "merge in progress; only roadmap conflict, resolved preserving both workflows",
+    "rust_passed": 15,
+    "rust_filtered": 4,
+    "ctest_passed": 13,
+    "ctest_software_only_passed": 4,
+    "python_passed": 8,
+    "build_caches_reused": true,
+    "new_clean_reconstruction": false,
+    "original_tested_inputs_verified": 13,
+    "original_graphics_artifact_hashes_verified": 28,
+    "compute_manifest_entries_verified": 8,
+    "graphics_manifest_entries_verified": 29,
+    "spirv_val_target": "vulkan1.2",
+    "spirv_val_modules_passed": 4,
+    "admission_status": "contract-checked",
+    "shader_int8_required": true,
+    "devices_enumerated": 0,
+    "selected_device": null,
+    "gpu_allocations": 0,
+    "gpu_cases_executed": 0,
+    "powershell_execution": "not-run",
+    "physical_efi_or_driver_validation": "not-run",
+    "local_evidence": "out/metal-graphics-delivery/"
+  },
   "recovery": "not required; no experimental driver installed and no GPU work submitted"
 }

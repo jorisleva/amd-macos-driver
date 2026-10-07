@@ -27,9 +27,10 @@ L'exécution de ces graphiques sur Radeon et les essais du pilote macOS restent 
 
 1. **Compléter l'inventaire du PC.** B550M DS3H, BIOS FD, Ryzen 5600X,
    16 Gio et IDs `1002:7550` / `1849:5417` sont relevés. Il reste la révision
-   matérielle de la carte mère, le fabricant exact/VBIOS de la carte, le
-   stockage et les périphériques de démarrage, ainsi que l'écran/connecteur
-   à retenir pour Tahoe.
+   matérielle de la carte mère, le modèle commercial de la carte,
+   les supports d'installation et l'écran/connecteur à retenir pour Tahoe.
+   ASRock et VBIOS `023.008.000.068.000001` sont identifiés via ACPI VFCT ;
+   Crucial P3 Plus 1 To, Ethernet Realtek et USB AMD sont désormais relevés.
 2. **Conserver le banc Radeon comme contrôle de régression.** Exécuter
    `tools/run-windows-probe.ps1 -DeviceId 0x7550` après un changement pertinent.
    Les 36 cas couvrent mémoire hôte et staging/VRAM. Rejouer aussi le corpus
@@ -68,23 +69,25 @@ portent la nouvelle sélection à 15 tests ; leur lancement Windows reste à fai
   La suite unitaire complète ne compile pas ; les quatre balayages du corpus
   absent sont explicitement filtrés dans les suites sélectionnées.
 - Construire et auditer `translator/wrapper`, non qualifié à ce stade.
-- Figer un checkout MacKernelSDK et sa licence ; figer la provenance des
-  firmwares AMD, vérifier les dix SHA-256 attendus et conserver les notices.
-  Les révisions SDK et linux-firmware restent `null` dans le manifeste.
+- MacKernelSDK et linux-firmware sont maintenant épinglés : archive SDK,
+  notices et dix SHA-256 firmware vérifiés. Rejouer le [préparateur](AMD-DEPENDENCIES.md)
+  sur le Mac avant compilation ; le pinning ne vaut pas qualification du build.
 - Construire le kext Navi48 x86_64 sur Mac, puis Mesa à la révision RADV
   attendue avec les patches 0001 à 0005. Vérifier ABI N48N, architectures,
   symboles, dépendances et signatures ; reconstruire depuis une copie propre.
 - Résoudre l'absence publique de `notes/design/NATIVE-S1C-ABI.md`, déclaré
   normatif par le header N48N, avant qualification du transport.
 
-Révisions partielles : [sources.lock.json](../dependencies/sources.lock.json).
+Révisions épinglées : [sources.lock.json](../dependencies/sources.lock.json).
 Découpage du fork et contrats proposés : [audit AMD](AMD-INTEGRATION.md).
 
 ## Avant les essais noyau et l'intégration Metal
 
-- Préparer un disque Tahoe de test, fixer version/build et configuration
-  OpenCore adaptée au PC. Valider un démarrage de référence et essayer le
-  moyen de récupération avant toute installation du pilote expérimental.
+- L'EFI de référence pour ce PC et le profil de secours sont générés et
+  passent `ocvalidate` 1.0.8. Choisir disque/clé et version/build Tahoe,
+  puis essayer l'[installation et la récupération](OPENCORE-TAHOE.md)
+  sur le PC avant toute installation du pilote expérimental. Le kit vise
+  l'affichage de base ; il ne prouve pas encore que Tahoe démarre sur cette carte.
 - Auditer ou extraire un module d'identification PCI sans initialisation GPU,
   vérifier les BAR et refuser les identités différentes de la cible relevée.
 - Qualifier ensuite firmware, mémoire, commandes et complétions natives,

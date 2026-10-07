@@ -1,0 +1,173 @@
+# Premier démarrage Tahoe — Ryzen 5600X / B550M DS3H / RX 9070 XT
+
+Profil préparé le 7 octobre 2026 pour **la machine relevée sous Windows**.
+Objectif : atteindre l'installateur puis un bureau avec affichage de base,
+sans accélération Metal et sans installer le pilote du projet.
+**Le démarrage matériel n'est pas encore qualifié.** Une configuration OpenCore
+valide ne prouve pas que le framebuffer EFI de cette RX 9070 XT sera repris
+correctement par Tahoe. Si l'écran devient noir, le relevé du dernier message
+et le connecteur utilisé permettront de traiter ce blocage.
+
+## Machine et fichiers
+
+| Élément | Configuration relevée / choix |
+| --- | --- |
+| CPU | Ryzen 5 5600X, 6 cœurs physiques / 12 processeurs logiques |
+| Carte mère / BIOS | Gigabyte B550M DS3H, FD du 22 mars 2024 ; révision PCB à relever |
+| Mémoire | 16 Gio, deux modules à 3200 MT/s |
+| GPU | RX 9070 XT `1002:7550`, sous-système `1849:5417` ; ASRock, VBIOS `023.008.000.068.000001` selon ACPI VFCT ; modèle commercial à relever |
+| Stockage présent | Crucial P3 Plus CT1000P3PSSD8, 1 To, firmware P9CR413, contrôleur NVMe `1344:5416` |
+| SATA | Contrôleur AHCI AMD `1022:43EB` ; aucun RAID observé |
+| Réseau | Ethernet Realtek `10EC:8168` ; RealtekRTL8111 3.0.0 inclus |
+| USB | AMD `1022:43EE` : 14 ports racine ; `1022:149C` : 8, selon USBToolBox sous Windows |
+| OS visé | Tahoe 26 / Darwin 25 ; **version exacte et build à fixer avant l'essai** |
+| Identité SMBIOS | MacPro7,1 ; identité générée localement, jamais ajoutée à Git |
+
+Le SSD présent est un **inventaire**, pas une sélection de disque à effacer.
+Disque d'installation, clé USB et écran/connecteur restent à désigner.
+Le 5600X n'a pas d'iGPU : brancher l'écran sur la RX 9070 XT, pas sur la carte mère.
+
+La table VFCT expose une image ATOMBIOS de 58 880 octets pour `1002:7550`,
+part number `113-APM107819-101` et chaîne `ASRock Navi48 XTX G292 16GB 304W`.
+Ce relevé identifie le VBIOS fourni par le firmware ; il ne constitue pas
+une sauvegarde complète de la ROM PCI utilisable pour flasher la carte.
+Reproduction en lecture seule : `python tools/collect-acpi-vbios.py`.
+
+Le générateur Windows écrit uniquement dans le répertoire ignoré `out/` du
+projet. Il ne monte aucune partition EFI et ne copie rien sur un disque USB.
+
+```powershell
+python tools/build-opencore-kit.py
+# Reproduction sans réseau, une fois les téléchargements en cache :
+python tools/build-opencore-kit.py --offline --output out/opencore/reproduction
+```
+
+Résultat par défaut : `out/opencore/ryzen5600x-b550-rx9070xt/` et l'archive
+voisine `.zip`. Dans le kit :
+
+- `EFI/` : profil de référence sans accélération, menu OpenCore avec choix manuel.
+- `recovery/EFI/` : même identité et mêmes composants, avec `-x` (mode sans échec).
+- `validation/` : journaux de compilation ACPI, deux validations `ocvalidate`
+  et vérification des invariants du profil.
+- `SHA256SUMS.json`, `machine-profile.json`, `NOTICES/` : empreintes,
+  inventaire sans numéros de série matériels et provenance des composants.
+
+Le kit complet contient des identifiants SMBIOS personnels : **conserver
+l'archive localement**. Le dépôt contient le générateur, le profil et les
+versions épinglées. Le builder conserve l'identité dans
+`out/opencore/private-identity.json` pour les reconstructions et refuse
+d'écraser un kit existant.
+
+## Réglages retenus
+
+OpenCore **1.0.8 DEBUG**, Lilu **1.7.2**, VirtualSMC **1.3.8**, WhateverGreen
+**1.7.1**, RestrictEvents **1.1.6**, RealtekRTL8111 **3.0.0**, USBToolBox
+**1.2.0** et son UTBDefault ; disabler AppleMCEReporter codeless **1.2**.
+Les archives officielles sont vérifiées par SHA-256 avant extraction.
+Les versions, notices et sources sont dans
+[`boot/ryzen5600x-b550/sources.lock.json`](../boot/ryzen5600x-b550/sources.lock.json).
+
+Les patches [AMD_Vanilla](https://github.com/AMD-OSX/AMD_Vanilla/blob/eaf52ef292abf4ebec899df6d48626569ba50cc6/README.md)
+incluent Tahoe. Les quatre remplacements du nombre de cœurs valent **6**, pas 12.
+Le générateur conserve les plages Darwin et la seule variante PAT activée en
+amont (algrey), active `ProvideCurrentCpuInfo` et `DummyPowerManagement`.
+Pour cette B550, `SetupVirtualMap=false`, `EnableWriteUnprotector=false`,
+`RebuildAppleMemoryMap=true` et `SyncRuntimePermissions=true`.
+Référence : [configuration Ryzen de Dortania](https://dortania.github.io/OpenCore-Install-Guide/AMD/zen.html).
+
+Deux SSDT sont compilés par iASL **20250807** :
+
+- `SSDT-EC-USBX` utilise le pont LPC réellement trouvé, `\_SB.PCI0.SBRG`,
+  et expose EC fictif/USBX uniquement sous Darwin. Aucun contrôleur PNP0C09
+  n'est présent dans le DSDT capturé.
+- `SSDT-CPUR` utilise les douze chemins `\_SB.PLTF.C000` à `C00B`
+  confirmés par les propriétés PnP Windows. Il expose les définitions Processor
+  attendues par macOS sur cette B550, uniquement sous Darwin.
+
+Le checksum du DSDT BIOS FD est enregistré dans le profil. Windows ne permet
+pas ici de distinguer toutes les tables SSDT homonymes par
+`GetSystemFirmwareTable` : le relevé n'est pas un dump exhaustif du firmware.
+Les éventuelles collisions ACPI doivent donc être contrôlées au premier boot.
+La compilation EC/USBX n'émet aucun avertissement. CPUR émet douze
+avertissements iASL 3168 pour `Processor()`, une syntaxe ancienne volontairement
+utilisée pour la compatibilité macOS de ce correctif B550, et un message
+« No parent method » lié aux retours de références du modèle CPUR amont.
+Les deux tables compilent sans erreur ; cette preuve reste distincte d'un boot.
+
+Les ports de chaque contrôleur restent sous la limite de 15. UTBDefault sert
+à l'énumération provisoire ; **ce n'est pas une cartographie des prises** et
+le clavier/stockage USB restent à essayer. `XhciPortLimit=false`.
+Remplacer ensuite UTBDefault par une carte UTBMap relevée prise par prise,
+avec les types de connecteurs et les ports internes corrects.
+Référence : [procédure USBToolBox](https://github.com/USBToolBox/kext/tree/1.2.0).
+
+Arguments de démarrage :
+
+```text
+-v keepsyms=1 debug=0x100 -radvesa agdpmod=pikera navi48bringup=0 rdna4-off=1
+```
+
+`-radvesa` désactive l'accélération AMD via WhateverGreen
+([documentation officielle](https://github.com/acidanthera/WhateverGreen/blob/1.7.1/README.md)).
+Il ne crée pas de pilote Navi 48 et ne garantit pas l'affichage EFI sous Tahoe.
+`navi48bringup=0` refuse le probe du kext Navi48 à notre révision ;
+`rdna4-off=1` est le coupe-circuit documenté de RDNA4FB.
+Aucun de ces deux kexts n'est inclus. Il n'y a aucun spoof PCI de la Radeon.
+Ne pas ajouter `-wegnoegpu` : cela désactiverait l'unique GPU d'affichage.
+
+Le menu utilise le GOP existant, demande 1920 × 1080 sans forcer un mode
+non disponible et conserve la résolution firmware si nécessaire. SIP reste
+activé, SecureBootModel OpenCore est désactivé pour ce profil initial,
+les DMG doivent être signés et les journaux sont écrits sur le support EFI.
+La sélection ne lance pas d'OS automatiquement et OpenCore ne s'enregistre
+pas comme démarrage firmware par défaut (`LauncherOption=Disabled`).
+`NVRAM.WriteFlash=false` limite la persistance des variables injectées ;
+le démarrage effectif d'un OS peut néanmoins modifier la NVRAM.
+
+## Prochaines étapes sur le PC, dans l'ordre
+
+1. **Désigner le disque de test et la clé.** Préférer un disque dédié pour
+   Tahoe. Ne pas effacer le Crucial Windows sur la seule base de ce profil.
+   Conserver une copie du kit EFI de référence séparée du support d'essai.
+2. **Fixer Tahoe version/build et préparer son installateur Apple.** Un
+   installateur complet créé sur le Mac évite le téléchargement pendant
+   l'installation ; à défaut, OpenCore livre `Utilities/macrecovery` pour
+   une récupération Internet signée. Un téléchargement « latest » n'est pas
+   une version figée : relever la version/build effectivement obtenue avant
+   de qualifier l'essai. Le kit ne contient aucun installateur macOS.
+3. **Vérifier les réglages UEFI sans flasher le BIOS.** CSM désactivé,
+   démarrage UEFI, Fast Boot désactivé, Secure Boot firmware désactivé,
+   Above 4G Decoding activé, XHCI Hand-off activé si l'option existe,
+   SATA en AHCI. Désactiver Re-Size BAR pour le premier essai ; le profil
+   contient aussi `ResizeAppleGpuBars=0` pour macOS. Conserver le TPM et
+   disposer de la clé de récupération Windows si BitLocker est actif avant
+   les changements de Secure Boot/UEFI. Relever la révision PCB sur la carte.
+4. **Copier `EFI/` sur la partition FAT32 de la clé préparée**, après
+   identification certaine de cette clé. Utiliser le menu Gigabyte **F12**
+   pour ce premier démarrage et sélectionner la clé en UEFI. Le générateur
+   ne réalise pas cette copie et n'altère pas l'EFI Windows.
+5. **Choisir l'installateur dans le menu OpenCore.** Un seul écran directement
+   connecté à la Radeon, clavier USB filaire et câble Ethernet. Si un blocage
+   survient : relever le dernier message, le connecteur, le build Tahoe et
+   conserver le journal `opencore-*.txt` de la clé. Ne pas activer de pilote
+   expérimental pour contourner un premier blocage de démarrage.
+6. **Qualifier la référence.** Vérifier écran, clavier/souris, disque cible,
+   Ethernet puis trois démarrages à froid et redémarrages. Sous macOS,
+   conserver `sw_vers`, l'inventaire PCI/IORegistry et les journaux ; le
+   rapport doit dire explicitement que l'accélération n'est pas présente.
+7. **Essayer le secours avant les kexts du projet.** Depuis Windows ou une
+   seconde clé, remplacer le dossier EFI de la clé d'essai par
+   `recovery/EFI/` pour essayer `-x`. Le menu F12 permet toujours de sélectionner
+   Windows directement. Les coupe-circuits valent uniquement pour les
+   révisions de Navi48/RDNA4FB documentées : les revalider avant une mise à jour.
+
+Pour restaurer le profil normal, remettre le dossier `EFI/` de référence.
+Le mode sans échec peut réduire les services disponibles, dont le réseau ;
+ce profil est un moyen de diagnostic à tester, pas un secours déjà prouvé.
+Une panne causée par un kext installé dans le système peut aussi nécessiter
+le retrait de ce kext et la reconstruction de l'AuxKC depuis Recovery ;
+documenter ce retour arrière **avant** toute future installation.
+
+La première qualification reste l'étape **3** de la ROADMAP : démarrage,
+identification et récupération. L'étape **6** de la ROADMAP concerne Metal
+et reste indépendante de ce numéro de point opérationnel.

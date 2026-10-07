@@ -14,6 +14,13 @@ Le [banc graphique hors écran](docs/VALIDATION-GRAPHICS.md) et son [rapport Rad
 
 Les prochaines actions et blocages sont résumés dans [Travail restant](docs/NEXT-STEPS.md).
 
+La [préparation OpenCore pour ce PC](docs/OPENCORE-TAHOE.md) fournit maintenant
+un générateur d'EFI de référence sans accélération et un profil de secours.
+Les deux configurations passent `ocvalidate` 1.0.8 ; le premier boot reste à
+essayer sur clé USB. Le SDK et les dix firmwares sont désormais épinglés et
+vérifiés : [préparation des dépendances AMD](docs/AMD-DEPENDENCIES.md),
+[rapport de préparation](docs/reports/2026-10-07-boot-preparation.md).
+
 ## Configuration cible
 
 | Élément | Configuration |
@@ -28,7 +35,8 @@ Les prochaines actions et blocages sont résumés dans [Travail restant](docs/NE
 | RAM relevée | 16 Gio, 2 × 8 Gio à 3200 MT/s |
 | Identité PCI relevée | `1002:7550`, sous-système `1849:5417` |
 | Pilote Windows relevé | `32.0.31041.1004`, Vulkan AMD `26.8.1 (LLPC)`, API `1.4.349` |
-| Fabricant de la carte et VBIOS | À relever sur le matériel |
+| Fabricant de la carte et VBIOS | ASRock, `023.008.000.068.000001`, part number `113-APM107819-101` selon ACPI VFCT ; modèle commercial à préciser |
+| Stockage et réseau relevés | Crucial P3 Plus 1 To NVMe ; Realtek Ethernet `10EC:8168` |
 | Premier affichage à valider | Un seul écran et un seul connecteur, à choisir |
 
 La compatibilité du CPU avec les correctifs OpenCore ne garantit pas celle de l'ensemble du PC. Le démarrage de Tahoe devra être validé séparément du pilote graphique.

@@ -7,8 +7,8 @@ par octet. 15 tests Rust ciblés, 13 CTest et 8 tests Python passent sur ce Mac.
 
 Identifiant : `step-2-mac-metal-graphics-1`. Branche récupérée par fast-forward :
 `codex/amd-validation-bootstrap`, base `d88a37dd716afee945a2ff8169412b1f2dd89f6b`.
-Les changements testés sont non commités ; leurs empreintes figurent dans le
-[rapport JSON](2026-10-07-metal-graphics.json). Les
+À la date de cet essai, les changements testés étaient non commités ; leurs
+empreintes figurent dans le [rapport JSON](2026-10-07-metal-graphics.json). Les
 [48 cas GLSL validés sous Windows](2026-10-07-offscreen-radeon.md) sont une
 preuve antérieure distincte. **Aucune image de ces nouveaux shaders n'est
 rendue sur GPU ici**, ni avec Metal ni avec Vulkan.
@@ -134,3 +134,24 @@ Sur Windows, suivre [la procédure graphique](../VALIDATION-GRAPHICS.md) avec
 avec le banc modifié. Les 48 cas doivent comparer tous les canaux, les gardes
 et les paramètres sans erreur Vulkan/synchronisation avant de qualifier
 **ce nouveau corpus sur la RX 9070 XT**.
+
+## Synchronisation et rejeu avant livraison
+
+Le corpus a depuis été enregistré dans `d516a2d` et intégré avec le commit
+amont `f680cdf` de préparation EFI/SDK/firmwares, sans réécrire les historiques.
+Le conflit de roadmap est résolu en conservant les deux travaux et leurs
+limites : compilation/traduction acquises, boot et rendu Metal/AIR non qualifiés.
+
+Le 7 octobre à 16:31 UTC, pendant cette fusion, le rejeu logiciel confirme
+15 tests Rust ciblés, 13 CTest complets, 4 CTest sans SDK et 8 tests Python.
+Les 13 empreintes des entrées testées et les 28 artefacts du rapport original
+restent conformes ; les manifestes de calcul et graphiques sont vérifiés.
+Les quatre modules passent spirv-val Vulkan 1.2. L'admission Metal/AIR ne
+sélectionne ni n'énumère de GPU, ne fait aucune allocation et exige Int8.
+Ces builds réutilisent les caches locaux ; ce n'est pas une nouvelle
+reconstruction propre. Les résultats initiaux et leur provenance restent
+inchangés dans le JSON, avec un champ `delivery_verification` séparé.
+
+Journaux du rejeu : `out/metal-graphics-delivery/` (ignoré par Git).
+Aucun nouveau test PowerShell, GPU Radeon, Metal, EFI physique ou pilote AMD
+n'est revendiqué par cette synchronisation.

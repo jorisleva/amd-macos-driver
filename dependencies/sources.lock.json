@@ -1,38 +1,65 @@
 {
   "schema_version": 1,
   "recorded_on": "2026-10-07",
-  "status": "partial-audit-pins-not-build-qualified",
+  "status": "source-pins-complete-input-hashes-verified-build-and-hardware-pending",
   "components": {
     "nvidia_fork": {
       "url": "https://github.com/jorisleva/amd-macos-driver",
       "revision": "de83e37760e300f53727e56a8ef7e028f1e810f5",
       "role": "Existing Metal layer and translator; NVIDIA kernel/ICD not the AMD backend"
     },
-    "project_baseline": { "revision": "aefcbc077755148d5763433a72d84d91d7183102" },
+    "project_baseline": {
+      "revision": "aefcbc077755148d5763433a72d84d91d7183102"
+    },
     "navi48": {
       "url": "https://github.com/Almosst-DEV/Navi48-MacOS",
       "revision": "696959753070e9a16677be485580dc53b06a7ab5",
-      "abi": { "major": 1, "minor": 9, "user_client_type_hex": "0x4E34384E" },
+      "abi": {
+        "major": 1,
+        "minor": 9,
+        "user_client_type_hex": "0x4E34384E"
+      },
       "qualification": "source audit only; no build or hardware test"
     },
     "mesa_radv": {
       "url": "https://gitlab.freedesktop.org/mesa/mesa.git",
       "revision": "f5cb8ee032adabef599ae892ec4e42d796b84da9",
       "patch_source": "navi48:mesa-patches",
-      "patch_order": ["0001", "0002", "0003", "0004", "0005"],
+      "patch_order": [
+        "0001",
+        "0002",
+        "0003",
+        "0004",
+        "0005"
+      ],
       "qualification": "base and order read from upstream instructions; patch application not tested"
     },
-    "legacy_mesa_nvk": { "revision_abbreviation": "17ca6174", "role": "NVIDIA only; never substitute for the RADV base" },
+    "legacy_mesa_nvk": {
+      "revision_abbreviation": "17ca6174",
+      "role": "NVIDIA only; never substitute for the RADV base"
+    },
     "mac_kernel_sdk": {
-      "source": "https://github.com/somestupidgirl/RDNA4FB",
-      "path": "MacKernelSDK",
-      "revision": null,
-      "status": "pending identification and pinning; no qualified SDK checkout"
+      "url": "https://github.com/acidanthera/MacKernelSDK.git",
+      "revision": "05094e5e88cec7caedbfb35e8449ed0db94bf95b",
+      "pin_source": {
+        "url": "https://github.com/somestupidgirl/RDNA4FB",
+        "revision": "5ff69aade9a7feb18bb665040661de33ccfe68ba",
+        "gitlink": "MacKernelSDK"
+      },
+      "archive": {
+        "file": "MacKernelSDK-05094e5e88cec7caedbfb35e8449ed0db94bf95b.zip",
+        "url": "https://codeload.github.com/acidanthera/MacKernelSDK/zip/05094e5e88cec7caedbfb35e8449ed0db94bf95b",
+        "sha256": "b6abad54ab347028d7c5495a105cdd59736bcecf12ab6bbb44df7041715994bd"
+      },
+      "license_file": "LICENSE.txt",
+      "license_sha256": "e5881019d8766c1e88a5fe1dbca4ba40c78011d41fcb18f6e9f50df60182685b",
+      "license": "APSL-2.0 root notice; preserve individual header/library notices",
+      "qualification": "Pinned RDNA4FB submodule archive retrieved and SHA-256 verified; no Mac build yet"
     },
     "linux_firmware": {
       "url": "https://gitlab.com/kernel-firmware/linux-firmware.git",
-      "revision": null,
-      "status": "upstream provides blob hashes but no checkout revision; pending retrieval and qualification",
+      "revision": "5ff473283bf11ba0a8b6b04a075ae01676aee10d",
+      "status": "All ten blobs retrieved at one immutable revision and match upstream expected SHA-256; no GPU loading test",
       "hash_source": "navi48:tools/fetch-firmware.sh",
       "expected_sha256": {
         "gc_12_0_1_imu.bin": "b3b301fb636efc77b63ce4d2ced0f90c851d03c19681852faa45598e6f5773fd",
@@ -45,6 +72,10 @@
         "psp_14_0_3_ta.bin": "38d6691bf64232946cd5ce5735363c7c2877830ff640b9b95516403257fe2922",
         "sdma_7_0_1.bin": "73c29e1c1714ebc95d2221ba56e187910902891593010653bf9518937e414a59",
         "smu_14_0_3.bin": "3221ef2ddb341570eeb727e1e16f170bfb2ea1230be4a7eb248d0b183fbfbf15"
+      },
+      "notices_sha256": {
+        "LICENSE.amdgpu": "572872598565dc3513470de971a32bf9db301f47afeef3636345eadae33b2eee",
+        "WHENCE": "06f1f9cdc95e2c9e0feb72ce72eb77eaa58293758b162575500a21abc8ad1846"
       }
     },
     "translator": {
@@ -52,7 +83,7 @@
       "lockfile": "translator/translator/Cargo.lock",
       "reflection_schema": 56,
       "spirv_entry_point": "main",
-      "qualification": "Windows CLI and targeted software tests; AIR input not tested"
+      "qualification": "Apple vector_add AIR translated and validated; 36 cases on RX 9070 XT Windows, including host and staging/VRAM; Mac and Windows software regressions passed"
     }
   }
 }

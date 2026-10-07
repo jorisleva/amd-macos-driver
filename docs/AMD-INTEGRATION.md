@@ -83,9 +83,11 @@ Inventaire des notices, sans conclusion juridique sur un futur paquet :
 | Séquences mac-amdgpu | MIT, notice de Geramy Loveless |
 | Registres AMD dérivés | En-têtes MIT AMD ; conserver leur provenance |
 | Firmwares AMD | `LICENSE.amdgpu`, empreintes et révision de récupération ; aucun binaire firmware ajouté ici |
-| MacKernelSDK | Révision, licence et notices à inspecter au moment du choix du checkout |
+| MacKernelSDK | Gitlink RDNA4FB épinglé `05094e5e88cec7caedbfb35e8449ed0db94bf95b` ; `LICENSE.txt` APSL 2.0 et notices fichier par fichier conservées |
 
 Voir les [notices AMD](https://github.com/Almosst-DEV/Navi48-MacOS/blob/696959753070e9a16677be485580dc53b06a7ab5/third-party/THIRD-PARTY-LICENSES.txt)
 et la [liste des firmwares et empreintes](https://github.com/Almosst-DEV/Navi48-MacOS/blob/696959753070e9a16677be485580dc53b06a7ab5/tools/fetch-firmware.sh).
-Les révisions SDK/firmware restent `null` dans le manifeste : les empreintes
-attendues ne prouvent pas que ces firmwares ont été obtenus ou testés.
+Les révisions SDK/firmware sont désormais fixées dans le manifeste. Le SDK
+et les dix blobs à `5ff473283bf11ba0a8b6b04a075ae01676aee10d` ont été
+récupérés et vérifiés. Cela prouve la provenance des entrées, sans valider
+leur build ni leur chargement sur le GPU. Voir la [préparation AMD](AMD-DEPENDENCIES.md).

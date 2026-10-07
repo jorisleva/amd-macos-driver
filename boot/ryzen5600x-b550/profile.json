@@ -1,0 +1,31 @@
+{
+  "status": "prepared-not-boot-qualified",
+  "cpu": "AMD Ryzen 5 5600X",
+  "physical_cores": 6,
+  "logical_processors": 12,
+  "motherboard": "Gigabyte B550M DS3H",
+  "bios": "FD (2024-03-22)",
+  "board_revision": null,
+  "memory_gib": 16,
+  "gpu": {
+    "vendor": "1002", "device": "7550", "subsystem": "1849:5417",
+    "manufacturer_vfct": "ASRock", "commercial_model": null,
+    "vbios": "023.008.000.068.000001", "vbios_part_number": "113-APM107819-101",
+    "vbios_source": "Firmware ACPI VFCT, 58880-byte ATOMBIOS image; not a full PCI option ROM backup",
+    "vfct_image_sha256": "cb1fe14d10f3eb934731aa28993dd21fd18c3d8daa50d9c31d8612351fc41b01"
+  },
+  "storage_observed": "Crucial P3 Plus CT1000P3PSSD8, 1 TB, P9CR413, NVMe 1344:5416",
+  "installation_disk": null,
+  "ethernet": "Realtek 10EC:8168 / subsystem 1458:E000",
+  "usb": [
+    {"pci": "1022:43EE", "root_ports_windows": 14},
+    {"pci": "1022:149C", "root_ports_windows": 8}
+  ],
+  "cpu_acpi_paths": "\\_SB.PLTF.C000 through C00B (Windows PnP BIOS device names)",
+  "lpc_acpi_path": "\\_SB.PCI0.SBRG",
+  "dsdt_sha256": "4a382ee7c5311f768b99dd2968d8808010246658d3a21824dd90ed788c3fdb8c",
+  "display_connector": null,
+  "target_macos": "Tahoe 26 / Darwin 25, exact version and build still to select",
+  "smbios": "MacPro7,1",
+  "usb_mapping": "UTBDefault transitional enumeration; physical socket map not qualified"
+}
