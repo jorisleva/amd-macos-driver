@@ -4,11 +4,13 @@ Projet expérimental de développement d'un pilote graphique pour une **AMD Rade
 
 L'objectif est de réutiliser la couche Metal du fork NVIDIA de NullMoth, puis de la raccorder à un backend AMD composé de **Mesa RADV** et d'un pilote noyau pour Navi 48.
 
-**Statut : premier calcul issu de Metal/AIR Apple validé sur la RX 9070 XT sous Windows.** Le shader `vector_add`, compilé sur Mac puis traduit en SPIR-V par le fork, passe les 36 cas du banc Radeon en mémoire hôte et via staging/VRAM. Chaque résultat correspond à la référence CPU et au contrôle GLSL, avec zéro écart de données, de gardes ou d'entrées et zéro erreur Vulkan/synchronisation. Les 11 tests Rust ciblés passent sur Mac et Windows ; 4 CTest passent sous Windows. Le rendu et l'assemblage AMD sous macOS restent à valider. Ce dossier ne fournit pas encore de pilote installable ; le fork contient toujours le pilote NVIDIA.
+**Statut : calcul Apple AIR et premier rendu de contrôle validés sur la RX 9070 XT sous Windows.** Le shader `vector_add`, compilé sur Mac puis traduit en SPIR-V par le fork, passe les 36 cas en mémoire hôte et via staging/VRAM. Le nouveau banc graphique passe 48 cas de copie de texture, échantillonnage, triangle et mélange alpha : tous les pixels RGBA correspondent exactement à la référence CPU, avec zéro écart de gardes/entrées et zéro erreur Vulkan/synchronisation. Les shaders graphiques sont encore des contrôles GLSL ; leurs équivalents Metal/AIR restent à produire. Les 11 tests Rust ciblés sont validés sur Mac et Windows ; 7 CTest passent sous Windows et le calcul Apple/GLSL a été rejoué après l'ajout du rendu. L'assemblage AMD et le rendu sous macOS restent à valider. Ce dossier ne fournit pas encore de pilote installable ; le fork contient toujours le pilote NVIDIA.
 
 La progression et les conditions de passage entre étapes sont décrites dans [ROADMAP.md](ROADMAP.md).
 
 Le [guide du banc Windows](docs/VALIDATION-WINDOWS.md) donne les commandes d'inventaire et de test ; la [procédure Mac](docs/VALIDATION-MACOS.md) décrit la compilation AIR et le transfert. Le [rapport Apple AIR sur Radeon](docs/reports/2026-10-07-apple-air-radeon.md) conserve la nouvelle validation matérielle. Le [rapport Mac/AIR](docs/reports/2026-10-07-apple-air.md), le [corpus Apple](tests/shaders/apple/) et le [rapport Radeon initial](docs/reports/2026-10-07-radeon-windows.md) conservent les artefacts et résultats précédents. L'[audit AMD](docs/AMD-INTEGRATION.md), le [manifeste des sources](dependencies/sources.lock.json) et le [premier rapport](docs/reports/2026-10-07-bootstrap.md) décrivent les dépendances et l'historique de validation.
+
+Le [banc graphique hors écran](docs/VALIDATION-GRAPHICS.md) et son [rapport Radeon avec images](docs/reports/2026-10-07-offscreen-radeon.md) décrivent les 48 cas, les tolérances et les rejets de résultats volontairement faux.
 
 Les prochaines actions et blocages sont résumés dans [Travail restant](docs/NEXT-STEPS.md).
 

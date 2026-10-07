@@ -116,9 +116,10 @@ Les barrières couvrent host → transfer → compute → transfer → host et l
 réutilisation du staging. Le choix mémoire préfère un type device-local non
 visible au CPU et consigne les flags réellement sélectionnés. Sur la Radeon
 relevée, les buffers utilisent le type 0, flags `DEVICE_LOCAL` seuls, heap 1.
-Chaque soumission emploie une fence (5 secondes maximum). Les textures, images,
-dispatchs dépendants, files multiples et mémoire hôte non cohérente restent à
-tester. Chaque
+Chaque soumission emploie une fence (5 secondes maximum). Les textures et images
+sont maintenant testées par le [banc hors écran](VALIDATION-GRAPHICS.md) : 48 cas
+de contrôle GLSL, avec comparaison complète RGBA et gardes. Les dispatchs
+dépendants, files multiples et mémoire hôte non cohérente restent à tester. Chaque
 cas conserve les écarts et des sommes de contrôle FNV-1a de la sortie complète
 et de la référence ; ces sommes servent au diagnostic, pas au contrôle
 d'intégrité des artefacts, qui utilise SHA-256.
@@ -197,5 +198,6 @@ preuves partageables ; ce succès ne représente pas un AIR compilé par Apple.
 exécuter Vulkan ; `spirv-val` reste obligatoire pour la validité structurelle.
 Un autre shader n'est accepté que s'il respecte le contrat restreint du banc.
 L'exécution réussie sur la RX 9070 XT avec les artefacts issus du Mac qualifie
-le premier calcul de l'étape 2. Le corpus graphique et la qualification
+le premier calcul de l'étape 2. Le [corpus graphique de contrôle GLSL](VALIDATION-GRAPHICS.md)
+est désormais validé sur Radeon ; ses équivalents Metal/AIR et la qualification
 macOS restent ouverts.

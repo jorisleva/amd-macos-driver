@@ -1,7 +1,7 @@
 # Travail restant après le premier banc Windows
 
 État du 7 octobre 2026. Le traducteur Rust et le banc Vulkan compilent sur
-le PC Ryzen/Radeon ; 11 tests Rust ciblés et 4 tests CTest passent. Le contrôle
+le PC Ryzen/Radeon ; 11 tests Rust ciblés et 7 tests CTest sont validés. Le contrôle
 GLSL et la fixture synthétique traduite passent chacun 36 cas sur RX 9070 XT,
 y compris les transferts staging/VRAM, sans écart ni erreur Vulkan/synchronisation.
 Le Mac est désormais inventorié : `vector_add.metal` est compilé en AIR Apple,
@@ -12,7 +12,12 @@ avec les mêmes résultats que la référence CPU et le contrôle GLSL rejoué.
 Preuves : [rapport Apple AIR/Radeon](reports/2026-10-07-apple-air-radeon.md),
 [rapport Mac/AIR](reports/2026-10-07-apple-air.md) et
 [rapport Radeon initial](reports/2026-10-07-radeon-windows.md).
-Le rendu et les essais du pilote macOS restent ouverts.
+Le rendu hors écran de contrôle GLSL passe également 48 cas : copies et
+échantillonnage de textures, triangle et mélange alpha. Les 330 984 pixels
+RGBA correspondent exactement à la référence CPU, sans erreur Vulkan ni
+corruption. Les trois rejets graphiques et la régression Apple/GLSL passent.
+Preuves : [rapport graphique avec images](reports/2026-10-07-offscreen-radeon.md).
+La traduction graphique Metal/AIR et les essais du pilote macOS restent ouverts.
 
 ## Prochaines actions, dans l'ordre
 
@@ -27,11 +32,16 @@ Le rendu et les essais du pilote macOS restent ouverts.
    réel Apple de `tests/shaders/apple/`, avec `-Shader`, `-Reflection` et
    origine `metal-air`, selon la [procédure Mac](VALIDATION-MACOS.md).
    Ce calcul est validé sous le pilote AMD Windows ; RADV Darwin reste ouvert.
-3. **Compléter le corpus graphique.** Ajouter texture, triangle et mélange
-   de couleurs hors écran, références d'images et tolérances. Le banc actuel
-   couvre des buffers hôte/cohérents et device-local avec staging, du calcul
-   entier et une relecture après écriture. Les dispatchs dépendants, files
-   multiples et mémoire non cohérente restent également à étendre.
+   Rejouer aussi `tools/run-windows-graphics-probe.ps1 -DeviceId 0x7550` pour
+   les 48 cas hors écran et `tools/test-windows-graphics-rejections.ps1`
+   pour leurs scénarios d'échec, selon la [procédure graphique](VALIDATION-GRAPHICS.md).
+3. **Produire le corpus graphique Metal/AIR sur le Mac.** Les références
+   texture/triangle/blending sont désormais définies et validées avec GLSL.
+   Écrire leurs équivalents Metal, les compiler, conserver leur AIR/SPIR-V et
+   réflexion, puis adapter descriptors/paramètres du banc à cette ABI avant
+   de les lancer sur la Radeon. La copie d'image reste une opération Vulkan.
+   Les dispatchs dépendants, files multiples et mémoire non cohérente restent
+   également à étendre.
 
 Commandes détaillées : [banc Windows](VALIDATION-WINDOWS.md) et
 [compilation AIR sur Mac / transfert](VALIDATION-MACOS.md). Le MacBookAir7,2

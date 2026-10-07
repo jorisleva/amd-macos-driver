@@ -4,7 +4,7 @@ Cette feuille de route décrit le développement pour le PC **Ryzen 5 5600X + RX
 
 L'architecture, le périmètre et les références sont détaillés dans [README.md](README.md).
 
-**État au 7 octobre 2026 : premier calcul issu d'AIR Apple correctement exécuté sur la Radeon.** `vector_add`, compilé sur Mac puis traduit par le fork, passe 36 cas sous Windows, en mémoire hôte et via staging/VRAM, avec zéro écart et zéro erreur Vulkan/synchronisation. Le contrôle GLSL rejoué produit les mêmes résultats. Les 11 tests Rust ciblés passent sur Mac et Windows, ainsi que 4 CTest sous Windows. Le rendu et le pilote macOS restent ouverts ; aucune étape globale n'est déclarée complète. Preuves : [rapport Apple AIR/Radeon](docs/reports/2026-10-07-apple-air-radeon.md), [rapport Mac/AIR](docs/reports/2026-10-07-apple-air.md) et [rapport Radeon initial](docs/reports/2026-10-07-radeon-windows.md).
+**État au 7 octobre 2026 : calcul Apple AIR et rendu de contrôle validés sur la Radeon sous Windows.** `vector_add`, compilé sur Mac puis traduit par le fork, passe 36 cas en mémoire hôte et via staging/VRAM. Le nouveau corpus GLSL hors écran passe 48 cas, avec 330 984 pixels RGBA exactement conformes à la référence CPU, zéro écart et zéro erreur Vulkan/synchronisation. La régression Apple/GLSL de calcul et les trois rejets graphiques passent ; 7 CTest sont validés sous Windows. Les 11 tests Rust ciblés sont validés sur Mac et Windows. Les shaders graphiques Metal/AIR et le pilote macOS restent ouverts ; aucune étape globale n'est déclarée complète. Preuves : [rapport hors écran](docs/reports/2026-10-07-offscreen-radeon.md), [rapport Apple AIR/Radeon](docs/reports/2026-10-07-apple-air-radeon.md) et [rapport Mac/AIR](docs/reports/2026-10-07-apple-air.md).
 
 ## Principes de progression
 
@@ -76,8 +76,9 @@ Les éléments produits ici sont des artefacts de test. Ils ne sont pas encore q
 - [x] Exécuter une addition de tableaux et comparer tous les résultats à une référence CPU (SPIR-V issu d'Apple, contrôle GLSL et IR synthétique ; tolérance entière zéro).
 - [x] Tester des tailles non multiples des groupes de travail et vérifier les zones de garde des buffers (1, 63, 64, 65, 257, 4097 éléments ; vérification des allocations entières).
 - [x] Tester les transferts, barrières, lectures après écriture et commandes répétées (host/compute et staging/VRAM/compute/readback, 3 répétitions par taille et chemin ; une file et une fence).
-- [ ] Tester une texture, un triangle, puis le mélange de couleurs hors écran.
-- [ ] Comparer les images à une référence et documenter les tolérances numériques.
+- [x] Tester une texture, un triangle, puis le mélange de couleurs hors écran (48 cas de contrôle GLSL sur Radeon, copies et échantillonnage compris ; [rapport](docs/reports/2026-10-07-offscreen-radeon.md)).
+- [x] Comparer les images à une référence et documenter les tolérances numériques (tous les canaux RGBA, tolérance 0 pour les textures et 1/255 pour les couleurs ; erreur maximale constatée 0).
+- [ ] Produire les équivalents graphiques Metal sur le Mac, conserver leur AIR et réflexion, puis les exécuter dans le banc Radeon adapté à leur ABI.
 - [x] Vérifier qu'un GPU absent, un shader non pris en charge ou un résultat incorrect produit un échec explicite (ID PCI absent, mauvaise entrée SPIR-V, résultat GPU volontairement incorrect).
 
 La référence CPU sert uniquement à vérifier le résultat. Elle ne remplace pas l'exécution GPU dans le chemin testé.
@@ -222,6 +223,6 @@ Ces travaux seront classés après les premiers résultats :
 
 La liste opérationnelle des tâches et blocages est dans [Travail restant](docs/NEXT-STEPS.md).
 
-Ajouter le corpus texture/triangle/blending hors écran, ses références d'images et les shaders Metal correspondants. Conserver le calcul Apple AIR comme contrôle de régression sur la Radeon ; la [procédure Mac/transfert](docs/VALIDATION-MACOS.md) et le [banc Windows](docs/VALIDATION-WINDOWS.md) permettent de le rejouer. Compléter les champs matériels encore manquants et poursuivre le verrouillage MacKernelSDK/firmwares ainsi que la compilation AMD des **étapes 0 et 1**. L'assemblage AMD et la préparation du démarrage Tahoe avec son moyen de récupération restent ouverts.
+Produire les shaders Metal correspondant au [corpus graphique GLSL validé](docs/VALIDATION-GRAPHICS.md), les compiler sur le Mac, conserver AIR/SPIR-V/réflexion et adapter les ressources du banc à leur ABI. Conserver le calcul Apple AIR et les 48 cas hors écran comme contrôles de régression. La [procédure Mac/transfert](docs/VALIDATION-MACOS.md) et le [banc Windows](docs/VALIDATION-WINDOWS.md) permettent de rejouer le calcul. Compléter les champs matériels encore manquants et poursuivre le verrouillage MacKernelSDK/firmwares ainsi que la compilation AMD des **étapes 0 et 1**. L'assemblage AMD et la préparation du démarrage Tahoe avec son moyen de récupération restent ouverts.
 
-Le premier succès de calcul est obtenu : un shader Metal écrit pour le projet, compilé en AIR par Apple puis traduit par le fork produit les résultats attendus sur la RX 9070 XT sous Windows. Cette preuve qualifie ce shader et cette partie du traducteur ; le rendu et les essais noyau sous macOS restent à obtenir.
+Le premier succès de calcul est obtenu : un shader Metal écrit pour le projet, compilé en AIR par Apple puis traduit par le fork produit les résultats attendus sur la RX 9070 XT sous Windows. Le banc de rendu Windows est désormais vérifié avec des contrôles GLSL et des références d'images. La traduction des shaders graphiques et les essais noyau/rendu sous macOS restent à obtenir.
