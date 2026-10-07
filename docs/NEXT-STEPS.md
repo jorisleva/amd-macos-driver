@@ -1,16 +1,18 @@
 # Travail restant après le premier banc Windows
 
 État du 7 octobre 2026. Le traducteur Rust et le banc Vulkan compilent sur
-le PC Ryzen/Radeon ; 10 tests Rust ciblés et 4 tests CTest passent. Le contrôle
+le PC Ryzen/Radeon ; 11 tests Rust ciblés et 4 tests CTest passent. Le contrôle
 GLSL et la fixture synthétique traduite passent chacun 36 cas sur RX 9070 XT,
 y compris les transferts staging/VRAM, sans écart ni erreur Vulkan/synchronisation.
 Le Mac est désormais inventorié : `vector_add.metal` est compilé en AIR Apple,
 lié en metallib, traduit et validé en SPIR-V Vulkan 1.2. Les 11 tests Rust
 ciblés passent sur Mac et les sept artefacts sont reproduits octet par octet.
-Preuves : [rapport Radeon](reports/2026-10-07-radeon-windows.md) et
-[rapport Mac/AIR](reports/2026-10-07-apple-air.md).
-L'exécution de ce nouvel AIR traduit sur Radeon et les essais du pilote
-macOS restent ouverts.
+Le SPIR-V issu de cet AIR Apple passe maintenant les 36 cas sur la Radeon,
+avec les mêmes résultats que la référence CPU et le contrôle GLSL rejoué.
+Preuves : [rapport Apple AIR/Radeon](reports/2026-10-07-apple-air-radeon.md),
+[rapport Mac/AIR](reports/2026-10-07-apple-air.md) et
+[rapport Radeon initial](reports/2026-10-07-radeon-windows.md).
+Le rendu et les essais du pilote macOS restent ouverts.
 
 ## Prochaines actions, dans l'ordre
 
@@ -21,17 +23,11 @@ macOS restent ouverts.
    à retenir pour Tahoe.
 2. **Conserver le banc Radeon comme contrôle de régression.** Exécuter
    `tools/run-windows-probe.ps1 -DeviceId 0x7550` après un changement pertinent.
-   Les 36 cas couvrent mémoire hôte et staging/VRAM. Le contrôle GLSL et
-   l'IR synthétique sont validés sous le pilote AMD Windows ; ils ne ferment
-   pas la qualification AIR Apple ou RADV Darwin.
-3. **Exécuter le shader issu de Metal sur la Radeon.** Le corpus réel Apple
-   est dans `tests/shaders/apple/` avec AIR, metallib, SPIR-V, réflexion,
-   provenance et empreintes relatives. Vérifier les fichiers transférés,
-   lancer le même banc avec `-Shader`, `-Reflection` et origine `metal-air`,
-   puis comparer les 36 cas. La [procédure Mac](VALIDATION-MACOS.md) donne
-   la commande ; ni la fixture synthétique ni la validation logicielle
-   ne remplacent cette exécution GPU.
-4. **Compléter le corpus graphique.** Ajouter texture, triangle et mélange
+   Les 36 cas couvrent mémoire hôte et staging/VRAM. Rejouer aussi le corpus
+   réel Apple de `tests/shaders/apple/`, avec `-Shader`, `-Reflection` et
+   origine `metal-air`, selon la [procédure Mac](VALIDATION-MACOS.md).
+   Ce calcul est validé sous le pilote AMD Windows ; RADV Darwin reste ouvert.
+3. **Compléter le corpus graphique.** Ajouter texture, triangle et mélange
    de couleurs hors écran, références d'images et tolérances. Le banc actuel
    couvre des buffers hôte/cohérents et device-local avec staging, du calcul
    entier et une relecture après écriture. Les dispatchs dépendants, files
@@ -41,7 +37,8 @@ Commandes détaillées : [banc Windows](VALIDATION-WINDOWS.md) et
 [compilation AIR sur Mac / transfert](VALIDATION-MACOS.md). Le MacBookAir7,2
 x86_64 sous Sequoia est qualifié pour ce premier shader ; la compilation de
 l'assemblage AMD reste à faire. Le nouveau test `apple_vector_add` est ajouté
-aux scripts Mac/Windows, mais seul son lancement Mac est observé ici.
+aux scripts Mac/Windows et ses trois traductions de référence sont désormais
+vérifiées sous Windows également.
 
 ## Compilation et dépendances encore ouvertes
 

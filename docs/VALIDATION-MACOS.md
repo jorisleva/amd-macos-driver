@@ -138,3 +138,8 @@ le module l'exige. Les 36 cas doivent vérifier toutes les allocations et
 produire zéro écart et zéro erreur Vulkan/synchronisation avant de qualifier
 **ce** shader. Aucune exécution de cette commande Windows n'est revendiquée
 par le rapport Mac. Détails : [banc Windows](VALIDATION-WINDOWS.md).
+
+Cette commande a ensuite été exécutée sur le PC Ryzen/Radeon : les 36 cas
+Apple AIR passent et correspondent au contrôle GLSL et à la référence CPU,
+sans erreur Vulkan/synchronisation. Les 11 tests Rust ciblés passent aussi
+sous Windows. Preuves : [rapport Apple AIR/Radeon](reports/2026-10-07-apple-air-radeon.md).

@@ -4,7 +4,7 @@ Cette feuille de route décrit le développement pour le PC **Ryzen 5 5600X + RX
 
 L'architecture, le périmètre et les références sont détaillés dans [README.md](README.md).
 
-**État au 7 octobre 2026 : premier AIR Apple compilé sur Mac, traduit et validé en SPIR-V.** Le corpus `vector_add` est conservé et reproduit octet par octet depuis une copie des sources ; 11 tests Rust ciblés passent sur Mac. Sous Windows, le contrôle GLSL et une fixture synthétique traduite passent chacun 36 cas sur Radeon, en mémoire hôte et via staging/VRAM, avec zéro écart et zéro erreur Vulkan/synchronisation ; 10 tests Rust et 4 CTest y ont été validés. L'exécution du nouvel AIR traduit sur Radeon et le rendu restent ouverts ; aucune étape globale ni pilote macOS n'est validé. Preuves : [rapport Mac/AIR](docs/reports/2026-10-07-apple-air.md), [rapport Radeon](docs/reports/2026-10-07-radeon-windows.md) et [premier rapport](docs/reports/2026-10-07-bootstrap.md).
+**État au 7 octobre 2026 : premier calcul issu d'AIR Apple correctement exécuté sur la Radeon.** `vector_add`, compilé sur Mac puis traduit par le fork, passe 36 cas sous Windows, en mémoire hôte et via staging/VRAM, avec zéro écart et zéro erreur Vulkan/synchronisation. Le contrôle GLSL rejoué produit les mêmes résultats. Les 11 tests Rust ciblés passent sur Mac et Windows, ainsi que 4 CTest sous Windows. Le rendu et le pilote macOS restent ouverts ; aucune étape globale n'est déclarée complète. Preuves : [rapport Apple AIR/Radeon](docs/reports/2026-10-07-apple-air-radeon.md), [rapport Mac/AIR](docs/reports/2026-10-07-apple-air.md) et [rapport Radeon initial](docs/reports/2026-10-07-radeon-windows.md).
 
 ## Principes de progression
 
@@ -50,7 +50,7 @@ La préparation de Tahoe peut avancer en parallèle des étapes 1 et 2. L'intég
 
 ## Étape 1 — Rendre la compilation reproductible
 
-- [x] Compiler le traducteur Rust et lancer ses tests logiciels pertinents (CLI Windows : 10 tests réussis ; Mac x86_64 : 11 dont la nouvelle régression AIR Apple ; suite complète toujours bloquée par corpus absent).
+- [x] Compiler le traducteur Rust et lancer ses tests logiciels pertinents (CLI Windows et Mac x86_64 : 11 tests réussis, dont la régression AIR Apple ; suite complète toujours bloquée par corpus absent).
 - [x] Installer et qualifier les outils de compilation Metal et de validation SPIR-V pour le premier calcul (Apple Metal 32023.864, LLVM 20.1.8 et SPIRV-Tools v2026.2 essayés sur Mac ; SDK Vulkan 1.4.350.0 utilisé sur Windows ; [procédure Mac](docs/VALIDATION-MACOS.md)).
 - [ ] Compiler le pilote AMD pour x86_64 avec MacKernelSDK.
 - [ ] Construire Mesa à la révision attendue et appliquer les adaptations RADV Darwin dans l'ordre prévu.
@@ -72,8 +72,8 @@ Les éléments produits ici sont des artefacts de test. Ils ne sont pas encore q
 - [x] Développer un petit programme Vulkan Windows sélectionnant explicitement la RX 9070 XT (exécuté sur la cible relevée, refus d'une identité différente vérifié).
 - [x] Enregistrer l'identité du GPU, le pilote et les capacités utilisées (API, file, local size, Int64 et types/heaps mémoire dans le rapport Radeon).
 - [x] Compiler sur le Mac le premier shader Metal écrit pour le projet et conserver sa source et son AIR (`vector_add`, [corpus Apple](tests/shaders/apple/) ; corpus graphique encore à ajouter).
-- [x] Traduire ce shader avec le traducteur du fork et valider le SPIR-V (bitcode Apple lu par LLVM 20.1.8, Vulkan 1.2 et contrat statique du banc vérifiés ; exécution Radeon non effectuée).
-- [x] Exécuter une addition de tableaux et comparer tous les résultats à une référence CPU (contrôle GLSL et IR synthétique traduit ; exécution du SPIR-V issu d'Apple encore ouverte).
+- [x] Traduire ce shader avec le traducteur du fork et valider le SPIR-V (bitcode Apple lu par LLVM 20.1.8, Vulkan 1.2 et contrat statique vérifiés ; 36 cas sur Radeon réussis).
+- [x] Exécuter une addition de tableaux et comparer tous les résultats à une référence CPU (SPIR-V issu d'Apple, contrôle GLSL et IR synthétique ; tolérance entière zéro).
 - [x] Tester des tailles non multiples des groupes de travail et vérifier les zones de garde des buffers (1, 63, 64, 65, 257, 4097 éléments ; vérification des allocations entières).
 - [x] Tester les transferts, barrières, lectures après écriture et commandes répétées (host/compute et staging/VRAM/compute/readback, 3 répétitions par taille et chemin ; une file et une fence).
 - [ ] Tester une texture, un triangle, puis le mélange de couleurs hors écran.
@@ -222,6 +222,6 @@ Ces travaux seront classés après les premiers résultats :
 
 La liste opérationnelle des tâches et blocages est dans [Travail restant](docs/NEXT-STEPS.md).
 
-Exécuter le SPIR-V issu du [premier AIR Apple](tests/shaders/apple/) sur la RX 9070 XT et comparer ses 36 cas avec le [banc Windows](docs/VALIDATION-WINDOWS.md), déjà validé avec GLSL et IR synthétique. La [procédure Mac/transfert](docs/VALIDATION-MACOS.md) détaille les empreintes et la commande. Compléter les champs matériels encore manquants sur le PC, ajouter le corpus texture/triangle/blending hors écran et poursuivre le verrouillage MacKernelSDK/firmwares ainsi que la compilation AMD des **étapes 0 et 1**. Le Mac est inventorié pour ce premier calcul ; l'assemblage AMD et la préparation du démarrage Tahoe avec son moyen de récupération restent ouverts.
+Ajouter le corpus texture/triangle/blending hors écran, ses références d'images et les shaders Metal correspondants. Conserver le calcul Apple AIR comme contrôle de régression sur la Radeon ; la [procédure Mac/transfert](docs/VALIDATION-MACOS.md) et le [banc Windows](docs/VALIDATION-WINDOWS.md) permettent de le rejouer. Compléter les champs matériels encore manquants et poursuivre le verrouillage MacKernelSDK/firmwares ainsi que la compilation AMD des **étapes 0 et 1**. L'assemblage AMD et la préparation du démarrage Tahoe avec son moyen de récupération restent ouverts.
 
-Le premier succès à rechercher est un shader Metal écrit pour le projet, traduit en SPIR-V et exécuté avec un résultat correct sur la RX 9070 XT sous Windows. Il permettra de qualifier une partie réutilisable du fork avant les essais noyau sous macOS.
+Le premier succès de calcul est obtenu : un shader Metal écrit pour le projet, compilé en AIR par Apple puis traduit par le fork produit les résultats attendus sur la RX 9070 XT sous Windows. Cette preuve qualifie ce shader et cette partie du traducteur ; le rendu et les essais noyau sous macOS restent à obtenir.

@@ -19,7 +19,10 @@ régénère le corpus. Vérifier depuis ce dossier : `shasum -a 256 -c SHA256SUM
 
 Le test Rust `apple_vector_add` traduit le désassemblage et compare exactement
 SPIR-V et réflexion à cette référence. Il ne vérifie aucun résultat GPU.
-L'exécution du nouveau SPIR-V sur la RX 9070 XT reste **non effectuée**.
+Le SPIR-V a ensuite été exécuté sur la RX 9070 XT sous Windows : **36 cas
+réussis**, résultats identiques à la référence CPU et au contrôle GLSL, sans
+erreur Vulkan/synchronisation. La metallib n'est pas exécutée via Metal.
+Preuves : [rapport Apple AIR/Radeon](../../../docs/reports/2026-10-07-apple-air-radeon.md).
 
 [Rapport](../../../docs/reports/2026-10-07-apple-air.md) ·
 [Procédure Mac et transfert Windows](../../../docs/VALIDATION-MACOS.md)

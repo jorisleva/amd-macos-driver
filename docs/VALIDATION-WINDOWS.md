@@ -50,8 +50,8 @@ shader GLSL et lance `spirv-val --target-env vulkan1.2` avant son utilisation.
 `tools/build-translator.ps1` et `tools/build-translator.sh` utilisent `--locked`,
 construisent le CLI avec réflexion JSON et sélectionnent désormais **11 tests
 autonomes**, dont `apple_vector_add` sur le désassemblage de notre AIR Apple.
-Les 10 tests historiques sont validés sous Windows ; les 11 passent sur Mac.
-Le script PowerShell modifié reste à rejouer sur Windows. Les scripts
+Les 11 tests passent sur Mac et sous Windows, y compris le script PowerShell
+mis à jour. Les scripts
 excluent explicitement les 4 cas `every_public_fixture*` des suites choisies.
 La suite unitaire complète reste bloquée par trois `include_str!` dont les
 fixtures `validation/fixtures/public/` sont absentes. Les autres suites ne sont
@@ -172,8 +172,10 @@ La réflexion donne le nom de la fonction AIR (`vector_add`) ; le SPIR-V émis
 utilise **`main`**. Le banc vérifie cette entrée et le local size avant la
 sélection GPU. Le cas synthétique **et le premier shader issu d'Apple** exigent
 `shaderInt64` pour leurs index : cette capacité est demandée au GPU puis activée
-explicitement, ou refusée. Le nouveau module Apple reste à exécuter sur la
-Radeon ; sa validation SPIR-V ne prouve pas les résultats des 36 cas.
+explicitement, ou refusée. Le module Apple a été exécuté sur la Radeon : les
+36 cas passent, sans écart ni erreur Vulkan/synchronisation, et leurs sorties
+correspondent au contrôle GLSL. Les empreintes transférées correspondent
+au manifeste du Mac. Preuves : [rapport Apple AIR/Radeon](reports/2026-10-07-apple-air-radeon.md).
 
 Pour diagnostiquer le contrat de la fixture synthétique, fournir ses artefacts
 de `out/translator/fixture/` et ajouter `-ShaderOrigin synthetic-ir`. Cette
@@ -194,5 +196,6 @@ preuves partageables ; ce succès ne représente pas un AIR compilé par Apple.
 `amd_gpu_probe --check-shader FILE` contrôle uniquement l'admission de l'ABI sans
 exécuter Vulkan ; `spirv-val` reste obligatoire pour la validité structurelle.
 Un autre shader n'est accepté que s'il respecte le contrat restreint du banc.
-Seule une exécution réussie sur la RX 9070 XT avec les artefacts issus du Mac
-pourra fermer les cases correspondantes de l'étape 2.
+L'exécution réussie sur la RX 9070 XT avec les artefacts issus du Mac qualifie
+le premier calcul de l'étape 2. Le corpus graphique et la qualification
+macOS restent ouverts.
