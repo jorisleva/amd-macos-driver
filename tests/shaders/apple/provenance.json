@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-07T14:10:27.165991+00:00",
+  "code_revision": "06d402fe17a0b6488b0bf25c8078cb7e889cdbb6",
+  "working_tree": [
+    "M tools/build-translator.ps1",
+    " M tools/build-translator.sh",
+    " M tools/compile-metal-reference.sh",
+    "?? tests/shaders/apple/",
+    "?? translator/translator/tests/apple_vector_add.rs"
+  ],
+  "machine": {
+    "model": "MacBookAir7,2",
+    "architecture": "x86_64",
+    "cpu": "Intel(R) Core(TM) i5-5350U CPU @ 1.80GHz",
+    "ram_bytes": 8589934592,
+    "macos_version": "15.7.8",
+    "macos_build": "24G824"
+  },
+  "versions": {
+    "metal": "Apple metal version 32023.864 (metalfe-32023.864)\nTarget: air64-apple-darwin24.6.0\nThread model: posix",
+    "metallib": "AIR-LLD 32023.864 (metalfe-32023.864) (compatible with legacy metallib linker)",
+    "llvm_dis": "Homebrew LLVM version 20.1.8\n  Optimized build.",
+    "spirv_val": "SPIRV-Tools v2026.2 v2026.2-0-g0539c81\nTargets:\n  SPIR-V 1.0\n  SPIR-V 1.1\n  SPIR-V 1.2\n  SPIR-V 1.3\n  SPIR-V 1.4\n  SPIR-V 1.5\n  SPIR-V 1.6\n  SPIR-V 1.2 (under OpenCL 2.2 Full Profile semantics)\n  SPIR-V 1.0 (under Vulkan 1.0 semantics)\n  SPIR-V 1.3 (under Vulkan 1.1 semantics)\n  SPIR-V 1.4 (under Vulkan 1.1 semantics)\n  SPIR-V 1.5 (under Vulkan 1.2 semantics)\n  SPIR-V 1.6 (under Vulkan 1.3 semantics) SPIR-V 1.6 (under Vulkan 1.4 semantics)",
+    "spirv_dis": "SPIRV-Tools v2026.2 v2026.2-0-g0539c81\nTarget: SPIR-V 1.5",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "xcode": "Xcode 26.3\nBuild version 17C529",
+    "macos_sdk": "26.2"
+  },
+  "tools": [
+    {
+      "name": "metal_launcher",
+      "sha256": "3c7420a3853873c8bdfa6b532a71e7ed3dc3af4f46c1d215eef4b78d419ad392",
+      "format": "Mach-O universal binary with 2 architectures: [x86_64:Mach-O 64-bit executable x86_64] [arm64:Mach-O 64-bit executable arm64]"
+    },
+    {
+      "name": "metallib_launcher",
+      "sha256": "92a9f7c97e4a54c5889f32c03c0ce28fc4743e18dad26ec0a0c9bde132e1716b",
+      "format": "Mach-O universal binary with 2 architectures: [x86_64:Mach-O 64-bit executable x86_64] [arm64:Mach-O 64-bit executable arm64]"
+    },
+    {
+      "name": "metal2vulkan",
+      "sha256": "6012ca304977fdf3ac527e973fd994b5730174ddcb0810591ce4ba5a85dbdbc4",
+      "format": "Mach-O 64-bit executable x86_64"
+    },
+    {
+      "name": "llvm-dis",
+      "sha256": "1dceab3f4ff2ecd5c20f9fed3d429dd1fa30f6198b25564a9ea34238d72c285d",
+      "format": "Mach-O 64-bit executable x86_64"
+    },
+    {
+      "name": "spirv-val",
+      "sha256": "6c0cf86c7c1d65cdab7afc63bb15e829e7b787dac108fe79abbf07da0c85bc8d",
+      "format": "Mach-O 64-bit executable x86_64"
+    },
+    {
+      "name": "spirv-dis",
+      "sha256": "2eef564e6c989f1cd4f85e2ec3f6c510f19086bc404b83c279e5ce7780f39e7a",
+      "format": "Mach-O 64-bit executable x86_64"
+    }
+  ],
+  "options": {
+    "air_target": "air64-apple-macosx26.0",
+    "metal_standard": "metal4.0",
+    "optimization": "-O2",
+    "source_input": "stdin (exact vector_add.metal copy)",
+    "stage": "kernel",
+    "local_size": [
+      64,
+      1,
+      1
+    ],
+    "dispatch": "Workgroups",
+    "validation_target": "vulkan1.2"
+  },
+  "air_triple": "air64_v28-apple-macosx26.0.0",
+  "contract": {
+    "reflection_version": 56,
+    "spirv_entry_point": "main",
+    "air_entry_point": "vector_add",
+    "descriptor_set": 0,
+    "storage_buffer_bindings": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "requires_shader_int64": true,
+    "params_size_bytes": 8
+  },
+  "results": {
+    "apple_air": "passed",
+    "metallib": "passed",
+    "llvm_dis": "passed",
+    "translation": "passed",
+    "spirv_validation": "passed",
+    "probe_abi_check": "passed",
+    "metal_gpu_execution": "not-run",
+    "radeon_gpu_execution": "not-run"
+  },
+  "translator_sources_sha256": "c6853ed3dd97e0444ea7405d1f1c3ba09db9ce5a87e1df7546250b23ce892842",
+  "inputs": [
+    {
+      "name": "tools/compile-metal-reference.sh",
+      "sha256": "21bc9ec015ad623062ec871a9bbd74b51b02062f5d762c1efc9629c02970597b"
+    },
+    {
+      "name": "tools/build-translator.sh",
+      "sha256": "595def466c743429b67675628a4dc32b9d8c6f2677654aa3a2bc990b936811f6"
+    },
+    {
+      "name": "tests/shaders/vector_add.metal",
+      "sha256": "974b8e88f9272909321cec14eb6664d0f31b0bb64dad0da096e0e1b19fff2a19"
+    },
+    {
+      "name": "tests/shaders/vector_add.synthetic.ll",
+      "sha256": "773d6e4d257499644e3023df7410e945ba9b8d2cfb31dfa3c9cae086d5386d16"
+    },
+    {
+      "name": "translator/translator/Cargo.toml",
+      "sha256": "4b74ba1ae801484fac24912349c02b5fdb08c427bf97c4a34190e21149293607"
+    },
+    {
+      "name": "translator/translator/Cargo.lock",
+      "sha256": "fa17bad854b21f96244a85e7c653381d0eb4fb05fd86e2e7b52df20dbf3b7231"
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "vector_add.metal",
+      "sha256": "974b8e88f9272909321cec14eb6664d0f31b0bb64dad0da096e0e1b19fff2a19",
+      "size_bytes": 663
+    },
+    {
+      "name": "vector_add.air",
+      "sha256": "1369b355edc5d5dc2d214a9b2dead69c23061bf4862d6dad9a2adf0949f5eb75",
+      "size_bytes": 3728
+    },
+    {
+      "name": "vector_add.air.ll",
+      "sha256": "7196e3b2d349645148402601bcf9f779f81bd1e7e75e1ef186277f0dafa5993f",
+      "size_bytes": 4997
+    },
+    {
+      "name": "vector_add.metallib",
+      "sha256": "3242e8f479b7e0e8e886c18030da9d80aacbdd820eb519f14e0454796ce675ea",
+      "size_bytes": 4032
+    },
+    {
+      "name": "vector_add.spv",
+      "sha256": "f7cb6896c6d9d174a1c87b27a682adffa4649c0d718c1be9895215a5cd0cf797",
+      "size_bytes": 1340
+    },
+    {
+      "name": "vector_add.spvasm",
+      "sha256": "e05abd641cf75b147939b9e76861a10cdedaaa3127eb65cb4020d006352f54d5",
+      "size_bytes": 3976
+    },
+    {
+      "name": "vector_add.reflection.json",
+      "sha256": "dcfebcd5cbaa5ee504856fdc8aa8b7674dc0a33a34a1685a7e37919cd271032e",
+      "size_bytes": 4227
+    }
+  ]
+}

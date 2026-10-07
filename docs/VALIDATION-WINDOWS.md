@@ -48,7 +48,10 @@ configuration place l'exécutable directement dans `out/vulkan`. Le script
 shader GLSL et lance `spirv-val --target-env vulkan1.2` avant son utilisation.
 
 `tools/build-translator.ps1` et `tools/build-translator.sh` utilisent `--locked`,
-construisent le CLI avec réflexion JSON et lancent **10 tests autonomes**. Ils
+construisent le CLI avec réflexion JSON et sélectionnent désormais **11 tests
+autonomes**, dont `apple_vector_add` sur le désassemblage de notre AIR Apple.
+Les 10 tests historiques sont validés sous Windows ; les 11 passent sur Mac.
+Le script PowerShell modifié reste à rejouer sur Windows. Les scripts
 excluent explicitement les 4 cas `every_public_fixture*` des suites choisies.
 La suite unitaire complète reste bloquée par trois `include_str!` dont les
 fixtures `validation/fixtures/public/` sont absentes. Les autres suites ne sont
@@ -132,26 +135,33 @@ destruction ; cette voie de récupération n'a pas encore été essayée sur Rad
 
 ## Produire et transférer le shader Metal
 
-Sur le Mac, depuis une copie du projet :
+Le [premier AIR Apple](reports/2026-10-07-apple-air.md) est maintenant compilé
+et traduit sur Mac. Le corpus partageable est dans
+[`tests/shaders/apple/`](../tests/shaders/apple/). La
+[procédure Mac](VALIDATION-MACOS.md) détaille outils, révisions, préparation,
+vérification des empreintes et transfert Windows.
+
+Pour régénérer, après configuration des outils décrite dans cette procédure :
 
 ```bash
 bash tools/build-translator.sh
-bash tools/compile-metal-reference.sh
+bash tools/compile-metal-reference.sh out/metal-reference-new
 ```
 
-Il faut Xcode avec les outils Metal, Rust, `llvm-dis` capable de lire l'AIR produit
-et `spirv-val`. Les overrides `METAL2VULKAN_LLVM_DIS` et
-`METAL2VULKAN_SPIRV_VAL` permettent de fixer les binaires. La compilation vise
-`air64-apple-macosx26.0` ; sa disponibilité et la compatibilité LLVM restent à
-vérifier sur le Mac réel. Le script conserve source, AIR, metallib, SPIR-V,
-réflexion, versions et empreintes. Il ne lance pas le shader via Metal.
+La sortie Metal doit être nouvelle ou vide. Le script utilise les overrides
+`METAL2VULKAN_LLVM_DIS`, `METAL2VULKAN_SPIRV_VAL` et `METAL2VULKAN_SPIRV_DIS`.
+Apple Metal 32023.864 / SDK macOS 26.2 et LLVM 20.1.8 ont été essayés avec
+`air64-apple-macosx26.0` et Metal 4.0. Le script conserve source, AIR, metallib,
+les deux désassemblages, SPIR-V, réflexion, provenance JSON et empreintes
+relatives. Il vérifie le contrat statique et ne lance pas le shader via Metal.
 
 Transférer les artefacts et leurs preuves sur le PC cible, puis lancer :
 
 ```powershell
 ./tools/run-windows-probe.ps1 -DeviceId $radeons[0].device_id `
-  -Shader out/metal-reference/vector_add.spv `
-  -Reflection out/metal-reference/vector_add.reflection.json
+  -Shader tests/shaders/apple/vector_add.spv `
+  -Reflection tests/shaders/apple/vector_add.reflection.json `
+  -ShaderOrigin metal-air
 ```
 
 Le contrat attendu est celui du **code livré** : réflexion version **56**, stage
@@ -160,8 +170,10 @@ set 0 / bindings 0 à 3 (`a`, `b`, `result`, `{count, offset}`). La documentatio
 héritée indique encore 49 : ce nombre n'est pas celui du traducteur actuel.
 La réflexion donne le nom de la fonction AIR (`vector_add`) ; le SPIR-V émis
 utilise **`main`**. Le banc vérifie cette entrée et le local size avant la
-sélection GPU. Le cas synthétique exige `shaderInt64` pour ses index : cette
-capacité est demandée au GPU puis activée explicitement, ou refusée.
+sélection GPU. Le cas synthétique **et le premier shader issu d'Apple** exigent
+`shaderInt64` pour leurs index : cette capacité est demandée au GPU puis activée
+explicitement, ou refusée. Le nouveau module Apple reste à exécuter sur la
+Radeon ; sa validation SPIR-V ne prouve pas les résultats des 36 cas.
 
 Pour diagnostiquer le contrat de la fixture synthétique, fournir ses artefacts
 de `out/translator/fixture/` et ajouter `-ShaderOrigin synthetic-ir`. Cette

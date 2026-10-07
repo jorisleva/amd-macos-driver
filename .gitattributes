@@ -1,0 +1,3 @@
+# Preserve the published corpus byte-for-byte, including its SHA256SUMS,
+# on Windows checkouts with core.autocrlf enabled.
+tests/shaders/apple/* -text

@@ -1,0 +1,88 @@
+; SPIR-V
+; Version: 1.4
+; Generator: Google rspirv; 0
+; Bound: 49
+; Schema: 0
+               OpCapability Shader
+               OpCapability Int64
+               OpMemoryModel Logical GLSL450
+               OpEntryPoint GLCompute %vector_add "main" %gl_GlobalInvocationID %11 %14 %16 %23
+               OpExecutionMode %vector_add LocalSize 64 1 1
+               OpSource Unknown 0
+               OpName %vector_add "vector_add"
+               OpDecorate %11 DescriptorSet 0
+               OpDecorate %11 Binding 0
+               OpDecorate %14 DescriptorSet 0
+               OpDecorate %14 Binding 1
+               OpDecorate %16 DescriptorSet 0
+               OpDecorate %16 Binding 3
+               OpDecorate %gl_GlobalInvocationID BuiltIn GlobalInvocationId
+               OpDecorate %_struct_9 Block
+               OpMemberDecorate %_struct_9 0 Offset 0
+               OpDecorate %_runtimearr_uint ArrayStride 4
+               OpDecorate %_struct_12 Block
+               OpMemberDecorate %_struct_12 0 Offset 0
+               OpDecorate %_struct_3 Block
+               OpMemberDecorate %_struct_3 0 Offset 0
+               OpMemberDecorate %_struct_3 1 Offset 4
+               OpDecorate %_struct_21 Block
+               OpMemberDecorate %_struct_21 0 Offset 0
+               OpDecorate %23 DescriptorSet 0
+               OpDecorate %23 Binding 2
+               OpDecorate %11 NonWritable
+               OpDecorate %14 NonWritable
+               OpDecorate %16 NonWritable
+       %void = OpTypeVoid
+       %uint = OpTypeInt 32 0
+  %_struct_3 = OpTypeStruct %uint %uint
+       %bool = OpTypeBool
+     %uint_0 = OpConstant %uint 0
+     %uint_1 = OpConstant %uint 1
+      %ulong = OpTypeInt 64 0
+%_runtimearr_uint = OpTypeRuntimeArray %uint
+  %_struct_9 = OpTypeStruct %_runtimearr_uint
+%_ptr_StorageBuffer__struct_9 = OpTypePointer StorageBuffer %_struct_9
+         %11 = OpVariable %_ptr_StorageBuffer__struct_9 StorageBuffer
+ %_struct_12 = OpTypeStruct %_runtimearr_uint
+%_ptr_StorageBuffer__struct_12 = OpTypePointer StorageBuffer %_struct_12
+         %14 = OpVariable %_ptr_StorageBuffer__struct_12 StorageBuffer
+%_ptr_StorageBuffer__struct_3 = OpTypePointer StorageBuffer %_struct_3
+         %16 = OpVariable %_ptr_StorageBuffer__struct_3 StorageBuffer
+     %v3uint = OpTypeVector %uint 3
+%_ptr_Input_v3uint = OpTypePointer Input %v3uint
+%gl_GlobalInvocationID = OpVariable %_ptr_Input_v3uint Input
+%_ptr_StorageBuffer_uint = OpTypePointer StorageBuffer %uint
+ %_struct_21 = OpTypeStruct %_runtimearr_uint
+%_ptr_StorageBuffer__struct_21 = OpTypePointer StorageBuffer %_struct_21
+         %23 = OpVariable %_ptr_StorageBuffer__struct_21 StorageBuffer
+    %ulong_0 = OpConstant %ulong 0
+         %25 = OpTypeFunction %void
+ %vector_add = OpFunction %void None %25
+         %27 = OpLabel
+         %28 = OpLoad %v3uint %gl_GlobalInvocationID
+         %29 = OpCompositeExtract %uint %28 0
+         %30 = OpInBoundsAccessChain %_ptr_StorageBuffer_uint %16 %uint_0
+         %31 = OpLoad %uint %30 Aligned 4
+         %32 = OpUGreaterThan %bool %31 %29
+               OpSelectionMerge %48 None
+               OpBranchConditional %32 %33 %48
+         %33 = OpLabel
+         %34 = OpInBoundsAccessChain %_ptr_StorageBuffer_uint %16 %uint_1
+         %35 = OpLoad %uint %34 Aligned 4
+         %36 = OpIAdd %uint %35 %29
+         %37 = OpUConvert %ulong %36
+         %38 = OpIAdd %ulong %ulong_0 %37
+         %39 = OpAccessChain %_ptr_StorageBuffer_uint %11 %uint_0 %38
+         %40 = OpLoad %uint %39
+         %41 = OpCopyObject %uint %40
+         %42 = OpIAdd %ulong %ulong_0 %37
+         %43 = OpAccessChain %_ptr_StorageBuffer_uint %14 %uint_0 %42
+         %44 = OpLoad %uint %43
+         %45 = OpCopyObject %uint %44
+         %46 = OpIAdd %uint %45 %41
+         %47 = OpInBoundsAccessChain %_ptr_StorageBuffer_uint %23 %uint_0 %37
+               OpStore %47 %46 Aligned 4
+               OpBranch %48
+         %48 = OpLabel
+               OpReturn
+               OpFunctionEnd

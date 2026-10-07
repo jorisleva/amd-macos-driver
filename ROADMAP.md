@@ -4,7 +4,7 @@ Cette feuille de route décrit le développement pour le PC **Ryzen 5 5600X + RX
 
 L'architecture, le périmètre et les références sont détaillés dans [README.md](README.md).
 
-**État au 7 octobre 2026 : étapes 0 et 1 commencées, calculs de l'étape 2 exécutés sur la Radeon.** Le contrôle GLSL et une fixture synthétique traduite passent chacun 36 cas, en mémoire hôte et via staging/VRAM, avec zéro écart et zéro erreur Vulkan/synchronisation. Les 10 tests Rust ciblés et 4 tests CTest passent. L'AIR Apple et le rendu restent ouverts ; aucune étape complète ni pilote macOS n'est validé. Preuves et limites : [rapport Radeon](docs/reports/2026-10-07-radeon-windows.md) et [premier rapport](docs/reports/2026-10-07-bootstrap.md).
+**État au 7 octobre 2026 : premier AIR Apple compilé sur Mac, traduit et validé en SPIR-V.** Le corpus `vector_add` est conservé et reproduit octet par octet depuis une copie des sources ; 11 tests Rust ciblés passent sur Mac. Sous Windows, le contrôle GLSL et une fixture synthétique traduite passent chacun 36 cas sur Radeon, en mémoire hôte et via staging/VRAM, avec zéro écart et zéro erreur Vulkan/synchronisation ; 10 tests Rust et 4 CTest y ont été validés. L'exécution du nouvel AIR traduit sur Radeon et le rendu restent ouverts ; aucune étape globale ni pilote macOS n'est validé. Preuves : [rapport Mac/AIR](docs/reports/2026-10-07-apple-air.md), [rapport Radeon](docs/reports/2026-10-07-radeon-windows.md) et [premier rapport](docs/reports/2026-10-07-bootstrap.md).
 
 ## Principes de progression
 
@@ -37,7 +37,7 @@ La préparation de Tahoe peut avancer en parallèle des étapes 1 et 2. L'intég
 - [ ] Relever le modèle de carte mère, la version du BIOS, la RAM et les périphériques nécessaires au démarrage (B550M DS3H, BIOS FD et 16 Gio relevés ; révision et périphériques de démarrage à compléter).
 - [ ] Relever le fabricant de la Radeon, son VBIOS, ses identifiants PCI et de sous-système (`1002:7550` / `1849:5417` relevés ; fabricant et VBIOS à compléter).
 - [ ] Choisir l'écran et le connecteur utilisés pour la première qualification.
-- [ ] Relever le modèle du Mac, son système, Xcode et les SDK disponibles.
+- [x] Relever le modèle du Mac, son système, Xcode et les SDK disponibles (MacBookAir7,2 x86_64, 8 Gio, macOS 15.7.8 / 24G824, Xcode 26.3 / 17C529 et SDK macOS 26.2 ; [inventaire](docs/reports/2026-10-07-apple-air.md)).
 - [x] Créer une branche de développement dédiée dans le fork (`codex/amd-validation-bootstrap`).
 - [ ] Fixer les révisions du fork, du projet AMD, de Mesa, de MacKernelSDK et des firmwares.
 - [x] Inventorier les fonctions Metal génériques et les dépendances directes à NVK, NVRM, NVIDIAShared et NVENC ([audit initial](docs/AMD-INTEGRATION.md), wrapper à approfondir).
@@ -50,8 +50,8 @@ La préparation de Tahoe peut avancer en parallèle des étapes 1 et 2. L'intég
 
 ## Étape 1 — Rendre la compilation reproductible
 
-- [x] Compiler le traducteur Rust et lancer ses tests logiciels pertinents (CLI Windows, 10 tests ciblés réussis ; suite complète bloquée par corpus absent ; Mac à vérifier).
-- [ ] Installer et qualifier les outils de compilation Metal et de validation SPIR-V (SPIRV-Tools v2026.2 et SDK Vulkan 1.4.350.0 utilisés sur la cible Windows ; Metal/Mac restent ouverts).
+- [x] Compiler le traducteur Rust et lancer ses tests logiciels pertinents (CLI Windows : 10 tests réussis ; Mac x86_64 : 11 dont la nouvelle régression AIR Apple ; suite complète toujours bloquée par corpus absent).
+- [x] Installer et qualifier les outils de compilation Metal et de validation SPIR-V pour le premier calcul (Apple Metal 32023.864, LLVM 20.1.8 et SPIRV-Tools v2026.2 essayés sur Mac ; SDK Vulkan 1.4.350.0 utilisé sur Windows ; [procédure Mac](docs/VALIDATION-MACOS.md)).
 - [ ] Compiler le pilote AMD pour x86_64 avec MacKernelSDK.
 - [ ] Construire Mesa à la révision attendue et appliquer les adaptations RADV Darwin dans l'ordre prévu.
 - [ ] Construire les outils de test et les composants Metal pour x86_64.
@@ -71,9 +71,9 @@ Les éléments produits ici sont des artefacts de test. Ils ne sont pas encore q
 
 - [x] Développer un petit programme Vulkan Windows sélectionnant explicitement la RX 9070 XT (exécuté sur la cible relevée, refus d'une identité différente vérifié).
 - [x] Enregistrer l'identité du GPU, le pilote et les capacités utilisées (API, file, local size, Int64 et types/heaps mémoire dans le rapport Radeon).
-- [ ] Compiler sur le Mac des shaders Metal écrits pour le projet et conserver leurs sources et leur AIR.
-- [ ] Traduire ces shaders avec le traducteur du fork et valider le SPIR-V.
-- [x] Exécuter une addition de tableaux et comparer tous les résultats à une référence CPU (contrôle GLSL et IR synthétique traduit ; AIR Apple encore ouvert).
+- [x] Compiler sur le Mac le premier shader Metal écrit pour le projet et conserver sa source et son AIR (`vector_add`, [corpus Apple](tests/shaders/apple/) ; corpus graphique encore à ajouter).
+- [x] Traduire ce shader avec le traducteur du fork et valider le SPIR-V (bitcode Apple lu par LLVM 20.1.8, Vulkan 1.2 et contrat statique du banc vérifiés ; exécution Radeon non effectuée).
+- [x] Exécuter une addition de tableaux et comparer tous les résultats à une référence CPU (contrôle GLSL et IR synthétique traduit ; exécution du SPIR-V issu d'Apple encore ouverte).
 - [x] Tester des tailles non multiples des groupes de travail et vérifier les zones de garde des buffers (1, 63, 64, 65, 257, 4097 éléments ; vérification des allocations entières).
 - [x] Tester les transferts, barrières, lectures après écriture et commandes répétées (host/compute et staging/VRAM/compute/readback, 3 répétitions par taille et chemin ; une file et une fence).
 - [ ] Tester une texture, un triangle, puis le mélange de couleurs hors écran.
@@ -222,6 +222,6 @@ Ces travaux seront classés après les premiers résultats :
 
 La liste opérationnelle des tâches et blocages est dans [Travail restant](docs/NEXT-STEPS.md).
 
-Compléter les champs matériels encore manquants sur le PC et inventorier le Mac. Produire le premier AIR Apple sur le Mac et comparer son calcul traduit avec les 36 cas du [banc Windows](docs/VALIDATION-WINDOWS.md), désormais validés avec GLSL et IR synthétique sur la Radeon. Ajouter le corpus texture/triangle/blending hors écran. Poursuivre le verrouillage MacKernelSDK/firmwares et la compilation AMD des **étapes 0 et 1**. La préparation du démarrage Tahoe et de son moyen de récupération reste ouverte.
+Exécuter le SPIR-V issu du [premier AIR Apple](tests/shaders/apple/) sur la RX 9070 XT et comparer ses 36 cas avec le [banc Windows](docs/VALIDATION-WINDOWS.md), déjà validé avec GLSL et IR synthétique. La [procédure Mac/transfert](docs/VALIDATION-MACOS.md) détaille les empreintes et la commande. Compléter les champs matériels encore manquants sur le PC, ajouter le corpus texture/triangle/blending hors écran et poursuivre le verrouillage MacKernelSDK/firmwares ainsi que la compilation AMD des **étapes 0 et 1**. Le Mac est inventorié pour ce premier calcul ; l'assemblage AMD et la préparation du démarrage Tahoe avec son moyen de récupération restent ouverts.
 
 Le premier succès à rechercher est un shader Metal écrit pour le projet, traduit en SPIR-V et exécuté avec un résultat correct sur la RX 9070 XT sous Windows. Il permettra de qualifier une partie réutilisable du fork avant les essais noyau sous macOS.

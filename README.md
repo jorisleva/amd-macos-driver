@@ -4,11 +4,11 @@ Projet expérimental de développement d'un pilote graphique pour une **AMD Rade
 
 L'objectif est de réutiliser la couche Metal du fork NVIDIA de NullMoth, puis de la raccorder à un backend AMD composé de **Mesa RADV** et d'un pilote noyau pour Navi 48.
 
-**Statut : premiers calculs validés sur la RX 9070 XT sous Windows.** Le banc Vulkan exécute 36 cas avec le contrôle GLSL et 36 avec une fixture LLVM/AIR synthétique traduite par le fork, en mémoire hôte et via staging/VRAM. Tous les résultats et gardes sont conformes, sans erreur de validation Vulkan ou de synchronisation. Le CLI Rust compile, ses 10 tests ciblés et les 4 tests CTest passent. L'AIR produit par Apple, la compilation macOS et le futur assemblage AMD restent à valider. Ce dossier ne fournit pas encore de pilote installable ; le fork contient toujours le pilote NVIDIA.
+**Statut : premier AIR Apple produit sur Mac ; premiers calculs de contrôle validés sur la RX 9070 XT sous Windows.** Le shader Metal `vector_add` est compilé en AIR/metallib, traduit en SPIR-V Vulkan 1.2 et reproduit octet par octet ; 11 tests Rust ciblés passent sur Mac. Sous Windows, le contrôle GLSL et une fixture synthétique traduite passent chacun 36 cas sur Radeon, en mémoire hôte et via staging/VRAM, sans écart ni erreur Vulkan/synchronisation ; 10 tests Rust et 4 CTest y ont été validés. **Le nouveau SPIR-V issu d'Apple n'est pas encore exécuté sur la Radeon.** Le rendu et l'assemblage AMD restent à valider. Ce dossier ne fournit pas encore de pilote installable ; le fork contient toujours le pilote NVIDIA.
 
 La progression et les conditions de passage entre étapes sont décrites dans [ROADMAP.md](ROADMAP.md).
 
-Le [guide du banc Windows](docs/VALIDATION-WINDOWS.md) donne les commandes de compilation, d'inventaire et de test. Le [rapport Radeon](docs/reports/2026-10-07-radeon-windows.md) conserve les résultats matériels et leurs empreintes. L'[audit AMD](docs/AMD-INTEGRATION.md), le [manifeste des sources](dependencies/sources.lock.json) et le [premier rapport](docs/reports/2026-10-07-bootstrap.md) décrivent les dépendances et l'historique de validation.
+Le [guide du banc Windows](docs/VALIDATION-WINDOWS.md) donne les commandes d'inventaire et de test ; la [procédure Mac](docs/VALIDATION-MACOS.md) décrit la compilation AIR et le transfert. Le [rapport Mac/AIR](docs/reports/2026-10-07-apple-air.md) et le [corpus Apple](tests/shaders/apple/) conservent les nouveaux artefacts ; le [rapport Radeon](docs/reports/2026-10-07-radeon-windows.md) conserve les résultats matériels précédents. L'[audit AMD](docs/AMD-INTEGRATION.md), le [manifeste des sources](dependencies/sources.lock.json) et le [premier rapport](docs/reports/2026-10-07-bootstrap.md) décrivent les dépendances et l'historique de validation.
 
 Les prochaines actions et blocages sont résumés dans [Travail restant](docs/NEXT-STEPS.md).
 
@@ -21,7 +21,7 @@ Les prochaines actions et blocages sont résumés dans [Travail restant](docs/NE
 | Système actuel du PC | Windows 11 Professionnel, build 26300 |
 | Système cible | macOS Tahoe 26.x, version et numéro de build à fixer |
 | Démarrage cible | OpenCore avec les correctifs CPU AMD adaptés |
-| Machine de compilation | Un autre Mac est disponible ; modèle et système à relever |
+| Machine de compilation | MacBookAir7,2 x86_64, 8 Gio, macOS 15.7.8 / 24G824, Xcode 26.3 / 17C529, SDK macOS 26.2 |
 | Carte mère et BIOS | Gigabyte B550M DS3H, BIOS FD du 22 mars 2024 ; révision matérielle à préciser |
 | RAM relevée | 16 Gio, 2 × 8 Gio à 3200 MT/s |
 | Identité PCI relevée | `1002:7550`, sous-système `1849:5417` |
