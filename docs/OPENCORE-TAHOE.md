@@ -25,7 +25,8 @@ et le connecteur utilisé permettront de traiter ce blocage.
 
 Le SSD présent est un **inventaire**, pas une sélection de disque à effacer.
 Le support USB Hitachi HTS545050A7E de 500 Go, anciennement D:, est préparé.
-La partition d'installation sur le SSD et l'écran/connecteur restent à désigner.
+La partition d'installation sur le SSD reste à désigner. L'écran LG est
+branché en DisplayPort sur la Radeon ; son modèle exact reste à relever.
 Le 5600X n'a pas d'iGPU : brancher l'écran sur la RX 9070 XT, pas sur la carte mère.
 
 La table VFCT expose une image ATOMBIOS de 58 880 octets pour `1002:7550`,
@@ -80,8 +81,10 @@ Le démarrage physique et l'affichage de base restent à qualifier.
 Les deux essais USB du 7 octobre sont maintenant relevés : le premier a
 sélectionné une entrée qui relançait OpenCore, le second a chargé la récupération
 jusqu'à `EXITBS:START`. Ce dernier message est une frontière de journalisation,
-pas à lui seul la preuve de la cause du blocage signalé. Les messages visibles
-ensuite à l'écran restent à relever. Voir le [diagnostic](reports/2026-10-07-tahoe-boot.md).
+pas à lui seul la preuve de la cause du blocage signalé. La photo transmise
+ensuite montre le noyau jusqu'à `CoreAnalyticsHub start completed`, sans
+progression pendant plus de cinq minutes en DisplayPort.
+Voir le [diagnostic](reports/2026-10-07-tahoe-boot.md).
 
 Le menu corrigé masque cette entrée OpenCore avec
 `EFI/BOOT/.contentVisibility` contenant `Disabled`, et nomme la récupération
@@ -89,6 +92,17 @@ Le menu corrigé masque cette entrée OpenCore avec
 `com.apple.recovery.boot/.contentDetails`. Ces marqueurs sont documentés par
 [OpenCore 1.0.8](https://github.com/acidanthera/OpenCorePkg/blob/1.0.8/Docs/Configuration.tex).
 Ils ne modifient pas le fichier `config.plist` ni le démarrage USB depuis F12.
+
+Pour le prochain essai, **le profil actif sur D: ajoute désormais `-x`**, avec
+le libellé **Installer macOS Tahoe (mode sans echec)**. La seule différence
+de configuration est ce mode de diagnostic, validé et vérifié après copie.
+Tester d'abord le même DisplayPort, puis HDMI direct si le blocage est identique.
+Le résultat reste à relever ; ce profil n'est pas encore qualifié pour installer.
+Le profil normal sauvegardé se restaure depuis Windows avec :
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\PROFILS-TAHOE\restaurer-normal.ps1
+```
 
 OpenCore **1.0.8 DEBUG**, Lilu **1.7.2**, VirtualSMC **1.3.8**, WhateverGreen
 **1.7.1**, RestrictEvents **1.1.6**, RealtekRTL8111 **3.0.0**, USBToolBox
@@ -179,7 +193,9 @@ le démarrage effectif d'un OS peut néanmoins modifier la NVRAM.
    Utiliser le menu Gigabyte **F12**
    pour ce premier démarrage et sélectionner la clé en UEFI. Le générateur
    ne réalise pas cette copie et n'altère pas l'EFI Windows.
-5. **Choisir Installer macOS Tahoe (Recovery) dans le menu OpenCore.** Un seul écran directement
+5. **Choisir l'entrée de récupération dans le menu OpenCore.** Pour l'essai
+   actif avec `-x`, elle est nommée **Installer macOS Tahoe (mode sans echec)** ;
+   le profil normal affiche **Installer macOS Tahoe (Recovery)**. Un seul écran directement
    connecté à la Radeon, clavier USB filaire et câble Ethernet. Si un blocage
    survient : relever le dernier message, le connecteur, le build Tahoe et
    conserver le journal `opencore-*.txt` de la clé. Ne pas activer de pilote

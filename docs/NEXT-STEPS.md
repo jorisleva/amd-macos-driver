@@ -26,9 +26,11 @@ Vulkan : leurs 96 fichiers RGBA correspondent au contrôle GLSL rejoué.
 Les deux calculs passent 36 cas chacun et les trois rejets attendus passent.
 Preuve : [rapport Metal/Radeon et support USB](reports/2026-10-07-metal-graphics-radeon.md).
 Le support USB est préparé ; le boot Tahoe et le pilote macOS restent ouverts.
-Le premier essai charge la récupération jusqu'au passage vers macOS, mais
-l'utilisateur signale un blocage. Le menu a été corrigé ; la dernière ligne
-visible à l'écran manque pour cibler le correctif suivant.
+Les journaux chargent la récupération jusqu'au passage vers macOS ; la photo
+montre ensuite le noyau jusqu'à `CoreAnalyticsHub start completed`, sans
+progression pendant plus de cinq minutes en DisplayPort. Le menu est corrigé
+et le profil `-x` est activé sur la clé pour le prochain essai, avec sauvegarde
+du profil normal. La cause du blocage reste ouverte.
 Preuve : [diagnostic des journaux USB](reports/2026-10-07-tahoe-boot.md).
 
 ## Prochaines actions, dans l'ordre
@@ -36,7 +38,8 @@ Preuve : [diagnostic des journaux USB](reports/2026-10-07-tahoe-boot.md).
 1. **Compléter l'inventaire du PC.** B550M DS3H, BIOS FD, Ryzen 5600X,
    16 Gio et IDs `1002:7550` / `1849:5417` sont relevés. Il reste la révision
    matérielle de la carte mère, le modèle commercial de la carte,
-   les supports d'installation et l'écran/connecteur à retenir pour Tahoe.
+   la partition d'installation et le modèle exact de l'écran LG.
+   Le connecteur du premier essai est confirmé : DisplayPort sur la Radeon.
    ASRock et VBIOS `023.008.000.068.000001` sont identifiés via ACPI VFCT ;
    Crucial P3 Plus 1 To, Ethernet Realtek et USB AMD sont désormais relevés.
 2. **Conserver le banc Radeon comme contrôle de régression.** Exécuter
@@ -52,9 +55,10 @@ Preuve : [diagnostic des journaux USB](reports/2026-10-07-tahoe-boot.md).
    D: OPENCORE contient l'EFI sans accélération et la récupération Apple
    26.6.2 / 25G83 ; E: TAHOEFILES contient le paquet complet 26.7.1 / 25G241
    et l'EFI de secours. Régler l'UEFI selon le [guide](OPENCORE-TAHOE.md),
-   choisir le disque USB via F12 puis **Installer macOS Tahoe (Recovery)**,
-   Ethernet branché. Au blocage, relever les dernières lignes visibles à
-   l'écran : le journal OpenCore seul s'arrête à `EXITBS:START`.
+   choisir le disque USB via F12 puis **Installer macOS Tahoe (mode sans echec)**
+   pour l'essai actuel avec `-x`. Conserver d'abord le DisplayPort, puis essayer
+   HDMI direct si le résultat reste identique. Au blocage, relever les dernières
+   lignes visibles à l'écran : le journal OpenCore seul s'arrête à `EXITBS:START`.
    Qualifier affichage, clavier, stockage, réseau, build installé et secours.
    Les fichiers et les deux EFI copiés sont validés ; le boot physique reste ouvert.
 4. **Construire et auditer l'assemblage AMD sur Mac.** Qualifier Navi48,

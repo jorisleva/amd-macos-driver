@@ -32,8 +32,9 @@ La fin à `EXITBS:START` ne permet pas de distinguer un blocage à cette ligne
 d'un blocage plus tard dans le noyau, dont les messages ne sont pas conservés
 par ce journal OpenCore. Les erreurs de lecture des fichiers de hachage de
 la récupération ne sont pas retenues comme cause : le chargement continue
-jusqu'à cette transition. Il manque la dernière ligne réellement visible
-sur l'écran pour cibler un correctif mémoire, ACPI, PCI, USB ou affichage.
+jusqu'à cette transition. Lors de cette première lecture, la dernière ligne
+visible à l'écran manquait. La photo transmise ensuite apporte cette
+information, détaillée ci-dessous.
 
 ## Correction du menu
 
@@ -74,8 +75,43 @@ SHA-256 des journaux bruts :
 c4e5a89ba9b4db5f8c0b021515f33fbd035b96772df06d6c9b8c53b7c1c0ca40  opencore-2026-10-07-191720.txt
 ```
 
-Pour le prochain essai, sélectionner la récupération explicitement nommée,
-conserver une photo lisible des dernières lignes au blocage et noter si
-des messages macOS apparaissent après `EXITBS:START`. Le démarrage de base,
-le réseau, les périphériques et le secours restent à qualifier avant toute
-installation d'un pilote expérimental.
+## Photo du blocage et essai en mode sans échec
+
+La photo transmise ensuite montre AppleKeyStore, AppleCredentialManager et
+AppleLockdownMode. La dernière ligne lisible est
+`CoreAnalyticsHub start completed`. L'utilisateur confirme plus de cinq
+minutes sans progression et un écran LG branché en DisplayPort sur la
+RX 9070 XT. Cet essai dépasse donc `EXITBS:START`. Aucune panique noyau
+n'est visible dans la portion photographiée. Les messages
+`ACMTRM ... not found` ne suffisent pas à attribuer le gel à ce composant.
+La dernière ligne affichée ne prouve pas que CoreAnalyticsHub cause le gel.
+
+Il n'y a pas de nouveau journal OpenCore sur D: lors de cette lecture : les
+deux fichiers sont toujours ceux de 19:16 et 19:17. La photo apporte la
+preuve que le noyau progresse plus loin que leur dernière ligne.
+
+Le profil préexistant avec `-x` est désormais activé sur D:. La comparaison
+structurée des configurations confirme que la seule différence est cet
+argument de mode sans échec. Les patches AMD, kexts, SSDT et réglages mémoire
+sont identiques. Le libellé devient
+`Installer macOS Tahoe (mode sans echec)` pour identifier l'essai. Les deux
+fichiers copiés sont vérifiés par SHA-256 après relecture et la configuration
+copiée passe `ocvalidate` 1.0.8.
+
+Le profil normal et son libellé sont sauvegardés localement et sous
+`D:/PROFILS-TAHOE/`. Le script `restaurer-normal.ps1` rétablit ces fichiers
+et vérifie l'empreinte de la configuration. Les preuves locales sont sous
+`out/diagnostics/tahoe-coreanalytics-20261007/`, ignoré par Git.
+
+Pour le prochain essai, conserver le même DisplayPort et le même écran,
+démarrer avec `-x` et attendre cinq minutes. Si le résultat reste identique,
+essayer une liaison HDMI directe si disponible, puis relever les dernières
+lignes. Cette comparaison teste la sortie vidéo sans supposer que le GPU
+est la cause. Le mode sans échec peut limiter les services et le réseau ;
+il n'est pas encore qualifié comme solution d'installation.
+Voir les limites [Lilu 1.7.2](https://github.com/acidanthera/Lilu/blob/1.7.2/README.md)
+et l'autorisation du mode sans échec dans
+[WhateverGreen 1.7.1](https://github.com/acidanthera/WhateverGreen/blob/1.7.1/WhateverGreen/kern_start.cpp).
+
+Le démarrage de base, le réseau, les périphériques et le secours restent à
+qualifier avant toute installation d'un pilote expérimental.

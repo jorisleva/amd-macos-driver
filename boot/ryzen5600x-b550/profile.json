@@ -24,7 +24,7 @@
   "cpu_acpi_paths": "\\_SB.PLTF.C000 through C00B (Windows PnP BIOS device names)",
   "lpc_acpi_path": "\\_SB.PCI0.SBRG",
   "dsdt_sha256": "4a382ee7c5311f768b99dd2968d8808010246658d3a21824dd90ed788c3fdb8c",
-  "display_connector": null,
+  "display_connector": "DisplayPort on RX 9070 XT; LG display, exact model not recorded",
   "target_macos": "Tahoe 26 / Darwin 25, exact version and build still to select",
   "smbios": "MacPro7,1",
   "usb_mapping": "UTBDefault transitional enumeration; physical socket map not qualified"
