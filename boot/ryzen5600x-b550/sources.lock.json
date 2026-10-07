@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-10-07",
+  "opencore_version": "1.0.8",
+  "amd_patches_revision": "eaf52ef292abf4ebec899df6d48626569ba50cc6",
+  "inputs": {
+    "opencore": {
+      "url": "https://github.com/acidanthera/OpenCorePkg/releases/download/1.0.8/OpenCore-1.0.8-DEBUG.zip",
+      "file": "OpenCore-1.0.8-DEBUG.zip",
+      "sha256": "3f5f42b85703cf2c08e8dcd9245a52fb4326c9f4ef335c75b49f516cbbe131c6",
+      "verified_official_digest": true,
+      "bytes": 11931199
+    },
+    "lilu": {
+      "url": "https://github.com/acidanthera/Lilu/releases/download/1.7.2/Lilu-1.7.2-DEBUG.zip",
+      "file": "Lilu-1.7.2-DEBUG.zip",
+      "sha256": "e95df95d82e8b151047abf359ecd9c853755c59293e19dfcc3907da8fbd8cf89",
+      "verified_official_digest": true,
+      "bytes": 376843
+    },
+    "smc": {
+      "url": "https://github.com/acidanthera/VirtualSMC/releases/download/1.3.8/VirtualSMC-1.3.8-DEBUG.zip",
+      "file": "VirtualSMC-1.3.8-DEBUG.zip",
+      "sha256": "d1a13a4ad5564f97d4fa4cb584eaa63cb4fbe280c6997100133789dd4bdac200",
+      "verified_official_digest": true,
+      "bytes": 328750
+    },
+    "weg": {
+      "url": "https://github.com/acidanthera/WhateverGreen/releases/download/1.7.1/WhateverGreen-1.7.1-DEBUG.zip",
+      "file": "WhateverGreen-1.7.1-DEBUG.zip",
+      "sha256": "f6f4ff75239fd9dcc40bb432eaf1342f9ebf509a9581f54ba536af4f17f11680",
+      "verified_official_digest": true,
+      "bytes": 332263
+    },
+    "restrict": {
+      "url": "https://github.com/acidanthera/RestrictEvents/releases/download/1.1.6/RestrictEvents-1.1.6-DEBUG.zip",
+      "file": "RestrictEvents-1.1.6-DEBUG.zip",
+      "sha256": "6ff7b0a28dbee66429fb50c588f50e43f0c231245182a4f7a7542e934956ec86",
+      "verified_official_digest": true,
+      "bytes": 18898
+    },
+    "rtl": {
+      "url": "https://github.com/Mieze/RTL8111_driver_for_OS_X/releases/download/v3.0.0/RealtekRTL8111-V3.0.0.zip",
+      "file": "RealtekRTL8111-V3.0.0.zip",
+      "sha256": "a0f2e64ac3c76e2d416ff88f35a197ce229e74ea78e968631a736a43b4d8231c",
+      "verified_official_digest": true,
+      "bytes": 180409
+    },
+    "usb-kext": {
+      "url": "https://github.com/USBToolBox/kext/releases/download/1.2.0/USBToolBox-1.2.0-DEBUG.zip",
+      "file": "USBToolBox-1.2.0-DEBUG.zip",
+      "sha256": "254cfbdb8459e1b09fae7650a1bef72a9366acedd41ba2353fdceed9f28120d4",
+      "verified_official_digest": true,
+      "bytes": 13644
+    },
+    "amd-patches": {
+      "url": "https://raw.githubusercontent.com/AMD-OSX/AMD_Vanilla/eaf52ef292abf4ebec899df6d48626569ba50cc6/patches.plist",
+      "file": "patches.plist",
+      "sha256": "4bc820109b3d020c3c547fa23c49e0098e4f4a2c625ed6184dd54e390e84e1ab",
+      "verified_official_digest": false,
+      "bytes": 19661
+    },
+    "iasl": {
+      "file": "iasl-win-20250807.zip",
+      "url": "https://github.com/open-acpica/acpica/releases/download/20250807/iasl-win-20250807.zip",
+      "sha256": "38497484f8aaeb48411a9e85bf28c61de5232f10921344d845b608a33a59cd4e"
+    },
+    "mce": {
+      "file": "MCE-disabler.zip",
+      "url": "https://github.com/acidanthera/bugtracker/files/3703498/AppleMCEReporterDisabler.kext.zip",
+      "sha256": "470417c4958dd6ecb982182140a6b76cf85f847c15f1b0f6f59617d5abcc5f76"
+    }
+  },
+  "notices": {
+    "opencore": {
+      "url": "https://raw.githubusercontent.com/acidanthera/OpenCorePkg/1.0.8/LICENSE.txt",
+      "file": "opencore-LICENSE.txt",
+      "sha256": "4ca709aac88e7b297e794f464d6557203b23a4e92e792b579bb968fef2bce4c4"
+    },
+    "lilu": {
+      "url": "https://raw.githubusercontent.com/acidanthera/Lilu/1.7.2/LICENSE.txt",
+      "file": "lilu-LICENSE.txt",
+      "sha256": "74c3ca48189b796b0d262866e67de8efba77a71516667ce68dc3a8f13c2a3c57"
+    },
+    "smc": {
+      "url": "https://raw.githubusercontent.com/acidanthera/VirtualSMC/1.3.8/LICENSE.txt",
+      "file": "smc-LICENSE.txt",
+      "sha256": "5bceff635b9952d36af4e784ee02158cdddb6001584439cbd8a3520eb46a28e8"
+    },
+    "weg": {
+      "url": "https://raw.githubusercontent.com/acidanthera/WhateverGreen/1.7.1/LICENSE.txt",
+      "file": "weg-LICENSE.txt",
+      "sha256": "8f99f6082ccc808df2ece79446108bfd5c0c04da9ba81c5463568ced862a0b05"
+    },
+    "restrict": {
+      "url": "https://raw.githubusercontent.com/acidanthera/RestrictEvents/1.1.6/LICENSE.txt",
+      "file": "restrict-LICENSE.txt",
+      "sha256": "e6a427bf43f8210c082a6527a7ca5d2b5a0d22309d9828ffcdf0614d352e758f"
+    },
+    "usb-tool": {
+      "url": "https://raw.githubusercontent.com/USBToolBox/tool/0.2/LICENSE",
+      "file": "usb-tool-LICENSE.txt",
+      "sha256": "a6252942f90bce32c1074f0a669d6021e1a6f409c02db178d9055bc3b6a95e2f"
+    },
+    "usb-kext-source": {
+      "url": "https://raw.githubusercontent.com/USBToolBox/kext/1.2.0/README.md",
+      "file": "usb-kext-source-README.txt",
+      "sha256": "f3417eae1b70d0bd06cfe5f411675dba165d6ccdad878e4667a33cbece874f92"
+    },
+    "amd-credits": {
+      "url": "https://raw.githubusercontent.com/AMD-OSX/AMD_Vanilla/eaf52ef292abf4ebec899df6d48626569ba50cc6/README.md",
+      "file": "amd-credits-README.txt",
+      "sha256": "0fe56465abd5fbac5bff36477e5523493e3c30e91bc2f31568feaa60b29c88b4"
+    },
+    "rtl-header": {
+      "file": "rtl-header-source-notice.txt",
+      "url": "https://raw.githubusercontent.com/Mieze/RTL8111_driver_for_OS_X/v3.0.0/RealtekRTL8111/RealtekRTL8111.cpp",
+      "sha256": "a97e838394236b1399dcf052eb95ec526481849afe1986ed680a868561bbcc05"
+    },
+    "rtl-apple-license": {
+      "file": "rtl-apple-license-source-notice.txt",
+      "url": "https://raw.githubusercontent.com/Mieze/RTL8111_driver_for_OS_X/v3.0.0/RealtekRTL8111/APPLE_LICENSE",
+      "sha256": "212846e0145aa50fb3a5aef254a370311a93acf6c1e792e47e0068d64c8c3885"
+    },
+    "usb-kext-header": {
+      "file": "usb-kext-header-source-notice.txt",
+      "url": "https://raw.githubusercontent.com/USBToolBox/kext/1.2.0/USBToolBox/USBToolBox.cpp",
+      "sha256": "0f56e7cdb20e385c83b3e878ce5646461fd0af10bc96aab78d4a8557ad805367"
+    }
+  },
+  "source_references": {
+    "cpur": {
+      "url": "https://github.com/dortania/Getting-Started-With-ACPI/blob/60029d4fff6d56e210e5f682f6dd6508c4bb3343/extra-files/decompiled/SSDT-CPUR.dsl",
+      "sha256": "e3620aa222de35cbbb689ee0ffcb8cee7db04997fe42256b2826375166a9d7b2"
+    },
+    "usb-kext": "https://github.com/USBToolBox/kext/tree/1.2.0",
+    "mce": "Codeless Info.plist by XLNC, version 1.2; original copyright preserved in local EFI; provenance is the Dortania-linked Acidanthera bugtracker attachment."
+  }
+}

@@ -2,3 +2,4 @@
 /reports/local/
 **/target/
 **/.DS_Store
+**/__pycache__/

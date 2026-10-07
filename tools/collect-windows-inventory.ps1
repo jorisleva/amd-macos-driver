@@ -32,8 +32,13 @@ foreach ($tool in @('cargo', 'rustc', 'cmake', 'glslangValidator', 'spirv-val', 
     $command = Get-Command $tool -ErrorAction SilentlyContinue
     $tools[$tool] = if ($command) { ((& $command.Source --version 2>&1) | Out-String).Trim() } else { $null }
 }
+$bootPci = @(Read-Hardware 'Win32_PnPEntity' @('Name', 'PNPClass', 'PNPDeviceID') | Where-Object {
+    $_.PNPDeviceID -match '^PCI\\' -and $_.PNPClass -in @('Net', 'USB', 'SCSIAdapter', 'HDC')
+} | ForEach-Object {
+    [ordered]@{ name = $_.Name; class = $_.PNPClass; pci_hardware_id = ($_.PNPDeviceID -split '\\')[1] }
+})
 $inventory = [ordered]@{
-    schema_version = 1; collected_at_utc = [DateTime]::UtcNow.ToString('o'); role = $Role
+    schema_version = 2; collected_at_utc = [DateTime]::UtcNow.ToString('o'); role = $Role
     code_revision = (& git -C $repoRoot rev-parse HEAD)
     computer = @(Read-Hardware 'Win32_ComputerSystem' @('Manufacturer', 'Model', 'TotalPhysicalMemory'))
     motherboard = @(Read-Hardware 'Win32_BaseBoard' @('Manufacturer', 'Product', 'Version'))
@@ -45,7 +50,10 @@ $inventory = [ordered]@{
     manual = [ordered]@{ card_manufacturer = $CardManufacturer; vbios = $Vbios; monitor = $Monitor; connector = $Connector }
     collection_errors = $collectionErrors
     target_rx9070xt_observed = @($pci | Where-Object { $_.vendor_id -eq '0x1002' -and $_.name -match 'RX 9070 XT' }).Count -gt 0
-    boot_storage_and_peripherals = 'pending manual inventory; no drive or network identifiers collected'
+    storage = @(Read-Hardware 'Win32_DiskDrive' @('Index', 'Model', 'Size', 'FirmwareRevision', 'InterfaceType', 'MediaType'))
+    boot_pci = $bootPci
+    # WMI InterfaceType can report SCSI for an NVMe drive; boot_pci identifies the actual controller.
+    boot_storage_and_peripherals = 'observed hardware only; installation disk and physical USB socket mapping remain manual'
 }
 $parent = Split-Path -Parent ([IO.Path]::GetFullPath($OutputPath))
 [void](New-Item -ItemType Directory -Path $parent -Force)
