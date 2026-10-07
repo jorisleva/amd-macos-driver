@@ -4,11 +4,11 @@ Projet expérimental de développement d'un pilote graphique pour une **AMD Rade
 
 L'objectif est de réutiliser la couche Metal du fork NVIDIA de NullMoth, puis de la raccorder à un backend AMD composé de **Mesa RADV** et d'un pilote noyau pour Navi 48.
 
-**Statut : premier banc de validation Windows et compilation du traducteur.** Le CLI Rust compile, 10 tests logiciels ciblés passent et le banc Vulkan x64 compile avec 4 tests logiciels réussis. Le refus d'une Radeon absente est vérifié. Aucun calcul sur RX 9070 XT, aucune compilation macOS ni aucun essai matériel du futur assemblage AMD n'a été réalisé. Ce dossier ne fournit pas encore de pilote installable ; le fork contient toujours le pilote NVIDIA.
+**Statut : premiers calculs validés sur la RX 9070 XT sous Windows.** Le banc Vulkan exécute 36 cas avec le contrôle GLSL et 36 avec une fixture LLVM/AIR synthétique traduite par le fork, en mémoire hôte et via staging/VRAM. Tous les résultats et gardes sont conformes, sans erreur de validation Vulkan ou de synchronisation. Le CLI Rust compile, ses 10 tests ciblés et les 4 tests CTest passent. L'AIR produit par Apple, la compilation macOS et le futur assemblage AMD restent à valider. Ce dossier ne fournit pas encore de pilote installable ; le fork contient toujours le pilote NVIDIA.
 
 La progression et les conditions de passage entre étapes sont décrites dans [ROADMAP.md](ROADMAP.md).
 
-Le [guide du banc Windows](docs/VALIDATION-WINDOWS.md) donne les commandes de compilation, d'inventaire et de test. L'[audit AMD](docs/AMD-INTEGRATION.md), le [manifeste des sources](dependencies/sources.lock.json) et le [premier rapport](docs/reports/2026-10-07-bootstrap.md) distinguent les résultats obtenus des dépendances et essais encore manquants.
+Le [guide du banc Windows](docs/VALIDATION-WINDOWS.md) donne les commandes de compilation, d'inventaire et de test. Le [rapport Radeon](docs/reports/2026-10-07-radeon-windows.md) conserve les résultats matériels et leurs empreintes. L'[audit AMD](docs/AMD-INTEGRATION.md), le [manifeste des sources](dependencies/sources.lock.json) et le [premier rapport](docs/reports/2026-10-07-bootstrap.md) décrivent les dépendances et l'historique de validation.
 
 Les prochaines actions et blocages sont résumés dans [Travail restant](docs/NEXT-STEPS.md).
 
@@ -18,11 +18,14 @@ Les prochaines actions et blocages sont résumés dans [Travail restant](docs/NE
 | --- | --- |
 | Processeur | AMD Ryzen 5 5600X |
 | Carte graphique | AMD Radeon RX 9070 XT, RDNA 4 / Navi 48 |
-| Système actuel du PC | Windows |
+| Système actuel du PC | Windows 11 Professionnel, build 26300 |
 | Système cible | macOS Tahoe 26.x, version et numéro de build à fixer |
 | Démarrage cible | OpenCore avec les correctifs CPU AMD adaptés |
 | Machine de compilation | Un autre Mac est disponible ; modèle et système à relever |
-| Carte mère et BIOS | À renseigner |
+| Carte mère et BIOS | Gigabyte B550M DS3H, BIOS FD du 22 mars 2024 ; révision matérielle à préciser |
+| RAM relevée | 16 Gio, 2 × 8 Gio à 3200 MT/s |
+| Identité PCI relevée | `1002:7550`, sous-système `1849:5417` |
+| Pilote Windows relevé | `32.0.31041.1004`, Vulkan AMD `26.8.1 (LLPC)`, API `1.4.349` |
 | Fabricant de la carte et VBIOS | À relever sur le matériel |
 | Premier affichage à valider | Un seul écran et un seul connecteur, à choisir |
 

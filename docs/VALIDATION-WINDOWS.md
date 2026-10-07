@@ -13,15 +13,34 @@ Build Tools (MSVC 19.29), SDK Windows 10.0.19041.0, CMake 4.3.3 et Vulkan SDK
 le loader, `glslangValidator`, `spirv-val` et la couche de validation Khronos.
 Ces versions constituent un relevé, pas une qualification macOS.
 
+Sur le PC cible, MSVC 19.51, SDK Windows 10.0.26100.0, CMake 4.3.1-msvc1 et
+Rust 1.98.1 sont disponibles. Le SDK Vulkan est préparé dans `out/tools`, sans
+enregistrement des couches ni changement du PATH système, avec le mode
+`copy_only=1` documenté par [LunarG](https://vulkan.lunarg.com/doc/view/1.4.350.0/windows/getting_started.html).
+Le téléchargement est figé à 1.4.350.0 et vérifié par son SHA-256 officiel.
+L'extracteur utilise aussi son cache temporaire utilisateur.
+
 Depuis la racine du dépôt, en PowerShell :
 
 ```powershell
+./tools/prepare-windows-vulkan-sdk.ps1
+. ./tools/initialize-windows-dev.ps1
 ./tools/build-translator.ps1
-cmake -S tests/vulkan -B out/vulkan -G "Visual Studio 16 2019" -A x64
+cmake -S tests/vulkan -B out/vulkan -G Ninja -DCMAKE_BUILD_TYPE=Debug
 cmake --build out/vulkan --config Debug
 ctest --test-dir out/vulkan -C Debug --output-on-failure
-./out/vulkan/Debug/amd_gpu_probe.exe --list
+./out/vulkan/amd_gpu_probe.exe --list
 ```
+
+La préparation peut télécharger environ 275 Mo et copier environ 1 Go. Elle
+réutilise les fichiers du SDK s'ils sont déjà présents. L'initialisation doit
+être **dot-sourcée** à chaque nouvelle session PowerShell : elle découvre les
+C++ Build Tools x64 avec `vswhere`, ajoute CMake/Ninja si nécessaire, et configure
+`VULKAN_SDK`, le PATH du processus et `VK_ADD_LAYER_PATH` pour la couche de
+validation locale. Un SDK existant peut être choisi avec
+`. ./tools/initialize-windows-dev.ps1 -SdkDirectory C:/VulkanSDK/1.4.350.0`.
+Un générateur Visual Studio peut également être utilisé ; changer de générateur
+nécessite un nouveau dossier de compilation.
 
 Un autre compilateur C++17 convient si CMake le détecte ; un générateur à une
 configuration place l'exécutable directement dans `out/vulkan`. Le script
@@ -73,28 +92,41 @@ if ($radeons.Count -ne 1) { throw 'La cible doit être unique.' }
 
 Cette première commande utilise **le contrôle GLSL**, enregistré comme
 `glsl-control` dans la provenance. Elle vérifie le banc sur le GPU, sans valider
-la traduction Metal. Le lancement active la couche Khronos ; son absence
+la traduction Metal. Le lancement active la couche Khronos et sa validation
+de synchronisation avec `--sync-validation` ; l'absence de la couche
 produit un échec. `-WithoutValidation` est possible pour diagnostic, mais doit
 rester visible dans le rapport.
 
 Tests exécutés : 1, 63, 64, 65, 257 et 4097 éléments, trois fois chacun, avec
-des entrées différentes et des additions modulo 2^32 (tolérance zéro). Les
+des entrées différentes, sur **deux chemins mémoire**, soit **36 cas par shader**,
+et des additions modulo 2^32 (tolérance zéro). Les
 groupes font 64 threads ; le shader protège les threads excédentaires. Le banc
 vérifie chaque résultat, les 16 mots de garde avant/après, toute la fin inutilisée
 des allocations, les entrées et les paramètres. Une sortie préremplie ne peut
 être acceptée comme calcul sans être comparée à la référence.
 
-Le prototype emploie des buffers Vulkan en mémoire hôte visible et cohérente,
-des barrières host/compute/host et une fence par soumission (5 secondes maximum).
-Il ne teste pas encore les transferts staging/VRAM, textures ou images. Chaque
+Le chemin `host-coherent` emploie des buffers hôte visibles et cohérents et
+des barrières host/compute/host. Le chemin `device-local-staging` copie les quatre
+buffers vers des allocations device-local, exécute le calcul puis recopie
+**toutes** les allocations, y compris entrées/paramètres/gardes, vers le staging.
+Les barrières couvrent host → transfer → compute → transfer → host et la
+réutilisation du staging. Le choix mémoire préfère un type device-local non
+visible au CPU et consigne les flags réellement sélectionnés. Sur la Radeon
+relevée, les buffers utilisent le type 0, flags `DEVICE_LOCAL` seuls, heap 1.
+Chaque soumission emploie une fence (5 secondes maximum). Les textures, images,
+dispatchs dépendants, files multiples et mémoire hôte non cohérente restent à
+tester. Chaque
 cas conserve les écarts et des sommes de contrôle FNV-1a de la sortie complète
 et de la référence ; ces sommes servent au diagnostic, pas au contrôle
 d'intégrité des artefacts, qui utilise SHA-256.
 
-Le rapport `result.json` contient GPU/pilote, ID et type, version Vulkan, file,
-local size, besoin `shaderInt64`, options, état et résultats. `provenance.json`
+Le rapport `result.json` (schéma 2) contient GPU/pilote, ID et type, version Vulkan,
+file, local size, besoin `shaderInt64`, validation de synchronisation, allocations
+(types, heaps, flags et dimensions des heaps), chemin mémoire, état et résultats.
+`probe.log` conserve la sortie et les diagnostics Vulkan. `provenance.json`
 ajoute date UTC, build Windows, révision Git, état du travail, empreintes des
-sources et binaires. Le wrapper lève une erreur si le banc sort avec un échec.
+sources et binaires ainsi que les versions des outils C++ et SPIR-V. Le wrapper
+lève une erreur si le banc sort avec un échec.
 Sur timeout, le processus échoue et évite une attente GPU infinie pendant sa
 destruction ; cette voie de récupération n'a pas encore été essayée sur Radeon.
 
@@ -134,6 +166,18 @@ capacité est demandée au GPU puis activée explicitement, ou refusée.
 Pour diagnostiquer le contrat de la fixture synthétique, fournir ses artefacts
 de `out/translator/fixture/` et ajouter `-ShaderOrigin synthetic-ir`. Cette
 origine reste distincte de `metal-air` dans la provenance.
+
+```powershell
+./tools/run-windows-probe.ps1 -DeviceId 0x7550 `
+  -Shader out/translator/fixture/vector_add.spv `
+  -Reflection out/translator/fixture/vector_add.reflection.json `
+  -ShaderOrigin synthetic-ir
+```
+
+Cette commande a réussi sur la RX 9070 XT avec les 36 cas, zéro écart et zéro
+erreur de validation/synchronisation. Ses sorties correspondent au contrôle
+GLSL. Le [rapport Radeon](reports/2026-10-07-radeon-windows.md) contient les
+preuves partageables ; ce succès ne représente pas un AIR compilé par Apple.
 
 `amd_gpu_probe --check-shader FILE` contrôle uniquement l'admission de l'ABI sans
 exécuter Vulkan ; `spirv-val` reste obligatoire pour la validité structurelle.

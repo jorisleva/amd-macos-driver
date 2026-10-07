@@ -1,22 +1,24 @@
 # Travail restant après le premier banc Windows
 
-État du 7 octobre 2026. Le traducteur Rust et le banc Vulkan compilent sous
-Windows ; 10 tests Rust ciblés et 4 tests logiciels du banc passent. Aucun
-calcul sur RX 9070 XT ni essai macOS n'a encore été réalisé.
+État du 7 octobre 2026. Le traducteur Rust et le banc Vulkan compilent sur
+le PC Ryzen/Radeon ; 10 tests Rust ciblés et 4 tests CTest passent. Le contrôle
+GLSL et la fixture synthétique traduite passent chacun 36 cas sur RX 9070 XT,
+y compris les transferts staging/VRAM, sans écart ni erreur Vulkan/synchronisation.
+Preuves : [rapport Radeon](reports/2026-10-07-radeon-windows.md).
+L'AIR Apple et les essais macOS restent ouverts.
 
 ## Prochaines actions, dans l'ordre
 
-1. **Inventorier le PC Ryzen/Radeon.** Exécuter
-   `tools/collect-windows-inventory.ps1 -Role target`. Compléter carte mère,
-   BIOS, RAM, fabricant de la carte, VBIOS, IDs PCI/sous-système, stockage et
-   périphériques de démarrage. Choisir un écran et un connecteur. La machine
-   de développement actuelle est un Dell Intel/NVIDIA : son inventaire ne
-   remplit pas celui de la cible.
-2. **Exécuter le contrôle Vulkan sur la RX 9070 XT.** Utiliser l'ID PCI réellement
-   relevé avec `tools/run-windows-probe.ps1 -DeviceId <ID>`. Conserver rapports,
-   provenance et empreintes. Les 18 cas doivent avoir zéro écart de données,
-   gardes et entrées, sans erreur de validation. Cette réussite concernerait
-   le shader GLSL et le pilote AMD Windows uniquement.
+1. **Compléter l'inventaire du PC.** B550M DS3H, BIOS FD, Ryzen 5600X,
+   16 Gio et IDs `1002:7550` / `1849:5417` sont relevés. Il reste la révision
+   matérielle de la carte mère, le fabricant exact/VBIOS de la carte, le
+   stockage et les périphériques de démarrage, ainsi que l'écran/connecteur
+   à retenir pour Tahoe.
+2. **Conserver le banc Radeon comme contrôle de régression.** Exécuter
+   `tools/run-windows-probe.ps1 -DeviceId 0x7550` après un changement pertinent.
+   Les 36 cas couvrent mémoire hôte et staging/VRAM. Le contrôle GLSL et
+   l'IR synthétique sont validés sous le pilote AMD Windows ; ils ne ferment
+   pas la qualification AIR Apple ou RADV Darwin.
 3. **Qualifier le Mac de compilation.** Relever modèle, macOS/build, Xcode,
    SDK Metal et outils LLVM/SPIR-V. Exécuter `tools/build-translator.sh`, puis
    `tools/compile-metal-reference.sh`. Vérifier le ciblage AIR, les versions
@@ -26,10 +28,11 @@ calcul sur RX 9070 XT ni essai macOS n'a encore été réalisé.
    SPIR-V, réflexion et empreintes du Mac. Lancer le même banc avec `-Shader`
    et `-Reflection`, puis comparer tous les cas. Le cas synthétique livré
    n'est pas un AIR produit par Apple et ne remplace pas cette validation.
-5. **Compléter le corpus graphique.** Ajouter transferts staging/VRAM,
-   barrières et lectures après écriture, texture, triangle et mélange de
-   couleurs hors écran, références d'images et tolérances. Le banc actuel
-   teste seulement des buffers hôte visibles/cohérents et du calcul entier.
+5. **Compléter le corpus graphique.** Ajouter texture, triangle et mélange
+   de couleurs hors écran, références d'images et tolérances. Le banc actuel
+   couvre des buffers hôte/cohérents et device-local avec staging, du calcul
+   entier et une relecture après écriture. Les dispatchs dépendants, files
+   multiples et mémoire non cohérente restent également à étendre.
 
 Commandes détaillées : [guide Windows et Mac](VALIDATION-WINDOWS.md).
 

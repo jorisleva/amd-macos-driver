@@ -1,0 +1,1208 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-10-07T12:42:03.755845+00:00",
+  "base_code_revision": "f745813cd50c0a3e58e81911b7ddb7a6ea7f8333",
+  "code_state": "uncommitted changes identified by build_inputs SHA-256",
+  "hardware": {
+    "motherboard": [
+      {
+        "Manufacturer": "Gigabyte Technology Co., Ltd.",
+        "Product": "B550M DS3H",
+        "Version": "x.x"
+      }
+    ],
+    "bios": [
+      {
+        "Manufacturer": "American Megatrends International, LLC.",
+        "SMBIOSBIOSVersion": "FD",
+        "ReleaseDate": "2024-03-22T01:00:00+01:00"
+      }
+    ],
+    "cpu": [
+      {
+        "Name": "AMD Ryzen 5 5600X 6-Core Processor             ",
+        "NumberOfCores": 6,
+        "NumberOfLogicalProcessors": 12
+      }
+    ],
+    "memory": [
+      {
+        "Capacity": 8589934592,
+        "Speed": 3200,
+        "ConfiguredClockSpeed": 3200
+      },
+      {
+        "Capacity": 8589934592,
+        "Speed": 3200,
+        "ConfiguredClockSpeed": 3200
+      }
+    ],
+    "system": [
+      {
+        "Caption": "Microsoft Windows 11 Professionnel",
+        "Version": "10.0.26300",
+        "BuildNumber": "26300",
+        "OSArchitecture": "64 bits"
+      }
+    ],
+    "graphics": [
+      {
+        "name": "AMD Radeon RX 9070 XT",
+        "vendor_id": "0x1002",
+        "device_id": "0x7550",
+        "subsystem_device_id": "0x5417",
+        "subsystem_vendor_id": "0x1849",
+        "driver_version": "32.0.31041.1004",
+        "driver_date": "2026-08-17T02:00:00+02:00"
+      }
+    ]
+  },
+  "tools": {
+    "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "cmake": "cmake version 4.3.1-msvc1\r\n\r\nCMake suite maintained and supported by Kitware (kitware.com/cmake).",
+    "glslangValidator": "Glslang Version: 11:16.2.0\r\nESSL Version: OpenGL ES GLSL 3.20 glslang Khronos. 16.2.0\r\nGLSL Version: 4.60 glslang Khronos. 16.2.0\r\nSPIR-V Version 0x00010600, Revision 1\r\nGLSL.std.450 Version 100, Revision 1\r\nKhronos Tool ID 8\r\nSPIR-V Generator Version 11\r\nGL_KHR_vulkan_glsl version 100\r\nARB_GL_gl_spirv version 100",
+    "spirv-val": "SPIRV-Tools v2026.2 v2026.2.rc2-1-g2ec8457a\r\nTargets:\r\n  SPIR-V 1.0\r\n  SPIR-V 1.1\r\n  SPIR-V 1.2\r\n  SPIR-V 1.3\r\n  SPIR-V 1.4\r\n  SPIR-V 1.5\r\n  SPIR-V 1.6\r\n  SPIR-V 1.2 (under OpenCL 2.2 Full Profile semantics)\r\n  SPIR-V 1.0 (under Vulkan 1.0 semantics)\r\n  SPIR-V 1.3 (under Vulkan 1.1 semantics)\r\n  SPIR-V 1.4 (under Vulkan 1.1 semantics)\r\n  SPIR-V 1.5 (under Vulkan 1.2 semantics)\r\n  SPIR-V 1.6 (under Vulkan 1.3 semantics) SPIR-V 1.6 (under Vulkan 1.4 semantics)",
+    "llvm-dis": null
+  },
+  "build_environment": {
+    "cmake": "cmake version 4.3.1-msvc1\r\n\r\nCMake suite maintained and supported by Kitware (kitware.com/cmake).",
+    "spirv_val": "SPIRV-Tools v2026.2 v2026.2.rc2-1-g2ec8457a\r\nTargets:\r\n  SPIR-V 1.0\r\n  SPIR-V 1.1\r\n  SPIR-V 1.2\r\n  SPIR-V 1.3\r\n  SPIR-V 1.4\r\n  SPIR-V 1.5\r\n  SPIR-V 1.6\r\n  SPIR-V 1.2 (under OpenCL 2.2 Full Profile semantics)\r\n  SPIR-V 1.0 (under Vulkan 1.0 semantics)\r\n  SPIR-V 1.3 (under Vulkan 1.1 semantics)\r\n  SPIR-V 1.4 (under Vulkan 1.1 semantics)\r\n  SPIR-V 1.5 (under Vulkan 1.2 semantics)\r\n  SPIR-V 1.6 (under Vulkan 1.3 semantics) SPIR-V 1.6 (under Vulkan 1.4 semantics)",
+    "glslang": "Glslang Version: 11:16.2.0\r\nESSL Version: OpenGL ES GLSL 3.20 glslang Khronos. 16.2.0\r\nGLSL Version: 4.60 glslang Khronos. 16.2.0\r\nSPIR-V Version 0x00010600, Revision 1\r\nGLSL.std.450 Version 100, Revision 1\r\nKhronos Tool ID 8\r\nSPIR-V Generator Version 11\r\nGL_KHR_vulkan_glsl version 100\r\nARB_GL_gl_spirv version 100",
+    "msvc_toolset": "14.51.36231",
+    "windows_sdk": "10.0.26100.0\\"
+  },
+  "software_tests": {
+    "ctest_passed": 4,
+    "rust_targeted_passed": 10,
+    "rust_corpus_tests_filtered": 4,
+    "fresh_windows_probe_build_passed": true,
+    "fresh_ctest_passed": 4
+  },
+  "runs": [
+    {
+      "shader_origin": "glsl-control",
+      "timestamp_utc": "2026-10-07T12:40:57.8878997Z",
+      "status": "passed",
+      "selected_device": {
+        "name": "AMD Radeon RX 9070 XT",
+        "vendor_id": 4098,
+        "device_id": 30032,
+        "device_type": 2,
+        "api_version": "1.4.349",
+        "driver_version_raw": 8389003,
+        "driver_id": 1,
+        "driver_name": "AMD proprietary driver",
+        "driver_info": "26.8.1 (LLPC)"
+      },
+      "queue_family": 0,
+      "local_size": [
+        64,
+        1,
+        1
+      ],
+      "shader_int64_required": false,
+      "validation_enabled": true,
+      "synchronization_validation_enabled": true,
+      "validation_errors": 0,
+      "case_count": 36,
+      "guard_words_each_side": 16,
+      "integer_tolerance": 0,
+      "fence_timeout_ns": 5000000000,
+      "allocations": [
+        {
+          "memory_path": "host-coherent",
+          "role": "storage",
+          "binding": 0,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "storage",
+          "binding": 0,
+          "memory_type": 0,
+          "heap_index": 1,
+          "property_flags": 1,
+          "heap_size_bytes": 17095983104
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "staging",
+          "binding": 0,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        },
+        {
+          "memory_path": "host-coherent",
+          "role": "storage",
+          "binding": 1,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "storage",
+          "binding": 1,
+          "memory_type": 0,
+          "heap_index": 1,
+          "property_flags": 1,
+          "heap_size_bytes": 17095983104
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "staging",
+          "binding": 1,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        },
+        {
+          "memory_path": "host-coherent",
+          "role": "storage",
+          "binding": 2,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "storage",
+          "binding": 2,
+          "memory_type": 0,
+          "heap_index": 1,
+          "property_flags": 1,
+          "heap_size_bytes": 17095983104
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "staging",
+          "binding": 2,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        },
+        {
+          "memory_path": "host-coherent",
+          "role": "storage",
+          "binding": 3,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "storage",
+          "binding": 3,
+          "memory_type": 0,
+          "heap_index": 1,
+          "property_flags": 1,
+          "heap_size_bytes": 17095983104
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "staging",
+          "binding": 3,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        }
+      ],
+      "cases": [
+        {
+          "count": 1,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "9d053ead1ece0fce",
+          "reference_fnv1a64": "9d053ead1ece0fce"
+        },
+        {
+          "count": 1,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "5caed631ec2bc8a8",
+          "reference_fnv1a64": "5caed631ec2bc8a8"
+        },
+        {
+          "count": 1,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "a66e17a6b0134f8a",
+          "reference_fnv1a64": "a66e17a6b0134f8a"
+        },
+        {
+          "count": 63,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "b9133ecbb07efd72",
+          "reference_fnv1a64": "b9133ecbb07efd72"
+        },
+        {
+          "count": 63,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "7dcc46a2258dfb9f",
+          "reference_fnv1a64": "7dcc46a2258dfb9f"
+        },
+        {
+          "count": 63,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "f816dac03ddd94e1",
+          "reference_fnv1a64": "f816dac03ddd94e1"
+        },
+        {
+          "count": 64,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "e0f448e4308681c1",
+          "reference_fnv1a64": "e0f448e4308681c1"
+        },
+        {
+          "count": 64,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "58e01ea55c91c5b6",
+          "reference_fnv1a64": "58e01ea55c91c5b6"
+        },
+        {
+          "count": 64,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "462c917d0cde80c6",
+          "reference_fnv1a64": "462c917d0cde80c6"
+        },
+        {
+          "count": 65,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "5f49774179dec67c",
+          "reference_fnv1a64": "5f49774179dec67c"
+        },
+        {
+          "count": 65,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "800f1171618f5739",
+          "reference_fnv1a64": "800f1171618f5739"
+        },
+        {
+          "count": 65,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "ff91273742b03c3f",
+          "reference_fnv1a64": "ff91273742b03c3f"
+        },
+        {
+          "count": 257,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "fafecee3038c62e8",
+          "reference_fnv1a64": "fafecee3038c62e8"
+        },
+        {
+          "count": 257,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "1b381750abe0dbd8",
+          "reference_fnv1a64": "1b381750abe0dbd8"
+        },
+        {
+          "count": 257,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "7ec6d1ede858a9b0",
+          "reference_fnv1a64": "7ec6d1ede858a9b0"
+        },
+        {
+          "count": 4097,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "fbf89018c0c182ee",
+          "reference_fnv1a64": "fbf89018c0c182ee"
+        },
+        {
+          "count": 4097,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "792092cb2dfd80a8",
+          "reference_fnv1a64": "792092cb2dfd80a8"
+        },
+        {
+          "count": 4097,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "6b38b99a4894c7ea",
+          "reference_fnv1a64": "6b38b99a4894c7ea"
+        },
+        {
+          "count": 1,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "9d053ead1ece0fce",
+          "reference_fnv1a64": "9d053ead1ece0fce"
+        },
+        {
+          "count": 1,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "5caed631ec2bc8a8",
+          "reference_fnv1a64": "5caed631ec2bc8a8"
+        },
+        {
+          "count": 1,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "a66e17a6b0134f8a",
+          "reference_fnv1a64": "a66e17a6b0134f8a"
+        },
+        {
+          "count": 63,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "b9133ecbb07efd72",
+          "reference_fnv1a64": "b9133ecbb07efd72"
+        },
+        {
+          "count": 63,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "7dcc46a2258dfb9f",
+          "reference_fnv1a64": "7dcc46a2258dfb9f"
+        },
+        {
+          "count": 63,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "f816dac03ddd94e1",
+          "reference_fnv1a64": "f816dac03ddd94e1"
+        },
+        {
+          "count": 64,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "e0f448e4308681c1",
+          "reference_fnv1a64": "e0f448e4308681c1"
+        },
+        {
+          "count": 64,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "58e01ea55c91c5b6",
+          "reference_fnv1a64": "58e01ea55c91c5b6"
+        },
+        {
+          "count": 64,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "462c917d0cde80c6",
+          "reference_fnv1a64": "462c917d0cde80c6"
+        },
+        {
+          "count": 65,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "5f49774179dec67c",
+          "reference_fnv1a64": "5f49774179dec67c"
+        },
+        {
+          "count": 65,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "800f1171618f5739",
+          "reference_fnv1a64": "800f1171618f5739"
+        },
+        {
+          "count": 65,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "ff91273742b03c3f",
+          "reference_fnv1a64": "ff91273742b03c3f"
+        },
+        {
+          "count": 257,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "fafecee3038c62e8",
+          "reference_fnv1a64": "fafecee3038c62e8"
+        },
+        {
+          "count": 257,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "1b381750abe0dbd8",
+          "reference_fnv1a64": "1b381750abe0dbd8"
+        },
+        {
+          "count": 257,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "7ec6d1ede858a9b0",
+          "reference_fnv1a64": "7ec6d1ede858a9b0"
+        },
+        {
+          "count": 4097,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "fbf89018c0c182ee",
+          "reference_fnv1a64": "fbf89018c0c182ee"
+        },
+        {
+          "count": 4097,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "792092cb2dfd80a8",
+          "reference_fnv1a64": "792092cb2dfd80a8"
+        },
+        {
+          "count": 4097,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "6b38b99a4894c7ea",
+          "reference_fnv1a64": "6b38b99a4894c7ea"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "amd_gpu_probe.exe",
+          "sha256": "39aff889188c19e5f83f78b5e101ec488531d8d613d9e125c237bb276d20ceee"
+        },
+        {
+          "name": "vector_add.spv",
+          "sha256": "fdc2c078dc7784a8b8ed40acaaaeaf67e6499d444f043cd56eae795878f44594"
+        }
+      ],
+      "build_inputs": [
+        {
+          "name": "tests/vulkan/main.cpp",
+          "sha256": "82ac39be899f6a54b2feddd508a9fc88d3e4681380c1438a8bfcc6328fc89b60"
+        },
+        {
+          "name": "tests/vulkan/CMakeLists.txt",
+          "sha256": "20d9c4071de72c681227c490cea2f7394d55dcdc45bf6e223a7e81785c7f63d4"
+        },
+        {
+          "name": "tests/vulkan/shaders/vector_add.comp",
+          "sha256": "1240b4310b10905aac7a609f948ee3b4ae16acb84493f9b573b4af044094ffef"
+        },
+        {
+          "name": "tests/shaders/vector_add.metal",
+          "sha256": "c02e30894bcde00e730fc41061bc859600d5ee3c965cc48223ad207dd196035f"
+        },
+        {
+          "name": "tests/shaders/vector_add.synthetic.ll",
+          "sha256": "91b89afb16b52847d84dd9f1065663f6adce00fa587ffc1bc02922b6eace4d14"
+        },
+        {
+          "name": "tools/run-windows-probe.ps1",
+          "sha256": "517685a69045fae9125d56a780b081ef58c2ff69e293361bdc84582da4eee331"
+        },
+        {
+          "name": "tools/initialize-windows-dev.ps1",
+          "sha256": "f2e514e78c24568e5ddbf946c78182606c6ff67bd7e39d7da40e21a2faa19dae"
+        },
+        {
+          "name": "tools/prepare-windows-vulkan-sdk.ps1",
+          "sha256": "4e05622e170f8d2827944da17de187a65c64f95eecba35d6603bbfbac561bc08"
+        }
+      ]
+    },
+    {
+      "shader_origin": "synthetic-ir",
+      "timestamp_utc": "2026-10-07T12:40:58.8006786Z",
+      "status": "passed",
+      "selected_device": {
+        "name": "AMD Radeon RX 9070 XT",
+        "vendor_id": 4098,
+        "device_id": 30032,
+        "device_type": 2,
+        "api_version": "1.4.349",
+        "driver_version_raw": 8389003,
+        "driver_id": 1,
+        "driver_name": "AMD proprietary driver",
+        "driver_info": "26.8.1 (LLPC)"
+      },
+      "queue_family": 0,
+      "local_size": [
+        64,
+        1,
+        1
+      ],
+      "shader_int64_required": true,
+      "validation_enabled": true,
+      "synchronization_validation_enabled": true,
+      "validation_errors": 0,
+      "case_count": 36,
+      "guard_words_each_side": 16,
+      "integer_tolerance": 0,
+      "fence_timeout_ns": 5000000000,
+      "allocations": [
+        {
+          "memory_path": "host-coherent",
+          "role": "storage",
+          "binding": 0,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "storage",
+          "binding": 0,
+          "memory_type": 0,
+          "heap_index": 1,
+          "property_flags": 1,
+          "heap_size_bytes": 17095983104
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "staging",
+          "binding": 0,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        },
+        {
+          "memory_path": "host-coherent",
+          "role": "storage",
+          "binding": 1,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "storage",
+          "binding": 1,
+          "memory_type": 0,
+          "heap_index": 1,
+          "property_flags": 1,
+          "heap_size_bytes": 17095983104
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "staging",
+          "binding": 1,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        },
+        {
+          "memory_path": "host-coherent",
+          "role": "storage",
+          "binding": 2,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "storage",
+          "binding": 2,
+          "memory_type": 0,
+          "heap_index": 1,
+          "property_flags": 1,
+          "heap_size_bytes": 17095983104
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "staging",
+          "binding": 2,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        },
+        {
+          "memory_path": "host-coherent",
+          "role": "storage",
+          "binding": 3,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "storage",
+          "binding": 3,
+          "memory_type": 0,
+          "heap_index": 1,
+          "property_flags": 1,
+          "heap_size_bytes": 17095983104
+        },
+        {
+          "memory_path": "device-local-staging",
+          "role": "staging",
+          "binding": 3,
+          "memory_type": 1,
+          "heap_index": 0,
+          "property_flags": 6,
+          "heap_size_bytes": 8549498880
+        }
+      ],
+      "cases": [
+        {
+          "count": 1,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "9d053ead1ece0fce",
+          "reference_fnv1a64": "9d053ead1ece0fce"
+        },
+        {
+          "count": 1,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "5caed631ec2bc8a8",
+          "reference_fnv1a64": "5caed631ec2bc8a8"
+        },
+        {
+          "count": 1,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "a66e17a6b0134f8a",
+          "reference_fnv1a64": "a66e17a6b0134f8a"
+        },
+        {
+          "count": 63,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "b9133ecbb07efd72",
+          "reference_fnv1a64": "b9133ecbb07efd72"
+        },
+        {
+          "count": 63,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "7dcc46a2258dfb9f",
+          "reference_fnv1a64": "7dcc46a2258dfb9f"
+        },
+        {
+          "count": 63,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "f816dac03ddd94e1",
+          "reference_fnv1a64": "f816dac03ddd94e1"
+        },
+        {
+          "count": 64,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "e0f448e4308681c1",
+          "reference_fnv1a64": "e0f448e4308681c1"
+        },
+        {
+          "count": 64,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "58e01ea55c91c5b6",
+          "reference_fnv1a64": "58e01ea55c91c5b6"
+        },
+        {
+          "count": 64,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "462c917d0cde80c6",
+          "reference_fnv1a64": "462c917d0cde80c6"
+        },
+        {
+          "count": 65,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "5f49774179dec67c",
+          "reference_fnv1a64": "5f49774179dec67c"
+        },
+        {
+          "count": 65,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "800f1171618f5739",
+          "reference_fnv1a64": "800f1171618f5739"
+        },
+        {
+          "count": 65,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "ff91273742b03c3f",
+          "reference_fnv1a64": "ff91273742b03c3f"
+        },
+        {
+          "count": 257,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "fafecee3038c62e8",
+          "reference_fnv1a64": "fafecee3038c62e8"
+        },
+        {
+          "count": 257,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "1b381750abe0dbd8",
+          "reference_fnv1a64": "1b381750abe0dbd8"
+        },
+        {
+          "count": 257,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "7ec6d1ede858a9b0",
+          "reference_fnv1a64": "7ec6d1ede858a9b0"
+        },
+        {
+          "count": 4097,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "fbf89018c0c182ee",
+          "reference_fnv1a64": "fbf89018c0c182ee"
+        },
+        {
+          "count": 4097,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "792092cb2dfd80a8",
+          "reference_fnv1a64": "792092cb2dfd80a8"
+        },
+        {
+          "count": 4097,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "host-coherent",
+          "output_fnv1a64": "6b38b99a4894c7ea",
+          "reference_fnv1a64": "6b38b99a4894c7ea"
+        },
+        {
+          "count": 1,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "9d053ead1ece0fce",
+          "reference_fnv1a64": "9d053ead1ece0fce"
+        },
+        {
+          "count": 1,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "5caed631ec2bc8a8",
+          "reference_fnv1a64": "5caed631ec2bc8a8"
+        },
+        {
+          "count": 1,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "a66e17a6b0134f8a",
+          "reference_fnv1a64": "a66e17a6b0134f8a"
+        },
+        {
+          "count": 63,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "b9133ecbb07efd72",
+          "reference_fnv1a64": "b9133ecbb07efd72"
+        },
+        {
+          "count": 63,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "7dcc46a2258dfb9f",
+          "reference_fnv1a64": "7dcc46a2258dfb9f"
+        },
+        {
+          "count": 63,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "f816dac03ddd94e1",
+          "reference_fnv1a64": "f816dac03ddd94e1"
+        },
+        {
+          "count": 64,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "e0f448e4308681c1",
+          "reference_fnv1a64": "e0f448e4308681c1"
+        },
+        {
+          "count": 64,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "58e01ea55c91c5b6",
+          "reference_fnv1a64": "58e01ea55c91c5b6"
+        },
+        {
+          "count": 64,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "462c917d0cde80c6",
+          "reference_fnv1a64": "462c917d0cde80c6"
+        },
+        {
+          "count": 65,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "5f49774179dec67c",
+          "reference_fnv1a64": "5f49774179dec67c"
+        },
+        {
+          "count": 65,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "800f1171618f5739",
+          "reference_fnv1a64": "800f1171618f5739"
+        },
+        {
+          "count": 65,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "ff91273742b03c3f",
+          "reference_fnv1a64": "ff91273742b03c3f"
+        },
+        {
+          "count": 257,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "fafecee3038c62e8",
+          "reference_fnv1a64": "fafecee3038c62e8"
+        },
+        {
+          "count": 257,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "1b381750abe0dbd8",
+          "reference_fnv1a64": "1b381750abe0dbd8"
+        },
+        {
+          "count": 257,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "7ec6d1ede858a9b0",
+          "reference_fnv1a64": "7ec6d1ede858a9b0"
+        },
+        {
+          "count": 4097,
+          "iteration": 0,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "fbf89018c0c182ee",
+          "reference_fnv1a64": "fbf89018c0c182ee"
+        },
+        {
+          "count": 4097,
+          "iteration": 1,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "792092cb2dfd80a8",
+          "reference_fnv1a64": "792092cb2dfd80a8"
+        },
+        {
+          "count": 4097,
+          "iteration": 2,
+          "data_mismatches": 0,
+          "guard_mismatches": 0,
+          "input_mismatches": 0,
+          "memory_path": "device-local-staging",
+          "output_fnv1a64": "6b38b99a4894c7ea",
+          "reference_fnv1a64": "6b38b99a4894c7ea"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "amd_gpu_probe.exe",
+          "sha256": "39aff889188c19e5f83f78b5e101ec488531d8d613d9e125c237bb276d20ceee"
+        },
+        {
+          "name": "vector_add.spv",
+          "sha256": "0f7fdc5dc1a9b69701145b43d75bc1a4a9efb24f2daeaab0c21bab1047aa74bc"
+        },
+        {
+          "name": "vector_add.reflection.json",
+          "sha256": "5d925dafd6e39c22b6387a46d722386a377cb66ee74b5832edbebbab70ce925d"
+        }
+      ],
+      "build_inputs": [
+        {
+          "name": "tests/vulkan/main.cpp",
+          "sha256": "82ac39be899f6a54b2feddd508a9fc88d3e4681380c1438a8bfcc6328fc89b60"
+        },
+        {
+          "name": "tests/vulkan/CMakeLists.txt",
+          "sha256": "20d9c4071de72c681227c490cea2f7394d55dcdc45bf6e223a7e81785c7f63d4"
+        },
+        {
+          "name": "tests/vulkan/shaders/vector_add.comp",
+          "sha256": "1240b4310b10905aac7a609f948ee3b4ae16acb84493f9b573b4af044094ffef"
+        },
+        {
+          "name": "tests/shaders/vector_add.metal",
+          "sha256": "c02e30894bcde00e730fc41061bc859600d5ee3c965cc48223ad207dd196035f"
+        },
+        {
+          "name": "tests/shaders/vector_add.synthetic.ll",
+          "sha256": "91b89afb16b52847d84dd9f1065663f6adce00fa587ffc1bc02922b6eace4d14"
+        },
+        {
+          "name": "tools/run-windows-probe.ps1",
+          "sha256": "517685a69045fae9125d56a780b081ef58c2ff69e293361bdc84582da4eee331"
+        },
+        {
+          "name": "tools/initialize-windows-dev.ps1",
+          "sha256": "f2e514e78c24568e5ddbf946c78182606c6ff67bd7e39d7da40e21a2faa19dae"
+        },
+        {
+          "name": "tools/prepare-windows-vulkan-sdk.ps1",
+          "sha256": "4e05622e170f8d2827944da17de187a65c64f95eecba35d6603bbfbac561bc08"
+        }
+      ]
+    }
+  ],
+  "glsl_and_synthetic_outputs_identical": true,
+  "negative_tests": [
+    {
+      "name": "absent-pci-id",
+      "expected_status": "failed",
+      "observed_status": "failed",
+      "selected_device": null,
+      "case_count": 0,
+      "error": "RX 9070 XT with the requested PCI ID absent; no fallback permitted"
+    },
+    {
+      "name": "wrong-gpu-result",
+      "expected_status": "failed",
+      "observed_status": "failed",
+      "case_count": 1,
+      "data_mismatches": 1,
+      "validation_errors": 0,
+      "error": "GPU result or buffer guards differ from reference"
+    }
+  ],
+  "unverified": [
+    "Apple-compiled AIR",
+    "macOS build",
+    "RADV Darwin",
+    "AMD kernel driver",
+    "textures and offscreen graphics",
+    "VBIOS and chosen screen/connector"
+  ]
+}

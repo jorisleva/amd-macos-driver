@@ -39,23 +39,26 @@ else {
 & spirv-val --target-env vulkan1.2 $Shader
 if ($LASTEXITCODE -ne 0) { throw 'SPIR-V validation failed.' }
 $arguments = @('--report', (Join-Path $ReportDirectory 'result.json'), '--device-id', $DeviceId, '--shader', $Shader, '--entry', $entryPoint)
-if (-not $WithoutValidation) { $arguments += '--validation' }
-& $exe @arguments
+if (-not $WithoutValidation) { $arguments += '--sync-validation' }
+& $exe @arguments 2>&1 | Tee-Object -FilePath (Join-Path $ReportDirectory 'probe.log')
 $probeExit = $LASTEXITCODE
 $artifacts = foreach ($path in @($exe, $Shader, $Reflection) | Where-Object { $_ }) {
     $hash = Get-FileHash -LiteralPath $path -Algorithm SHA256
     [ordered]@{ name = [IO.Path]::GetFileName($path); sha256 = $hash.Hash.ToLowerInvariant() }
 }
 # Include hashes of all build inputs so uncommitted edits are distinguishable without personal paths.
-$inputs = foreach ($path in @('tests/vulkan/main.cpp', 'tests/vulkan/CMakeLists.txt', 'tests/vulkan/shaders/vector_add.comp', 'tests/shaders/vector_add.metal', 'tests/shaders/vector_add.synthetic.ll', 'tools/run-windows-probe.ps1')) {
+$inputs = foreach ($path in @('tests/vulkan/main.cpp', 'tests/vulkan/CMakeLists.txt', 'tests/vulkan/shaders/vector_add.comp', 'tests/shaders/vector_add.metal', 'tests/shaders/vector_add.synthetic.ll', 'tools/run-windows-probe.ps1', 'tools/initialize-windows-dev.ps1', 'tools/prepare-windows-vulkan-sdk.ps1')) {
     [ordered]@{ name = $path; sha256 = (Get-FileHash -LiteralPath (Join-Path $repoRoot $path) -Algorithm SHA256).Hash.ToLowerInvariant() }
 }
 [ordered]@{
-    schema_version = 1; timestamp_utc = [DateTime]::UtcNow.ToString('o')
+    schema_version = 2; timestamp_utc = [DateTime]::UtcNow.ToString('o')
     code_revision = (& git -C $repoRoot rev-parse HEAD); working_tree = @(& git -C $repoRoot status --porcelain)
     shader_origin = $shaderKind; probe_exit_code = $probeExit
+    synchronization_validation = -not $WithoutValidation
     windows_version = [Environment]::OSVersion.Version.ToString()
     cmake = ((& cmake --version) | Out-String).Trim(); spirv_val = ((& spirv-val --version) | Out-String).Trim()
+    glslang = ((& glslangValidator --version) | Out-String).Trim()
+    msvc_toolset = $env:VCToolsVersion; windows_sdk = $env:WindowsSDKVersion
     artifacts = @($artifacts); inputs = @($inputs)
     hardware_inventory = 'Collect separately with tools/collect-windows-inventory.ps1 -Role target'
 } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $ReportDirectory 'provenance.json') -Encoding utf8

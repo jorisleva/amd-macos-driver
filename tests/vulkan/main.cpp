@@ -163,19 +163,26 @@ std::string checksum(const uint32_t* data, size_t size) {
     std::ostringstream out; out << std::hex << std::setw(16) << std::setfill('0') << hash;
     return out.str();
 }
-struct CaseResult { uint32_t count, iteration; Verification differences; std::string outputChecksum, referenceChecksum; };
+struct CaseResult { uint32_t count, iteration; Verification differences; std::string outputChecksum, referenceChecksum, memoryPath; };
+struct MemoryRecord {
+    std::string path, role;
+    uint32_t binding, type, heap, flags;
+    VkDeviceSize heapSize;
+};
 struct Report {
     std::string status = "failed", mode, error, shader, entry = "main";
     std::vector<DeviceRecord> devices;
     std::vector<CaseResult> cases;
+    std::vector<MemoryRecord> allocations;
     int selected = -1;
     uint32_t queueFamily = 0, deviceId = 0;
     bool shaderInt64 = false;
     bool validation = false;
+    bool synchronizationValidation = false;
     std::atomic<uint32_t> validationErrors{0};
     std::string json() const {
         std::ostringstream out;
-        out << "{\n  \"schema_version\":1,\"status\":" << quote(status) << ",\"mode\":" << quote(mode)
+        out << "{\n  \"schema_version\":2,\"status\":" << quote(status) << ",\"mode\":" << quote(mode)
             << ",\"code_revision\":" << quote(CODE_REVISION) << ",\"error\":" << quote(error)
             << ",\"expected_vendor_id\":" << kVendor << ",\"expected_device_id\":" << deviceId
             << ",\"shader\":" << quote(shader) << ",\"entry_point\":" << quote(entry)
@@ -183,16 +190,25 @@ struct Report {
             << ",\"integer_tolerance\":0,\"fence_timeout_ns\":" << kTimeoutNs
             << ",\"shader_int64_required\":" << (shaderInt64 ? "true" : "false")
             << ",\"validation_enabled\":" << (validation ? "true" : "false")
+            << ",\"synchronization_validation_enabled\":" << (synchronizationValidation ? "true" : "false")
             << ",\"validation_errors\":" << validationErrors.load() << ",\n  \"devices\":[";
         for (size_t i = 0; i < devices.size(); ++i) out << (i ? "," : "") << deviceJson(devices[i]);
         out << "],\n  \"selected_device\":";
         if (selected < 0) out << "null"; else out << deviceJson(devices[size_t(selected)]);
-        out << ",\"queue_family\":" << queueFamily << ",\n  \"cases\":[";
+        out << ",\"queue_family\":" << queueFamily << ",\n  \"allocations\":[";
+        for (size_t i = 0; i < allocations.size(); ++i) {
+            const auto& a = allocations[i];
+            out << (i ? "," : "") << "{\"memory_path\":" << quote(a.path) << ",\"role\":" << quote(a.role)
+                << ",\"binding\":" << a.binding << ",\"memory_type\":" << a.type << ",\"heap_index\":" << a.heap
+                << ",\"property_flags\":" << a.flags << ",\"heap_size_bytes\":" << a.heapSize << '}';
+        }
+        out << "],\n  \"cases\":[";
         for (size_t i = 0; i < cases.size(); ++i) {
             const auto& c = cases[i];
             out << (i ? "," : "") << "{\"count\":" << c.count << ",\"iteration\":" << c.iteration
                 << ",\"data_mismatches\":" << c.differences.data << ",\"guard_mismatches\":" << c.differences.guards
                 << ",\"input_mismatches\":" << c.differences.inputs
+                << ",\"memory_path\":" << quote(c.memoryPath)
                 << ",\"output_fnv1a64\":" << quote(c.outputChecksum) << ",\"reference_fnv1a64\":" << quote(c.referenceChecksum) << '}';
         }
         out << "]\n}\n";
@@ -221,7 +237,7 @@ struct Harness {
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkCommandPool commandPool = VK_NULL_HANDLE;
     VkFence fence = VK_NULL_HANDLE;
-    std::array<Buffer, 4> buffers{};
+    std::array<Buffer, 4> buffers{}, deviceBuffers{}, stagingBuffers{};
     bool pending = false;
     ~Harness() {
         // On timeout do not free resources still used by the GPU or perform an unbounded idle wait.
@@ -235,7 +251,7 @@ struct Harness {
             if (descriptorPool) vkDestroyDescriptorPool(device, descriptorPool, nullptr);
             if (pipelineLayout) vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
             if (setLayout) vkDestroyDescriptorSetLayout(device, setLayout, nullptr);
-            for (auto& b : buffers) {
+            for (auto group : {&buffers, &deviceBuffers, &stagingBuffers}) for (auto& b : *group) {
                 if (b.mapped) vkUnmapMemory(device, b.memory);
                 if (b.buffer) vkDestroyBuffer(device, b.buffer, nullptr);
                 if (b.memory) vkFreeMemory(device, b.memory, nullptr);
@@ -253,16 +269,23 @@ struct Harness {
         app.pApplicationName = "AMD validation probe"; app.apiVersion = VK_API_VERSION_1_2;
         VkInstanceCreateInfo create{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO}; create.pApplicationInfo = &app;
         const char* layer = "VK_LAYER_KHRONOS_validation";
-        const char* extension = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+        const std::array<const char*, 2> extensions{VK_EXT_DEBUG_UTILS_EXTENSION_NAME, VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME};
+        const VkValidationFeatureEnableEXT syncFeature = VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT;
+        VkValidationFeaturesEXT validationFeatures{VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT};
+        validationFeatures.enabledValidationFeatureCount = 1; validationFeatures.pEnabledValidationFeatures = &syncFeature;
         VkDebugUtilsMessengerCreateInfoEXT debug{VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
         debug.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
         debug.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         debug.pfnUserCallback = debugCallback; debug.pUserData = &report;
         if (report.validation) {
             create.enabledLayerCount = 1; create.ppEnabledLayerNames = &layer;
-            create.enabledExtensionCount = 1; create.ppEnabledExtensionNames = &extension; create.pNext = &debug;
+            create.enabledExtensionCount = report.synchronizationValidation ? 2u : 1u;
+            create.ppEnabledExtensionNames = extensions.data(); create.pNext = &debug;
+            if (report.synchronizationValidation) debug.pNext = &validationFeatures;
         }
         check(vkCreateInstance(&create, nullptr, &instance), "vkCreateInstance");
+        // VkDebugUtilsMessengerCreateInfoEXT::pNext must be null for this separate call.
+        debug.pNext = nullptr;
         if (report.validation) {
             auto make = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
             if (!make) throw std::runtime_error("Validation debug messenger unavailable");
@@ -302,21 +325,33 @@ struct Harness {
         if (it == queues.end()) throw std::runtime_error("No compute queue");
         report.queueFamily = uint32_t(it - queues.begin());
     }
-    void allocate(Buffer& b, VkDeviceSize size) {
+    void allocate(Buffer& b, VkDeviceSize size, bool deviceLocal, Report& report,
+                  const std::string& path, const std::string& role, uint32_t binding) {
         b.size = size;
-        VkBufferCreateInfo create{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO}; create.size = size; create.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        VkBufferCreateInfo create{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO}; create.size = size;
+        create.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         check(vkCreateBuffer(device, &create, nullptr, &b.buffer), "vkCreateBuffer");
         VkMemoryRequirements requirements{}; vkGetBufferMemoryRequirements(device, b.buffer, &requirements);
         VkPhysicalDeviceMemoryProperties memory{}; vkGetPhysicalDeviceMemoryProperties(physical, &memory);
         uint32_t type = UINT32_MAX;
-        const VkMemoryPropertyFlags required = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-        for (uint32_t i = 0; i < memory.memoryTypeCount; ++i)
-            if ((requirements.memoryTypeBits & (1u << i)) && (memory.memoryTypes[i].propertyFlags & required) == required) { type = i; break; }
-        if (type == UINT32_MAX) throw std::runtime_error("Probe requires host-visible coherent storage memory");
+        const VkMemoryPropertyFlags required = deviceLocal ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+            : VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        // Prefer unmappable VRAM for the transfer path; report the actual flags even on BAR-visible heaps.
+        for (unsigned pass = 0; pass < 2 && type == UINT32_MAX; ++pass) {
+            for (uint32_t i = 0; i < memory.memoryTypeCount; ++i) {
+                const auto flags = memory.memoryTypes[i].propertyFlags;
+                if (!(requirements.memoryTypeBits & (1u << i)) || (flags & required) != required) continue;
+                if (deviceLocal && !pass && (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) continue;
+                type = i; break;
+            }
+        }
+        if (type == UINT32_MAX) throw std::runtime_error(deviceLocal ? "No compatible device-local storage memory" : "No host-visible coherent staging/storage memory");
         VkMemoryAllocateInfo alloc{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO}; alloc.allocationSize = requirements.size; alloc.memoryTypeIndex = type;
         check(vkAllocateMemory(device, &alloc, nullptr, &b.memory), "vkAllocateMemory");
         check(vkBindBufferMemory(device, b.buffer, b.memory, 0), "vkBindBufferMemory");
-        check(vkMapMemory(device, b.memory, 0, VK_WHOLE_SIZE, 0, &b.mapped), "vkMapMemory");
+        if (!deviceLocal) check(vkMapMemory(device, b.memory, 0, VK_WHOLE_SIZE, 0, &b.mapped), "vkMapMemory");
+        const auto& chosen = memory.memoryTypes[type];
+        report.allocations.push_back({path, role, binding, type, chosen.heapIndex, chosen.propertyFlags, memory.memoryHeaps[chosen.heapIndex].size});
     }
     void compute(Report& report, const std::vector<uint32_t>& words) {
         float priority = 1;
@@ -341,7 +376,12 @@ struct Harness {
         pipelineInfo.stage.module = module; pipelineInfo.stage.pName = report.entry.c_str(); pipelineInfo.layout = pipelineLayout;
         check(vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline), "vkCreateComputePipelines");
         constexpr uint32_t maxCount = 4097;
-        for (uint32_t i = 0; i < buffers.size(); ++i) allocate(buffers[i], (i == 3 ? 2 : maxCount + 2 * kGuard) * sizeof(uint32_t));
+        for (uint32_t i = 0; i < buffers.size(); ++i) {
+            const VkDeviceSize size = (i == 3 ? 2 : maxCount + 2 * kGuard) * sizeof(uint32_t);
+            allocate(buffers[i], size, false, report, "host-coherent", "storage", i);
+            allocate(deviceBuffers[i], size, true, report, "device-local-staging", "storage", i);
+            allocate(stagingBuffers[i], size, false, report, "device-local-staging", "staging", i);
+        }
         VkDescriptorPoolSize poolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4};
         VkDescriptorPoolCreateInfo dp{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO}; dp.maxSets = 1; dp.poolSizeCount = 1; dp.pPoolSizes = &poolSize;
         check(vkCreateDescriptorPool(device, &dp, nullptr, &descriptorPool), "vkCreateDescriptorPool");
@@ -349,50 +389,82 @@ struct Harness {
         VkDescriptorSet set{}; check(vkAllocateDescriptorSets(device, &da, &set), "vkAllocateDescriptorSets");
         std::array<VkDescriptorBufferInfo, 4> infos{};
         std::array<VkWriteDescriptorSet, 4> writes{};
-        for (uint32_t i = 0; i < buffers.size(); ++i) {
-            infos[i] = {buffers[i].buffer, 0, buffers[i].size};
-            writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET; writes[i].dstSet = set; writes[i].dstBinding = i;
-            writes[i].descriptorCount = 1; writes[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; writes[i].pBufferInfo = &infos[i];
-        }
-        vkUpdateDescriptorSets(device, uint32_t(writes.size()), writes.data(), 0, nullptr);
         VkCommandPoolCreateInfo cp{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO}; cp.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; cp.queueFamilyIndex = report.queueFamily;
         check(vkCreateCommandPool(device, &cp, nullptr, &commandPool), "vkCreateCommandPool");
         VkCommandBufferAllocateInfo ca{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO}; ca.commandPool = commandPool; ca.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; ca.commandBufferCount = 1;
         VkCommandBuffer command{}; check(vkAllocateCommandBuffers(device, &ca, &command), "vkAllocateCommandBuffers");
         VkFenceCreateInfo fc{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO}; check(vkCreateFence(device, &fc, nullptr, &fence), "vkCreateFence");
-        for (uint32_t count : {1u, 63u, 64u, 65u, 257u, 4097u}) {
-            for (uint32_t iteration = 0; iteration < 3; ++iteration) {
-                // Check the entire allocation, including unused tail words, after every submission.
-                std::vector<uint32_t> a(maxCount + 2 * kGuard, kSentinel), b = a;
-                for (uint32_t i = 0; i < count; ++i) { a[i + kGuard] = 0xfffffff0u - i * 17u + iteration; b[i + kGuard] = i * 31u + 27u + iteration; }
-                std::copy(a.begin(), a.end(), static_cast<uint32_t*>(buffers[0].mapped));
-                std::copy(b.begin(), b.end(), static_cast<uint32_t*>(buffers[1].mapped));
-                std::fill_n(static_cast<uint32_t*>(buffers[2].mapped), a.size(), kSentinel);
-                auto params = static_cast<uint32_t*>(buffers[3].mapped); params[0] = count; params[1] = kGuard;
-                check(vkResetCommandBuffer(command, 0), "vkResetCommandBuffer");
-                VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO}; begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-                check(vkBeginCommandBuffer(command, &begin), "vkBeginCommandBuffer");
-                VkMemoryBarrier before{VK_STRUCTURE_TYPE_MEMORY_BARRIER}; before.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT; before.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-                vkCmdPipelineBarrier(command, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &before, 0, nullptr, 0, nullptr);
-                vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-                vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &set, 0, nullptr);
-                vkCmdDispatch(command, (count + kLocal - 1) / kLocal, 1, 1);
-                VkMemoryBarrier after{VK_STRUCTURE_TYPE_MEMORY_BARRIER}; after.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; after.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
-                vkCmdPipelineBarrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 1, &after, 0, nullptr, 0, nullptr);
-                check(vkEndCommandBuffer(command), "vkEndCommandBuffer");
-                check(vkResetFences(device, 1, &fence), "vkResetFences");
-                VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO}; submit.commandBufferCount = 1; submit.pCommandBuffers = &command;
-                check(vkQueueSubmit(queue, 1, &submit, fence), "vkQueueSubmit"); pending = true;
-                check(vkWaitForFences(device, 1, &fence, VK_TRUE, kTimeoutNs), "vkWaitForFences"); pending = false;
-                auto copyBuffer = [&](size_t i) { auto p = static_cast<uint32_t*>(buffers[i].mapped); return std::vector<uint32_t>(p, p + a.size()); };
-                auto differences = verify(copyBuffer(0), copyBuffer(1), copyBuffer(2), a, b, count);
-                differences.inputs += params[0] != count; differences.inputs += params[1] != kGuard;
-                std::vector<uint32_t> expected(a.size(), kSentinel);
-                for (uint32_t i = 0; i < count; ++i) expected[i + kGuard] = a[i + kGuard] + b[i + kGuard];
-                report.cases.push_back({count, iteration, differences,
-                    checksum(static_cast<uint32_t*>(buffers[2].mapped), a.size()), checksum(expected.data(), expected.size())});
-                if (differences.data || differences.guards || differences.inputs) throw std::runtime_error("GPU result or buffer guards differ from reference");
-                if (report.validationErrors.load()) throw std::runtime_error("Vulkan validation reported an error");
+        for (bool staged : {false, true}) {
+            const std::string memoryPath = staged ? "device-local-staging" : "host-coherent";
+            auto& gpuBuffers = staged ? deviceBuffers : buffers;
+            auto& hostBuffers = staged ? stagingBuffers : buffers;
+            for (uint32_t i = 0; i < gpuBuffers.size(); ++i) {
+                infos[i] = {gpuBuffers[i].buffer, 0, gpuBuffers[i].size};
+                writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET; writes[i].dstSet = set; writes[i].dstBinding = i;
+                writes[i].descriptorCount = 1; writes[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; writes[i].pBufferInfo = &infos[i];
+            }
+            vkUpdateDescriptorSets(device, uint32_t(writes.size()), writes.data(), 0, nullptr);
+            for (uint32_t count : {1u, 63u, 64u, 65u, 257u, 4097u}) {
+                for (uint32_t iteration = 0; iteration < 3; ++iteration) {
+                    // Check the entire allocation, including unused tail words, after every submission.
+                    std::vector<uint32_t> a(maxCount + 2 * kGuard, kSentinel), b = a;
+                    for (uint32_t i = 0; i < count; ++i) { a[i + kGuard] = 0xfffffff0u - i * 17u + iteration; b[i + kGuard] = i * 31u + 27u + iteration; }
+                    std::copy(a.begin(), a.end(), static_cast<uint32_t*>(hostBuffers[0].mapped));
+                    std::copy(b.begin(), b.end(), static_cast<uint32_t*>(hostBuffers[1].mapped));
+                    std::fill_n(static_cast<uint32_t*>(hostBuffers[2].mapped), a.size(), kSentinel);
+                    auto params = static_cast<uint32_t*>(hostBuffers[3].mapped); params[0] = count; params[1] = kGuard;
+                    check(vkResetCommandBuffer(command, 0), "vkResetCommandBuffer");
+                    VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO}; begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+                    check(vkBeginCommandBuffer(command, &begin), "vkBeginCommandBuffer");
+                    auto barrier = [&](VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccess, VkAccessFlags dstAccess) {
+                        VkMemoryBarrier memoryBarrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+                        memoryBarrier.srcAccessMask = srcAccess; memoryBarrier.dstAccessMask = dstAccess;
+                        vkCmdPipelineBarrier(command, srcStage, dstStage, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+                    };
+                    if (staged) {
+                        barrier(VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
+                        for (uint32_t i = 0; i < gpuBuffers.size(); ++i) {
+                            VkBufferCopy copy{0, 0, gpuBuffers[i].size};
+                            vkCmdCopyBuffer(command, hostBuffers[i].buffer, gpuBuffers[i].buffer, 1, &copy);
+                        }
+                        barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                            VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
+                    } else {
+                        barrier(VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                            VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
+                    }
+                    vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+                    vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &set, 0, nullptr);
+                    vkCmdDispatch(command, (count + kLocal - 1) / kLocal, 1, 1);
+                    if (staged) {
+                        // Also order upload reads before overwriting the same staging buffers during readback.
+                        // Transfer writes cover the unchanged input/guard regions copied back from VRAM.
+                        barrier(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                            VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT,
+                            VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT);
+                        for (uint32_t i = 0; i < gpuBuffers.size(); ++i) {
+                            VkBufferCopy copy{0, 0, gpuBuffers[i].size};
+                            vkCmdCopyBuffer(command, gpuBuffers[i].buffer, hostBuffers[i].buffer, 1, &copy);
+                        }
+                        barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_HOST_READ_BIT);
+                    } else {
+                        barrier(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_HOST_READ_BIT);
+                    }
+                    check(vkEndCommandBuffer(command), "vkEndCommandBuffer");
+                    check(vkResetFences(device, 1, &fence), "vkResetFences");
+                    VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO}; submit.commandBufferCount = 1; submit.pCommandBuffers = &command;
+                    check(vkQueueSubmit(queue, 1, &submit, fence), "vkQueueSubmit"); pending = true;
+                    check(vkWaitForFences(device, 1, &fence, VK_TRUE, kTimeoutNs), "vkWaitForFences"); pending = false;
+                    auto copyBuffer = [&](size_t i) { auto p = static_cast<uint32_t*>(hostBuffers[i].mapped); return std::vector<uint32_t>(p, p + a.size()); };
+                    auto differences = verify(copyBuffer(0), copyBuffer(1), copyBuffer(2), a, b, count);
+                    differences.inputs += params[0] != count; differences.inputs += params[1] != kGuard;
+                    std::vector<uint32_t> expected(a.size(), kSentinel);
+                    for (uint32_t i = 0; i < count; ++i) expected[i + kGuard] = a[i + kGuard] + b[i + kGuard];
+                    report.cases.push_back({count, iteration, differences,
+                        checksum(static_cast<uint32_t*>(hostBuffers[2].mapped), a.size()), checksum(expected.data(), expected.size()), memoryPath});
+                    if (differences.data || differences.guards || differences.inputs) throw std::runtime_error("GPU result or buffer guards differ from reference");
+                    if (report.validationErrors.load()) throw std::runtime_error("Vulkan validation reported an error");
+                }
             }
         }
     }
@@ -416,7 +488,7 @@ int main(int argc, char** argv) {
         if (argc == 2 && std::string(argv[1]) == "--self-test") { selfTest(); std::cout << "PASS: verifier detects planted data/guard/input corruption; target selection rejects other devices\n"; return 0; }
         if (argc == 2 && std::string(argv[1]) == "--help") {
             std::cout << "amd_gpu_probe --list [--report FILE]\n"
-                      << "amd_gpu_probe --device-id PCI_ID [--shader FILE --entry NAME] [--validation] [--report FILE]\n"
+                      << "amd_gpu_probe --device-id PCI_ID [--shader FILE --entry NAME] [--validation | --sync-validation] [--report FILE]\n"
                       << "amd_gpu_probe --check-shader FILE [--entry NAME] (ABI admission only, no GPU execution)\n"
                       << "Without --shader, only identifies the target. Compute requires set 0 / four storage buffers, local 64x1x1.\n";
             return 0;
@@ -431,6 +503,7 @@ int main(int argc, char** argv) {
             else if (arg == "--entry") report.entry = value();
             else if (arg == "--report") reportPath = value();
             else if (arg == "--validation") report.validation = true;
+            else if (arg == "--sync-validation") { report.validation = true; report.synchronizationValidation = true; }
             else throw std::runtime_error("Unknown option: " + arg);
         }
         if (report.mode == "list" && (report.deviceId || !report.shader.empty())) throw std::runtime_error("--list cannot be combined with target/compute options");
