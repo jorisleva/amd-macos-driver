@@ -1,9 +1,11 @@
-# Symbole d'interdiction Tahoe et vérification SMBIOS — 8 octobre 2026
+# Diagnostic du démarrage Tahoe — 8 octobre 2026
 
-**L'essai de récupération reste non qualifié.** Un nouveau journal situe
+**L'essai de récupération reste non qualifié.** Le retour au mode normal
+atteint de nouveau CoreAnalytics, puis bloque. L'utilisateur observe que
+la LED bleue du disque USB s'éteint à ce stade. Un essai avec l'intervention
+de USBToolBox désactivée est maintenant actif. Le journal précédent situait
 le symbole d'interdiction avant le lancement du noyau, lors de son chargement
-en mémoire. Un profil normal avec traces Lilu est maintenant actif pour le
-prochain essai. Après le profil `-x`,
+en mémoire. Après le profil `-x`,
 l'utilisateur transmet une photo du symbole d'interdiction et confirme
 avoir choisi `Installer macOS Tahoe (mode sans echec)`. La photo ne montre
 pas les messages qui précèdent ce symbole.
@@ -114,7 +116,7 @@ explique que le mode sans échec force normalement un slide nul et que
 `EnableSafeModeSlide` tente de lever cette restriction. Le journal montre
 que ce patch a été appliqué, ce qui ne prouve pas son effet sur cette build.
 
-Le profil actif retire **`-x`** et ajoute **`-liludbgall`** aux arguments.
+Un profil a ensuite retiré **`-x`** et ajouté **`-liludbgall`** aux arguments.
 Le second active les traces Lilu et de ses plugins dans les versions DEBUG,
 selon la [documentation Lilu 1.7.2](https://github.com/acidanthera/Lilu/blob/1.7.2/README.md).
 MacPro7,1, `ReleaseUsbOwnership=true`, les autres quirks, les patches,
@@ -123,14 +125,48 @@ n'est ajouté. Le différentiel structuré ne contient que ce champ boot-args.
 Les invariants du générateur et `ocvalidate` passent ; la configuration et
 son libellé sont relus et comparés après copie sur la clé.
 
-Choisir désormais **Installer macOS Tahoe (diagnostic normal)**, en gardant
-la prise utilisée pour le dernier essai. Le but est de franchir cet arrêt
-du chargeur puis de documenter le résultat, y compris un éventuel retour
-au blocage CoreAnalytics. Le résultat matériel reste à relever.
+L'utilisateur confirme qu'avec **Installer macOS Tahoe (diagnostic normal)**
+le blocage CoreAnalytics revient. Cet essai a donc franchi l'arrêt du
+chargeur observé avec `-x`, sans résoudre le blocage initial.
 `D:/PROFILS-TAHOE/restaurer-usb-test.ps1` restaure le profil `-x` avec
 transfert USB, sauvegardé avant cette modification.
+
+## Retour à CoreAnalytics et extinction de la LED du disque
+
+L'état du moteur du disque et la réponse du voyant Verr. Maj. du clavier
+ne sont pas connus : ces éléments n'ont pas été vérifiés pendant le blocage.
+L'extinction de la LED est un indice, pas la preuve d'une déconnexion USB.
+La récupération est chargée en RAM par OpenCore ; les journaux précédents
+montrent l'allocation de l'image complète et son chemin `MemoryMapped`.
+L'absence d'activité du disque peut donc aussi correspondre à la fin des
+lectures du support. CoreAnalytics reste le dernier message rapporté,
+sans preuve que ce service soit la cause du blocage.
+
+La configuration sur la clé correspond bien au profil normal avec traces.
+Les trois journaux présents sont identiques aux fichiers déjà sauvegardés ;
+aucun nouveau journal OpenCore ne documente ce dernier essai. Le relevé USB
+Windows retrouve toujours les deux contrôleurs à 14 et huit ports racine.
+Cette topologie Windows ne valide pas leur prise en charge par macOS.
+
+Le nouvel essai ajoute **`-utboff` seulement** aux arguments, pour comparer
+le comportement USB natif avec celui du profil précédent. Cet argument est
+[documenté par USBToolBox 1.2.0](https://github.com/USBToolBox/kext/blob/1.2.0/README.md) :
+le kext sort de son `probe` avant de modifier les ports ACPI ou les propriétés
+du contrôleur. Ses fichiers restent en place. MacPro7,1, le mode normal,
+les traces Lilu, `ReleaseUsbOwnership=true`, patches et SSDT sont conservés.
+Les invariants du générateur et `ocvalidate` passent ; la configuration et
+son libellé ont été comparés après relecture sur la clé.
+
+Choisir **Installer macOS Tahoe (USB natif)**, avec la même prise et les
+mêmes périphériques pour isoler ce changement. Au blocage, relever les
+dernières lignes, la LED du disque et la réponse du voyant Verr. Maj.
+Le résultat physique reste à tester. Le script
+`D:/PROFILS-TAHOE/restaurer-normal-debug.ps1` restaure le profil précédent
+avec USBToolBox actif. Une cartographie complète des prises n'est pas
+fabriquée à partir de ce seul relevé des périphériques connectés.
 
 Les photos, configurations privées, relevés et preuves de copie restent
 sous `out/diagnostics/tahoe-prohibitory-20261008/` et
 `out/diagnostics/tahoe-usb-trial-failed-20261008/`, ainsi que
-`out/diagnostics/tahoe-booter-abort-20261008/`, ignorés par Git.
+`out/diagnostics/tahoe-booter-abort-20261008/` et
+`out/diagnostics/tahoe-coreanalytics-usb-led-20261008/`, ignorés par Git.

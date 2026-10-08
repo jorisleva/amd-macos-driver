@@ -104,7 +104,13 @@ un échec de chargement mémoire du noyau en mode `-x`, avant `EXITBS:START`.
 configuration modifié ; le SMBIOS et les quirks mémoire sont conservés.
 La configuration copiée est validée et vérifiée. Garder la prise du dernier
 essai, idéalement USB 2.0 arrière direct, et relever les messages au blocage.
-Le résultat matériel reste à qualifier.
+Ce profil a de nouveau atteint CoreAnalytics puis bloqué, avec extinction
+de la LED du disque USB. **D: ajoute maintenant uniquement `-utboff`**,
+avec le libellé **Installer macOS Tahoe (USB natif)**, pour comparer le
+comportement sans intervention de USBToolBox. Les fichiers des kexts restent
+en place. Garder la même prise et les mêmes périphériques ; relever les
+dernières lignes et vérifier si le voyant Verr. Maj. réagit au blocage.
+Le résultat matériel de ce nouvel essai reste à qualifier.
 Voir le [relevé du 8 octobre](reports/2026-10-08-tahoe-prohibitory.md).
 Le profil normal sauvegardé se restaure depuis Windows avec :
 
@@ -116,6 +122,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\PROFILS-TAHOE\restaur
 essai de transfert USB, avec la même commande PowerShell.
 `D:\PROFILS-TAHOE\restaurer-usb-test.ps1` restaure le dernier profil `-x`
 avec transfert USB, sauvegardé avant le retour au diagnostic normal.
+`D:\PROFILS-TAHOE\restaurer-normal-debug.ps1` restaure le profil normal
+avec traces et USBToolBox actif, sauvegardé avant l'essai USB natif.
 
 OpenCore **1.0.8 DEBUG**, Lilu **1.7.2**, VirtualSMC **1.3.8**, WhateverGreen
 **1.7.1**, RestrictEvents **1.1.6**, RealtekRTL8111 **3.0.0**, USBToolBox
@@ -207,8 +215,8 @@ le démarrage effectif d'un OS peut néanmoins modifier la NVRAM.
    pour ce premier démarrage et sélectionner la clé en UEFI. Le générateur
    ne réalise pas cette copie et n'altère pas l'EFI Windows.
 5. **Choisir l'entrée de récupération dans le menu OpenCore.** Pour l'essai
-   actif sans `-x`, avec traces Lilu et transfert USB, elle est nommée
-   **Installer macOS Tahoe (diagnostic normal)** ;
+   actif sans `-x`, avec traces Lilu, transfert USB et `-utboff`, elle est nommée
+   **Installer macOS Tahoe (USB natif)** ;
    le profil normal affiche **Installer macOS Tahoe (Recovery)**. Un seul écran directement
    connecté à la Radeon, clavier USB filaire et câble Ethernet. Si un blocage
    survient : relever le dernier message, le connecteur, le build Tahoe et
