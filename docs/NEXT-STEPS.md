@@ -31,8 +31,10 @@ montre ensuite le noyau jusqu'à `CoreAnalyticsHub start completed`, sans
 progression pendant plus de cinq minutes en DisplayPort. Le menu est corrigé
 et le profil `-x` a affiché ensuite le symbole d'interdiction. Le SMBIOS
 MacPro7,1 est vérifié. Le profil `-x` avec transfert USB affiche le même
-symbole sur un port USB 3 ou en façade. Le prochain essai conserve ce profil
-sur une prise USB 2.0 arrière directe. La cause reste ouverte.
+symbole. Le nouveau journal du 8 octobre situe cet arrêt au chargement
+mémoire du noyau, avant `EXITBS:START`. Le prochain essai retire `-x` et
+active les traces Lilu, en conservant les autres réglages. Le démarrage
+et le blocage initial CoreAnalytics restent à qualifier.
 Preuve : [diagnostic des journaux USB](reports/2026-10-07-tahoe-boot.md).
 État actuel : [symbole d'interdiction et SMBIOS](reports/2026-10-08-tahoe-prohibitory.md).
 
@@ -58,10 +60,10 @@ Preuve : [diagnostic des journaux USB](reports/2026-10-07-tahoe-boot.md).
    D: OPENCORE contient l'EFI sans accélération et la récupération Apple
    26.6.2 / 25G83 ; E: TAHOEFILES contient le paquet complet 26.7.1 / 25G241
    et l'EFI de secours. Régler l'UEFI selon le [guide](OPENCORE-TAHOE.md),
-   choisir le disque USB via F12 puis **Installer macOS Tahoe (test USB)**
-   pour l'essai actuel avec `-x` et `ReleaseUsbOwnership=true`, sur un port
-   USB 2.0 arrière direct, sans hub : le même profil a échoué sur USB 3 ou
-   en façade. Au blocage, relever les dernières
+   choisir le disque USB via F12 puis **Installer macOS Tahoe (diagnostic normal)**
+   pour l'essai actuel sans `-x`, avec traces Lilu et `ReleaseUsbOwnership=true`.
+   Conserver la prise du dernier essai, idéalement USB 2.0 arrière direct,
+   sans hub. Au blocage, relever les dernières
    lignes visibles à l'écran : le journal OpenCore seul s'arrête à `EXITBS:START`.
    Qualifier affichage, clavier, stockage, réseau, build installé et secours.
    Les fichiers et les deux EFI copiés sont validés ; le boot physique reste ouvert.

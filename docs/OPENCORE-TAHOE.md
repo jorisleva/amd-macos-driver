@@ -95,12 +95,16 @@ Ils ne modifient pas le fichier `config.plist` ni le démarrage USB depuis F12.
 
 Le profil `-x` a ensuite affiché le symbole d'interdiction. Le SMBIOS actuel
 **MacPro7,1** est vérifié et compatible avec Tahoe ; il est conservé.
-**D: conserve `-x` et `ReleaseUsbOwnership=true`**, avec le libellé
-**Installer macOS Tahoe (test USB)**. Ce profil a affiché le même symbole
-sur un port USB 3 ou en façade ; le transfert USB seul n'a pas résolu cet essai.
-La configuration copiée est validée et vérifiée. Le prochain essai change
-uniquement la prise : utiliser un port USB 2.0 arrière direct, sans hub,
-et relever les messages avant le symbole. La cause reste à déterminer.
+Le profil **Installer macOS Tahoe (test USB)** a affiché le même symbole.
+Les photos et le nouveau journal `opencore-2026-10-08-011117.txt` montrent
+un échec de chargement mémoire du noyau en mode `-x`, avant `EXITBS:START`.
+**D: retire maintenant `-x`, ajoute les traces `-liludbgall` et conserve
+`ReleaseUsbOwnership=true`**, avec le libellé
+**Installer macOS Tahoe (diagnostic normal)**. C'est le seul champ de
+configuration modifié ; le SMBIOS et les quirks mémoire sont conservés.
+La configuration copiée est validée et vérifiée. Garder la prise du dernier
+essai, idéalement USB 2.0 arrière direct, et relever les messages au blocage.
+Le résultat matériel reste à qualifier.
 Voir le [relevé du 8 octobre](reports/2026-10-08-tahoe-prohibitory.md).
 Le profil normal sauvegardé se restaure depuis Windows avec :
 
@@ -110,6 +114,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\PROFILS-TAHOE\restaur
 
 `D:\PROFILS-TAHOE\restaurer-safe-x.ps1` restaure le profil `-x` sans cet
 essai de transfert USB, avec la même commande PowerShell.
+`D:\PROFILS-TAHOE\restaurer-usb-test.ps1` restaure le dernier profil `-x`
+avec transfert USB, sauvegardé avant le retour au diagnostic normal.
 
 OpenCore **1.0.8 DEBUG**, Lilu **1.7.2**, VirtualSMC **1.3.8**, WhateverGreen
 **1.7.1**, RestrictEvents **1.1.6**, RealtekRTL8111 **3.0.0**, USBToolBox
@@ -201,7 +207,8 @@ le démarrage effectif d'un OS peut néanmoins modifier la NVRAM.
    pour ce premier démarrage et sélectionner la clé en UEFI. Le générateur
    ne réalise pas cette copie et n'altère pas l'EFI Windows.
 5. **Choisir l'entrée de récupération dans le menu OpenCore.** Pour l'essai
-   actif avec `-x` et le transfert USB, elle est nommée **Installer macOS Tahoe (test USB)** ;
+   actif sans `-x`, avec traces Lilu et transfert USB, elle est nommée
+   **Installer macOS Tahoe (diagnostic normal)** ;
    le profil normal affiche **Installer macOS Tahoe (Recovery)**. Un seul écran directement
    connecté à la Radeon, clavier USB filaire et câble Ethernet. Si un blocage
    survient : relever le dernier message, le connecteur, le build Tahoe et
