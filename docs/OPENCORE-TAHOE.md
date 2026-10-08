@@ -49,10 +49,16 @@ UTBDefault ou USBX n'est injecté. `--usb-mode toolbox` reproduit l'ancien
 profil provisoire pour un essai explicitement choisi ; il ne fournit pas
 une cartographie physique validée.
 
+Le mode graphique par défaut, `--graphics-mode firmware`, ne copie aucun
+kext graphique et n'injecte aucune propriété GPU. `--graphics-mode whatevergreen`
+reproduit le précédent essai WhateverGreen avec `-radvesa` et `agdpmod=pikera`.
+Le nom « firmware » exprime l'objectif de reprise de l'affichage initial ;
+il ne garantit pas que Tahoe le conservera.
+
 Résultat par défaut : `out/opencore/ryzen5600x-b550-rx9070xt/` et l'archive
 voisine `.zip`. Dans le kit :
 
-- `EFI/` : profil de référence sans accélération, menu OpenCore avec choix manuel.
+- `EFI/` : profil sans kext graphique ajouté, menu OpenCore avec choix manuel.
 - `recovery/EFI/` : même identité et mêmes composants, avec `-x` (mode sans échec).
 - `com.apple.recovery.boot/.contentDetails` : libellé de la récupération,
   à copier avec les fichiers Apple sur le support USB ; aucun DMG dans le kit.
@@ -108,23 +114,37 @@ USBToolBox et UTBDefault sont sortis de `EFI/OC/Kexts` et de `Kernel/Add` ;
 `SSDT-EC-USBX` est remplacé par `SSDT-EC`, conservant le même faux EC sans
 USBX. Les arguments USBToolBox sont retirés et `ReleaseUsbOwnership=false`.
 Le SMBIOS **MacPro7,1**, le mode normal et les traces Lilu sont conservés.
-Choisir **Installer macOS Tahoe (sans ajouts USB)**, avec la même prise et
-les mêmes périphériques. La configuration copiée et les fichiers restants
-sont validés ; le résultat matériel reste à qualifier.
+Cet essai bloque encore, selon le retour utilisateur. Le nouvel essai
+**Installer macOS Tahoe (sans kext graphique)** conserve le retrait USB et
+retire aussi WhateverGreen de Kernel/Add et du dossier Kexts, avec ses deux
+arguments `-radvesa` et `agdpmod=pikera`. Les cinq composants restants sont
+Lilu, VirtualSMC, RestrictEvents, AppleMCEReporterDisabler et RealtekRTL8111.
+Lilu est une dépendance déclarée de VirtualSMC et RestrictEvents.
+Les paramètres mémoire, CPU, SMBIOS et GOP restent identiques. La configuration
+copiée et les fichiers restants sont validés ; le résultat matériel reste à qualifier.
 Voir le [relevé du 8 octobre](reports/2026-10-08-tahoe-prohibitory.md).
-Le profil précédent et ses fichiers USB se restaurent ensemble avec :
+Le profil précédent, sans ajouts USB mais avec WhateverGreen, se restaure avec :
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\PROFILS-TAHOE\restaurer-avant-retrait-graphique.ps1
+```
+
+Le profil antérieur et ses fichiers USB se restaurent ensemble avec :
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\PROFILS-TAHOE\restaurer-avant-retrait-usb.ps1
 ```
 
-Les anciens scripts qui restaurent uniquement `config.plist` nécessitent
-d'abord cette restauration complète, sinon ils référencent des kexts absents.
+Ce second script restaure aussi WhateverGreen s'il manque. Les anciens scripts
+qui restaurent uniquement `config.plist` nécessitent d'abord les restaurations
+complètes correspondantes, sinon ils référencent des kexts absents.
 
-OpenCore **1.0.8 DEBUG**, Lilu **1.7.2**, VirtualSMC **1.3.8**, WhateverGreen
-**1.7.1**, RestrictEvents **1.1.6**, RealtekRTL8111 **3.0.0** et disabler
+OpenCore **1.0.8 DEBUG**, Lilu **1.7.2**, VirtualSMC **1.3.8**,
+RestrictEvents **1.1.6**, RealtekRTL8111 **3.0.0** et disabler
 AppleMCEReporter codeless **1.2**. USBToolBox **1.2.0** et son UTBDefault
 restent épinglés pour l'option `toolbox`, sans être inclus dans l'EFI native.
+WhateverGreen **1.7.1** reste épinglé pour l'option `whatevergreen`, sans être
+inclus dans l'EFI active.
 Les archives officielles sont vérifiées par SHA-256 avant extraction.
 Les versions, notices et sources sont dans
 [`boot/ryzen5600x-b550/sources.lock.json`](../boot/ryzen5600x-b550/sources.lock.json).
@@ -167,12 +187,15 @@ Référence : [procédure USBToolBox](https://github.com/USBToolBox/kext/tree/1.
 Arguments de démarrage :
 
 ```text
--v keepsyms=1 debug=0x100 -radvesa agdpmod=pikera navi48bringup=0 rdna4-off=1
+-v keepsyms=1 debug=0x100 navi48bringup=0 rdna4-off=1
 ```
 
-`-radvesa` désactive l'accélération AMD via WhateverGreen
-([documentation officielle](https://github.com/acidanthera/WhateverGreen/blob/1.7.1/README.md)).
-Il ne crée pas de pilote Navi 48 et ne garantit pas l'affichage EFI sous Tahoe.
+Le nouvel essai ne contient aucun kext graphique ajouté ni ses arguments.
+Le retrait de WhateverGreen ne supprime pas les pilotes graphiques intégrés
+à macOS ; aucun blocage de ces pilotes n'est ajouté sans preuve de leur rôle.
+Dans l'ancien mode `whatevergreen`, `-radvesa` désactive l'accélération AMD via
+[WhateverGreen](https://github.com/acidanthera/WhateverGreen/blob/1.7.1/README.md).
+Cet argument n'a plus de consommateur lorsque ce kext est absent.
 `navi48bringup=0` refuse le probe du kext Navi48 à notre révision ;
 `rdna4-off=1` est le coupe-circuit documenté de RDNA4FB.
 Aucun de ces deux kexts n'est inclus. Il n'y a aucun spoof PCI de la Radeon.
@@ -213,8 +236,8 @@ le démarrage effectif d'un OS peut néanmoins modifier la NVRAM.
    pour ce premier démarrage et sélectionner la clé en UEFI. Le générateur
    ne réalise pas cette copie et n'altère pas l'EFI Windows.
 5. **Choisir l'entrée de récupération dans le menu OpenCore.** Pour l'essai
-   actif sans `-x`, sans kexts USB ni USBX et avec traces Lilu, elle est nommée
-   **Installer macOS Tahoe (sans ajouts USB)** ;
+   actif sans `-x`, sans kext graphique ajouté, sans kexts USB ni USBX et avec
+   traces Lilu, elle est nommée **Installer macOS Tahoe (sans kext graphique)** ;
    le profil normal affiche **Installer macOS Tahoe (Recovery)**. Un seul écran directement
    connecté à la Radeon, clavier USB filaire et câble Ethernet. Si un blocage
    survient : relever le dernier message, le connecteur, le build Tahoe et

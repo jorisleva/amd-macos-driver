@@ -19,9 +19,14 @@ spec.loader.exec_module(builder)
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--kit', type=Path, required=True)
+    parser.add_argument('--usb-mode', choices=('native', 'toolbox'))
+    parser.add_argument('--graphics-mode', choices=('firmware', 'whatevergreen'))
     args = parser.parse_args()
     config = plistlib.loads((args.kit/'EFI/OC/config.plist').read_bytes())
-    builder.validate_config(config, args.kit/'EFI')
+    bundles = {p['BundlePath'] for p in config['Kernel']['Add'] if p['Enabled']}
+    usb_mode = args.usb_mode or ('toolbox' if 'USBToolBox.kext' in bundles else 'native')
+    graphics_mode = args.graphics_mode or ('whatevergreen' if 'WhateverGreen.kext' in bundles else 'firmware')
+    builder.validate_config(config, args.kit/'EFI', usb_mode, graphics_mode)
     mutations = {}
     wrong = copy.deepcopy(config)
     next(p for p in wrong['Kernel']['Patch'] if '13.3+' in p['Comment'] and 'cpuid_cores' in p['Comment'])['Replace'] = b'\xba\x0c\0\0\0'
@@ -44,7 +49,7 @@ def main():
     results = []
     for name, altered in mutations.items():
         try:
-            builder.validate_config(altered)
+            builder.validate_config(altered, usb_mode=usb_mode, graphics_mode=graphics_mode)
         except ValueError as e:
             results.append({'test': name, 'status': 'rejected-as-expected', 'reason': str(e)})
         else:
@@ -67,7 +72,7 @@ def main():
         else:
             raise AssertionError('Archive traversal accepted')
         try:
-            local_output(ROOT, root/'EFI')
+            local_output(ROOT, ROOT/'EFI')
         except ValueError:
             results.append({'test': 'output-outside-repository-out', 'status': 'rejected-as-expected'})
         else:

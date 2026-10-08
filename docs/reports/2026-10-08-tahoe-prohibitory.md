@@ -170,7 +170,7 @@ fabriquée à partir de ce seul relevé des périphériques connectés.
 
 ## Retrait des ajouts USB demandé par l'utilisateur
 
-Le profil actif **Installer macOS Tahoe (sans ajouts USB)** retire les deux
+Le profil **Installer macOS Tahoe (sans ajouts USB)** retire les deux
 entrées Kernel/Add et déplace `USBToolBox.kext` et `UTBDefault.kext` hors de
 `EFI/OC/Kexts`, dans `D:/PROFILS-TAHOE/avant-retrait-usb/`. Le SSDT combiné
 EC/USBX est remplacé par `SSDT-EC.aml`, conservant strictement la définition
@@ -187,14 +187,60 @@ des prises est différée ; le retrait ne prouve pas que le blocage venait d'une
 L'EC seul compile sans erreur ; les configurations normale et `-x` générées
 passent `ocvalidate`. Sur la clé, configuration, AML et libellé sont relus
 et comparés après copie ; les six kexts, les deux seuls AML et les sauvegardes
-des kexts retirés sont vérifiés. Le résultat du prochain démarrage reste à relever.
+des kexts retirés sont vérifiés. L'utilisateur rapporte ensuite que le blocage
+persiste avec ce profil.
 Le retour arrière complet est `D:/PROFILS-TAHOE/restaurer-avant-retrait-usb.ps1` ;
 les anciens scripts de restauration du seul config.plist nécessitent d'abord
 de restaurer les composants déplacés.
+
+## Comparaison sans kext graphique ajouté
+
+L'utilisateur demande de retirer les kexts graphiques après l'échec du profil
+sans ajouts USB. L'EFI relue contient uniquement WhateverGreen comme plugin
+graphique ajouté ; aucun Navi48/RDNA4FB, spoof GPU ou patch de pilote Radeon
+n'est présent. Aucun nouveau journal OpenCore n'a été écrit : les trois fichiers
+présents sont toujours ceux des essais précédents. Aucun panic GPU n'est donc
+établi par ces données.
+
+Le nouvel essai **Installer macOS Tahoe (sans kext graphique)** retire
+`WhateverGreen.kext` de Kernel/Add et du dossier actif EFI/OC/Kexts. Le dossier
+est sauvegardé dans `D:/PROFILS-TAHOE/avant-retrait-graphique/` avec l'ancienne
+configuration et son libellé. `-radvesa` et `agdpmod=pikera`, documentés par
+[WhateverGreen 1.7.1](https://github.com/acidanthera/WhateverGreen/blob/1.7.1/README.md),
+sont retirés puisqu'ils ne sont plus traités par ce plugin. Lilu reste une
+dépendance explicite de VirtualSMC et RestrictEvents dans leurs Info.plist.
+
+Le différentiel est limité à ce kext et aux deux arguments. Le mode normal,
+les traces Lilu, MacPro7,1, les patches AMD, EC/CPUR, les paramètres mémoire et
+GOP et le retrait USB sont conservés. Les coupe-circuits des deux pilotes
+expérimentaux restent en place ; ces pilotes ne sont pas inclus. Les pilotes
+graphiques intégrés à macOS ne sont pas modifiés. Retirer le plugin ne prouve
+ni la cause du blocage ni la possibilité de reprendre le framebuffer firmware.
+
+Le générateur utilise désormais `--graphics-mode firmware` par défaut et
+produit cinq kexts avec l'USB natif. L'option `whatevergreen` reproduit le
+précédent profil graphique. Les invariants contrôlent les composants réellement
+présents et l'absence d'arguments WhateverGreen dans le nouveau profil.
+Les configurations normale et `-x` sont contrôlées par ocvalidate ; la copie
+sur D: est relue et vérifiée. Le retour arrière complet est
+`D:/PROFILS-TAHOE/restaurer-avant-retrait-graphique.ps1`. La restauration USB
+antérieure rétablit aussi WhateverGreen s'il manque. Le résultat matériel du
+nouvel essai reste à relever.
+
+Les deux kits construits hors ligne (natif/firmware et toolbox/WhateverGreen)
+passent chacun les neuf contrôles de rejet de `test-boot-preparation.py`.
+Ce script choisit désormais les modes d'après les composants du kit, avec
+options explicites possibles. Son contrôle de destination extérieure utilise
+un chemin hors de `out/`, indépendamment de l'emplacement du dossier temporaire.
+Toutes les empreintes des fichiers de l'EFI active correspondent à la préparation,
+et la sauvegarde du kext retiré est identique octet par octet. Les scripts
+de restauration passent l'analyse syntaxique PowerShell ; ils n'ont pas été
+exécutés sur le support pour conserver le nouvel essai actif.
 
 Les photos, configurations privées, relevés et preuves de copie restent
 sous `out/diagnostics/tahoe-prohibitory-20261008/` et
 `out/diagnostics/tahoe-usb-trial-failed-20261008/`, ainsi que
 `out/diagnostics/tahoe-booter-abort-20261008/` et
 `out/diagnostics/tahoe-coreanalytics-usb-led-20261008/` et
-`out/diagnostics/tahoe-remove-usb-20261008/`, ignorés par Git.
+`out/diagnostics/tahoe-remove-usb-20261008/` et
+`out/diagnostics/tahoe-remove-graphics-20261008/`, ignorés par Git.

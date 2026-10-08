@@ -35,8 +35,10 @@ symbole. Le nouveau journal du 8 octobre situe cet arrêt au chargement
 mémoire du noyau, avant `EXITBS:START`. Le retour au mode normal atteint
 de nouveau CoreAnalytics puis bloque, avec extinction de la LED du disque.
 Le clavier ne répond plus à ce stade. À la demande de l'utilisateur, le profil
-actuel retire USBToolBox, UTBDefault, USBX et l'essai de transfert USB ;
-la cartographie est différée. Le démarrage reste ouvert.
+retire USBToolBox, UTBDefault, USBX et l'essai de transfert USB ;
+la cartographie est différée. Cet essai bloque encore. Le nouvel essai retire
+aussi WhateverGreen et ses arguments, sans autre modification graphique.
+Aucun journal nouveau ne confirme un kernel panic lié au GPU. Le démarrage reste ouvert.
 Preuve : [diagnostic des journaux USB](reports/2026-10-07-tahoe-boot.md).
 État actuel : [symbole d'interdiction et SMBIOS](reports/2026-10-08-tahoe-prohibitory.md).
 
@@ -59,11 +61,12 @@ Preuve : [diagnostic des journaux USB](reports/2026-10-07-tahoe-boot.md).
    les 48 cas hors écran et `tools/test-windows-graphics-rejections.ps1`
    pour leurs scénarios d'échec, selon la [procédure graphique](VALIDATION-GRAPHICS.md).
 3. **Essayer le premier démarrage Tahoe depuis le support USB préparé.**
-   D: OPENCORE contient l'EFI sans accélération et la récupération Apple
+   D: OPENCORE contient l'EFI sans kext graphique ajouté et la récupération Apple
    26.6.2 / 25G83 ; E: TAHOEFILES contient le paquet complet 26.7.1 / 25G241
    et l'EFI de secours. Régler l'UEFI selon le [guide](OPENCORE-TAHOE.md),
-   choisir le disque USB via F12 puis **Installer macOS Tahoe (sans ajouts USB)**
-   pour l'essai actuel sans `-x`, sans kexts USB ni USBX, avec traces Lilu.
+   choisir le disque USB via F12 puis **Installer macOS Tahoe (sans kext graphique)**
+   pour l'essai actuel sans `-x`, sans WhateverGreen, sans kexts USB ni USBX,
+   avec traces Lilu.
    Conserver la prise et les périphériques du dernier essai.
    Au blocage, noter la LED du disque et la réponse du voyant Verr. Maj.,
    puis relever les dernières

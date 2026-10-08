@@ -27,6 +27,7 @@
   "display_connector": "DisplayPort on RX 9070 XT; LG display, exact model not recorded",
   "target_macos": "Tahoe 26 / Darwin 25, exact version and build still to select",
   "smbios": "MacPro7,1",
+  "graphics_mode": "firmware",
   "usb_mode": "native",
   "usb_mapping": "No injected USB map, USBToolBox or USBX during installation; physical socket map deferred"
 }
