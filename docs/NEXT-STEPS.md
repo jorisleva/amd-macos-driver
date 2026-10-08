@@ -29,9 +29,11 @@ Le support USB est préparé ; le boot Tahoe et le pilote macOS restent ouverts.
 Les journaux chargent la récupération jusqu'au passage vers macOS ; la photo
 montre ensuite le noyau jusqu'à `CoreAnalyticsHub start completed`, sans
 progression pendant plus de cinq minutes en DisplayPort. Le menu est corrigé
-et le profil `-x` est activé sur la clé pour le prochain essai, avec sauvegarde
-du profil normal. La cause du blocage reste ouverte.
+et le profil `-x` a affiché ensuite le symbole d'interdiction. Le SMBIOS
+MacPro7,1 est vérifié. Le prochain essai conserve `-x` et active le transfert
+USB, avec sauvegarde des anciens profils. La cause reste ouverte.
 Preuve : [diagnostic des journaux USB](reports/2026-10-07-tahoe-boot.md).
+État actuel : [symbole d'interdiction et SMBIOS](reports/2026-10-08-tahoe-prohibitory.md).
 
 ## Prochaines actions, dans l'ordre
 
@@ -55,9 +57,10 @@ Preuve : [diagnostic des journaux USB](reports/2026-10-07-tahoe-boot.md).
    D: OPENCORE contient l'EFI sans accélération et la récupération Apple
    26.6.2 / 25G83 ; E: TAHOEFILES contient le paquet complet 26.7.1 / 25G241
    et l'EFI de secours. Régler l'UEFI selon le [guide](OPENCORE-TAHOE.md),
-   choisir le disque USB via F12 puis **Installer macOS Tahoe (mode sans echec)**
-   pour l'essai actuel avec `-x`. Conserver d'abord le DisplayPort, puis essayer
-   HDMI direct si le résultat reste identique. Au blocage, relever les dernières
+   choisir le disque USB via F12 puis **Installer macOS Tahoe (test USB)**
+   pour l'essai actuel avec `-x` et `ReleaseUsbOwnership=true`. Conserver
+   d'abord le même port, puis essayer USB 2.0 arrière direct si le symbole
+   persiste. Au blocage, relever les dernières
    lignes visibles à l'écran : le journal OpenCore seul s'arrête à `EXITBS:START`.
    Qualifier affichage, clavier, stockage, réseau, build installé et secours.
    Les fichiers et les deux EFI copiés sont validés ; le boot physique reste ouvert.

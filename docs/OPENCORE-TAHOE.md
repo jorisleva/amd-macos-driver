@@ -93,16 +93,22 @@ Le menu corrigé masque cette entrée OpenCore avec
 [OpenCore 1.0.8](https://github.com/acidanthera/OpenCorePkg/blob/1.0.8/Docs/Configuration.tex).
 Ils ne modifient pas le fichier `config.plist` ni le démarrage USB depuis F12.
 
-Pour le prochain essai, **le profil actif sur D: ajoute désormais `-x`**, avec
-le libellé **Installer macOS Tahoe (mode sans echec)**. La seule différence
-de configuration est ce mode de diagnostic, validé et vérifié après copie.
-Tester d'abord le même DisplayPort, puis HDMI direct si le blocage est identique.
-Le résultat reste à relever ; ce profil n'est pas encore qualifié pour installer.
+Le profil `-x` a ensuite affiché le symbole d'interdiction. Le SMBIOS actuel
+**MacPro7,1** est vérifié et compatible avec Tahoe ; il est conservé.
+Pour le prochain essai, **D: garde `-x` et ajoute `ReleaseUsbOwnership=true`**,
+avec le libellé **Installer macOS Tahoe (test USB)**. C'est le seul changement
+de configuration par rapport au profil `-x`. La configuration copiée est
+validée et vérifiée ; le résultat physique reste à relever. Tester d'abord
+le même port, puis une prise USB 2.0 arrière directe si le symbole persiste.
+Voir le [relevé du 8 octobre](reports/2026-10-08-tahoe-prohibitory.md).
 Le profil normal sauvegardé se restaure depuis Windows avec :
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\PROFILS-TAHOE\restaurer-normal.ps1
 ```
+
+`D:\PROFILS-TAHOE\restaurer-safe-x.ps1` restaure le profil `-x` sans cet
+essai de transfert USB, avec la même commande PowerShell.
 
 OpenCore **1.0.8 DEBUG**, Lilu **1.7.2**, VirtualSMC **1.3.8**, WhateverGreen
 **1.7.1**, RestrictEvents **1.1.6**, RealtekRTL8111 **3.0.0**, USBToolBox
@@ -194,7 +200,7 @@ le démarrage effectif d'un OS peut néanmoins modifier la NVRAM.
    pour ce premier démarrage et sélectionner la clé en UEFI. Le générateur
    ne réalise pas cette copie et n'altère pas l'EFI Windows.
 5. **Choisir l'entrée de récupération dans le menu OpenCore.** Pour l'essai
-   actif avec `-x`, elle est nommée **Installer macOS Tahoe (mode sans echec)** ;
+   actif avec `-x` et le transfert USB, elle est nommée **Installer macOS Tahoe (test USB)** ;
    le profil normal affiche **Installer macOS Tahoe (Recovery)**. Un seul écran directement
    connecté à la Radeon, clavier USB filaire et câble Ethernet. Si un blocage
    survient : relever le dernier message, le connecteur, le build Tahoe et
