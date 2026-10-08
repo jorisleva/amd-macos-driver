@@ -91,7 +91,7 @@ def config_from_sample(sample, patches, identity, usb_mode='native', graphics_mo
     if graphics_mode == 'whatevergreen':
         boot_args += ' -radvesa agdpmod=pikera'
     config['NVRAM']['Add'] = {NVRAM_GUID: {'boot-args': boot_args, 'csr-active-config': bytes(4),
-        'prev-lang:kbd': b'en:252', 'run-efi-updater': 'No'}}
+        'prev-lang:kbd': b'fr-FR:1', 'run-efi-updater': 'No'}}
     config['NVRAM']['Delete'] = {NVRAM_GUID: ['boot-args', 'csr-active-config', 'prev-lang:kbd']}
     config['NVRAM']['WriteFlash'] = False
     config['PlatformInfo'].update(Automatic=True, UpdateDataHub=True, UpdateNVRAM=True,

@@ -8,6 +8,17 @@ valide ne prouve pas que le framebuffer EFI de cette RX 9070 XT sera repris
 correctement par Tahoe. Si l'écran devient noir, le relevé du dernier message
 et le connecteur utilisé permettront de traiter ce blocage.
 
+Depuis le **9 octobre**, D: utilise l'essai **Installer macOS Tahoe (RapidEFI)**,
+préparé dans RapidEFI 5.8.0 puis contrôlé et adapté pour conserver le retrait
+USB/graphique et les journaux. L'ancienne EFI est sauvegardée intégralement.
+Les composants et réglages propres à cet essai sont décrits dans le
+[rapport RapidEFI](reports/2026-10-09-rapidefi.md). Le générateur du dépôt et
+ses versions épinglées ci-dessous restent une préparation distincte.
+L'utilisateur confirme maintenant l'accès au menu d'installation avec cet
+essai. Son interface chinoise vient du réglage de langue conservé dans
+l'export RapidEFI ; la correction française et la récupération du projet
+sur le Mac sont décrites à la fin du même rapport.
+
 ## Machine et fichiers
 
 | Élément | Configuration relevée / choix |
@@ -236,9 +247,9 @@ le démarrage effectif d'un OS peut néanmoins modifier la NVRAM.
    pour ce premier démarrage et sélectionner la clé en UEFI. Le générateur
    ne réalise pas cette copie et n'altère pas l'EFI Windows.
 5. **Choisir l'entrée de récupération dans le menu OpenCore.** Pour l'essai
-   actif sans `-x`, sans kext graphique ajouté, sans kexts USB ni USBX et avec
-   traces Lilu, elle est nommée **Installer macOS Tahoe (sans kext graphique)** ;
-   le profil normal affiche **Installer macOS Tahoe (Recovery)**. Un seul écran directement
+   actuel, choisir **Installer macOS Tahoe (RapidEFI)**, sans `-x`, sans kext
+   graphique ajouté, sans kexts USB ni USBX et avec journaux. L'essai précédent
+   était nommé **Installer macOS Tahoe (sans kext graphique)**. Un seul écran directement
    connecté à la Radeon, clavier USB filaire et câble Ethernet. Si un blocage
    survient : relever le dernier message, le connecteur, le build Tahoe et
    conserver le journal `opencore-*.txt` de la clé. Ne pas activer de pilote

@@ -40,7 +40,14 @@ la cartographie est différée. Cet essai bloque encore. Le nouvel essai retire
 aussi WhateverGreen et ses arguments, sans autre modification graphique.
 Aucun journal nouveau ne confirme un kernel panic lié au GPU. Le démarrage reste ouvert.
 Preuve : [diagnostic des journaux USB](reports/2026-10-07-tahoe-boot.md).
-État actuel : [symbole d'interdiction et SMBIOS](reports/2026-10-08-tahoe-prohibitory.md).
+Historique précédent : [symbole d'interdiction et SMBIOS](reports/2026-10-08-tahoe-prohibitory.md).
+
+**Mise à jour du 9 octobre :** l'EFI RapidEFI 5.8.0 adaptée permet désormais,
+selon le retour utilisateur, l'accès au menu d'installation. Son réglage
+chinois est identifié ; la correction française est préparée et validée.
+L'installation et la qualification du système complet restent ouvertes.
+Réglages, sauvegarde et commandes Git pour le Mac :
+[rapport RapidEFI](reports/2026-10-09-rapidefi.md).
 
 ## Prochaines actions, dans l'ordre
 
@@ -60,19 +67,21 @@ Preuve : [diagnostic des journaux USB](reports/2026-10-07-tahoe-boot.md).
    Rejouer aussi `tools/run-windows-graphics-probe.ps1 -DeviceId 0x7550` pour
    les 48 cas hors écran et `tools/test-windows-graphics-rejections.ps1`
    pour leurs scénarios d'échec, selon la [procédure graphique](VALIDATION-GRAPHICS.md).
-3. **Essayer le premier démarrage Tahoe depuis le support USB préparé.**
+3. **Installer Tahoe et qualifier le premier système complet.**
    D: OPENCORE contient l'EFI sans kext graphique ajouté et la récupération Apple
    26.6.2 / 25G83 ; E: TAHOEFILES contient le paquet complet 26.7.1 / 25G241
    et l'EFI de secours. Régler l'UEFI selon le [guide](OPENCORE-TAHOE.md),
-   choisir le disque USB via F12 puis **Installer macOS Tahoe (sans kext graphique)**
+   choisir le disque USB via F12 puis **Installer macOS Tahoe (RapidEFI)**
    pour l'essai actuel sans `-x`, sans WhateverGreen, sans kexts USB ni USBX,
    avec traces Lilu.
    Conserver la prise et les périphériques du dernier essai.
    Au blocage, noter la LED du disque et la réponse du voyant Verr. Maj.,
    puis relever les dernières
    lignes visibles à l'écran : le journal OpenCore seul s'arrête à `EXITBS:START`.
-   Qualifier affichage, clavier, stockage, réseau, build installé et secours.
-   Les fichiers et les deux EFI copiés sont validés ; le boot physique reste ouvert.
+   L'accès à l'interface de récupération est confirmé par l'utilisateur.
+   Passer sa langue en français, désigner la partition d'installation,
+   puis qualifier affichage, clavier, stockage, réseau, build installé et secours.
+   Les fichiers copiés sont validés ; le premier système complet reste à qualifier.
 4. **Construire et auditer l'assemblage AMD sur Mac.** Qualifier Navi48,
    MacKernelSDK et Mesa/RADV avant toute installation du pilote sur Tahoe.
    Les dispatchs dépendants, files multiples et mémoire non cohérente du

@@ -6,6 +6,12 @@ L'architecture, le périmètre et les références sont détaillés dans [README
 
 **État au 7 octobre 2026 : calcul et rendu Apple AIR validés sur la Radeon sous Windows.** Le nouveau corpus graphique passe 48 cas, avec 330 984 pixels exacts, zéro écart et zéro erreur Vulkan/synchronisation ; ses 96 fichiers RGBA sont identiques au contrôle GLSL rejoué. Les deux calculs passent 36 cas chacun, les trois rejets attendus passent, ainsi que 15 tests Rust ciblés, 13 CTest et huit tests Python. Le support USB OpenCore/Tahoe est préparé et vérifié. Le boot physique, Navi48, RADV Darwin et la couche Metal sous macOS restent ouverts ; aucune étape globale macOS n’est déclarée complète. Preuves : [rapport Metal/Radeon et USB](docs/reports/2026-10-07-metal-graphics-radeon.md), [rapport Metal/Mac](docs/reports/2026-10-07-metal-graphics.md) et [rapport Apple AIR/Radeon](docs/reports/2026-10-07-apple-air-radeon.md).
 
+**Mise à jour du 9 octobre :** l'utilisateur atteint le menu d'installation
+Tahoe avec le profil RapidEFI adapté. Le correctif de langue française est
+préparé. Ce premier accès à la récupération ne clôt pas l'étape 3 :
+installation, identification de la carte et stabilité restent à contrôler.
+Voir le [rapport RapidEFI](docs/reports/2026-10-09-rapidefi.md).
+
 ## Principes de progression
 
 - Chaque étape doit produire un résultat mesurable et un rapport reproductible.

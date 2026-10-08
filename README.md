@@ -8,6 +8,11 @@ L'objectif est de réutiliser la couche Metal du fork NVIDIA de NullMoth, puis d
 
 La progression et les conditions de passage entre étapes sont décrites dans [ROADMAP.md](ROADMAP.md).
 
+**9 octobre 2026 : accès au menu d'installation Tahoe confirmé par l'utilisateur**
+avec l'EFI RapidEFI adaptée. La correction de son interface chinoise est
+préparée ; l'installation complète et l'accélération restent à qualifier.
+Voir le [rapport RapidEFI et la récupération du projet sur Mac](docs/reports/2026-10-09-rapidefi.md).
+
 Le [guide du banc Windows](docs/VALIDATION-WINDOWS.md) donne les commandes d'inventaire et de test ; la [procédure Mac](docs/VALIDATION-MACOS.md) décrit la compilation AIR et le transfert. Le [rapport Apple AIR sur Radeon](docs/reports/2026-10-07-apple-air-radeon.md) conserve la nouvelle validation matérielle. Le [rapport Mac/AIR](docs/reports/2026-10-07-apple-air.md), le [corpus Apple](tests/shaders/apple/) et le [rapport Radeon initial](docs/reports/2026-10-07-radeon-windows.md) conservent les artefacts et résultats précédents. L'[audit AMD](docs/AMD-INTEGRATION.md), le [manifeste des sources](dependencies/sources.lock.json) et le [premier rapport](docs/reports/2026-10-07-bootstrap.md) décrivent les dépendances et l'historique de validation.
 
 Le [banc graphique hors écran](docs/VALIDATION-GRAPHICS.md) et son [rapport Radeon avec images](docs/reports/2026-10-07-offscreen-radeon.md) décrivent les 48 cas, les tolérances et les rejets de résultats volontairement faux. Le [rapport graphique Metal/Mac](docs/reports/2026-10-07-metal-graphics.md) et le [nouveau corpus](tests/shaders/apple/graphics/) conservent les quatre équivalents AIR et leur ABI.
@@ -17,7 +22,8 @@ Les prochaines actions et blocages sont résumés dans [Travail restant](docs/NE
 La [préparation OpenCore pour ce PC](docs/OPENCORE-TAHOE.md) fournit maintenant
 un générateur d'EFI de référence sans accélération et un profil de secours.
 Le support USB est préparé avec récupération Apple et paquet complet séparé ;
-les deux configurations copiées passent `ocvalidate` 1.0.8. Le premier boot reste à essayer. Le SDK et les dix firmwares sont désormais épinglés et
+les configurations copiées passent `ocvalidate` 1.0.8. L'installation complète
+reste à qualifier après l'accès au menu. Le SDK et les dix firmwares sont désormais épinglés et
 vérifiés : [préparation des dépendances AMD](docs/AMD-DEPENDENCIES.md),
 [rapport de préparation](docs/reports/2026-10-07-boot-preparation.md).
 
