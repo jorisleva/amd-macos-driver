@@ -16,8 +16,10 @@ Les composants et réglages propres à cet essai sont décrits dans le
 ses versions épinglées ci-dessous restent une préparation distincte.
 L'utilisateur confirme maintenant l'accès au menu d'installation avec cet
 essai. Son interface chinoise vient du réglage de langue conservé dans
-l'export RapidEFI ; la correction française et la récupération du projet
-sur le Mac sont décrites à la fin du même rapport.
+l'export RapidEFI. Le fichier actif sur D: utilise maintenant `fr-FR:1`,
+avec sauvegarde et validation OpenCore ; l'affichage au prochain démarrage
+reste à confirmer. La correction et la récupération du projet sur le Mac
+sont décrites à la fin du même rapport.
 
 ## Machine et fichiers
 
