@@ -95,11 +95,12 @@ Ils ne modifient pas le fichier `config.plist` ni le démarrage USB depuis F12.
 
 Le profil `-x` a ensuite affiché le symbole d'interdiction. Le SMBIOS actuel
 **MacPro7,1** est vérifié et compatible avec Tahoe ; il est conservé.
-Pour le prochain essai, **D: garde `-x` et ajoute `ReleaseUsbOwnership=true`**,
-avec le libellé **Installer macOS Tahoe (test USB)**. C'est le seul changement
-de configuration par rapport au profil `-x`. La configuration copiée est
-validée et vérifiée ; le résultat physique reste à relever. Tester d'abord
-le même port, puis une prise USB 2.0 arrière directe si le symbole persiste.
+**D: conserve `-x` et `ReleaseUsbOwnership=true`**, avec le libellé
+**Installer macOS Tahoe (test USB)**. Ce profil a affiché le même symbole
+sur un port USB 3 ou en façade ; le transfert USB seul n'a pas résolu cet essai.
+La configuration copiée est validée et vérifiée. Le prochain essai change
+uniquement la prise : utiliser un port USB 2.0 arrière direct, sans hub,
+et relever les messages avant le symbole. La cause reste à déterminer.
 Voir le [relevé du 8 octobre](reports/2026-10-08-tahoe-prohibitory.md).
 Le profil normal sauvegardé se restaure depuis Windows avec :
 

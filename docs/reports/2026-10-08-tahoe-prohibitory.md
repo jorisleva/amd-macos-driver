@@ -57,15 +57,31 @@ patches, kexts et SSDT sont conservés. Ce réglage est documenté par
 et proposé par le guide Dortania pour ce type de symptôme.
 
 La configuration copiée et son libellé ont été vérifiés après relecture,
-et `ocvalidate` 1.0.8 ne trouve aucun problème. Le menu doit maintenant
-afficher **Installer macOS Tahoe (test USB)**. Le résultat physique de cet
-essai reste à relever ; le réglage par défaut du générateur reste inchangé.
+et `ocvalidate` 1.0.8 ne trouve aucun problème. Le menu affiche
+**Installer macOS Tahoe (test USB)**. L'utilisateur confirme ensuite le
+même symbole d'interdiction avec ce profil, sur un port USB 3 ou en façade.
+Le transfert USB seul n'a donc pas résolu cet essai. Les deux journaux relus
+sur la clé restent identiques aux anciens fichiers ; aucune nouvelle ligne
+du noyau ne permet d'attribuer ce résultat à l'USB, au stockage ou à l'affichage.
 
-Tester d'abord le même port USB. Si le symbole persiste, essayer un port
-USB 2.0 arrière direct, sans hub, et relever les messages avant le symbole.
+Le prochain essai conserve ce profil et utilise un **port USB 2.0 arrière
+direct, sans hub**, pour isoler le changement de prise. Relever les messages
+avant le symbole, de préférence en filmant le défilement. Si le résultat
+persiste, analyser ces messages avant de modifier d'autres réglages.
+Le réglage par défaut du générateur reste inchangé.
+
+Un nouveau relevé USBToolBox sous Windows retrouve 14 ports racine pour
+`1022:43EE` et huit pour `1022:149C`. Aucun de ces contrôleurs ne dépasse
+15 ports dans ce relevé ; cela ne valide pas leur fonctionnement sous macOS.
+Le champ `OSBundleRequired=Root` des kexts USB n'est pas à lui seul une
+incompatibilité avec `-x` : la
+[politique XNU](https://github.com/apple-oss-distributions/xnu/blob/main/libkern/c%2B%2B/OSKext.cpp)
+autorise cette valeur en mode sans échec. Aucun Info.plist de kext n'est modifié.
+
 Les deux anciens profils sont sauvegardés sous `D:/PROFILS-TAHOE/` :
 `restaurer-safe-x.ps1` revient à l'essai `-x` seul ;
 `restaurer-normal.ps1` revient au profil initial.
 
 Les photos, configurations privées, relevés et preuves de copie restent
-sous `out/diagnostics/tahoe-prohibitory-20261008/`, ignoré par Git.
+sous `out/diagnostics/tahoe-prohibitory-20261008/` et
+`out/diagnostics/tahoe-usb-trial-failed-20261008/`, ignorés par Git.
