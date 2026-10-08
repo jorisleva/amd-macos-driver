@@ -2,8 +2,9 @@
 
 **L'essai de récupération reste non qualifié.** Le retour au mode normal
 atteint de nouveau CoreAnalytics, puis bloque. L'utilisateur observe que
-la LED bleue du disque USB s'éteint à ce stade. Un essai avec l'intervention
-de USBToolBox désactivée est maintenant actif. Le journal précédent situait
+la LED bleue du disque USB s'éteint à ce stade et que le clavier ne répond
+plus. À sa demande, les kexts USB et USBX sont maintenant retirés de l'EFI
+active. Le journal précédent situait
 le symbole d'interdiction avant le lancement du noyau, lors de son chargement
 en mémoire. Après le profil `-x`,
 l'utilisateur transmet une photo du symbole d'interdiction et confirme
@@ -133,8 +134,9 @@ transfert USB, sauvegardé avant cette modification.
 
 ## Retour à CoreAnalytics et extinction de la LED du disque
 
-L'état du moteur du disque et la réponse du voyant Verr. Maj. du clavier
-ne sont pas connus : ces éléments n'ont pas été vérifiés pendant le blocage.
+L'état du moteur du disque n'est pas connu. Dans un premier retour, la
+réponse du voyant Verr. Maj. n'avait pas été vérifiée ; l'utilisateur indique
+ensuite que le clavier ne répond plus après le dernier message CoreAnalytics.
 L'extinction de la LED est un indice, pas la preuve d'une déconnexion USB.
 La récupération est chargée en RAM par OpenCore ; les journaux précédents
 montrent l'allocation de l'image complète et son chemin `MemoryMapped`.
@@ -148,7 +150,7 @@ aucun nouveau journal OpenCore ne documente ce dernier essai. Le relevé USB
 Windows retrouve toujours les deux contrôleurs à 14 et huit ports racine.
 Cette topologie Windows ne valide pas leur prise en charge par macOS.
 
-Le nouvel essai ajoute **`-utboff` seulement** aux arguments, pour comparer
+Un essai a ajouté **`-utboff` seulement** aux arguments, pour comparer
 le comportement USB natif avec celui du profil précédent. Cet argument est
 [documenté par USBToolBox 1.2.0](https://github.com/USBToolBox/kext/blob/1.2.0/README.md) :
 le kext sort de son `probe` avant de modifier les ports ACPI ou les propriétés
@@ -160,13 +162,39 @@ son libellé ont été comparés après relecture sur la clé.
 Choisir **Installer macOS Tahoe (USB natif)**, avec la même prise et les
 mêmes périphériques pour isoler ce changement. Au blocage, relever les
 dernières lignes, la LED du disque et la réponse du voyant Verr. Maj.
-Le résultat physique reste à tester. Le script
+Le résultat de cet essai distinct n'est pas identifié avec certitude dans
+le retour utilisateur suivant. Le script
 `D:/PROFILS-TAHOE/restaurer-normal-debug.ps1` restaure le profil précédent
 avec USBToolBox actif. Une cartographie complète des prises n'est pas
 fabriquée à partir de ce seul relevé des périphériques connectés.
+
+## Retrait des ajouts USB demandé par l'utilisateur
+
+Le profil actif **Installer macOS Tahoe (sans ajouts USB)** retire les deux
+entrées Kernel/Add et déplace `USBToolBox.kext` et `UTBDefault.kext` hors de
+`EFI/OC/Kexts`, dans `D:/PROFILS-TAHOE/avant-retrait-usb/`. Le SSDT combiné
+EC/USBX est remplacé par `SSDT-EC.aml`, conservant strictement la définition
+du faux EC mais sans le périphérique USBX. `ReleaseUsbOwnership=false` et
+l'argument `-utboff` est retiré. Les pilotes USB de macOS ne sont pas modifiés.
+Le mode normal, les traces Lilu, MacPro7,1, les patches AMD et CPUR sont conservés.
+
+Le générateur utilise désormais `--usb-mode native` par défaut : six kexts,
+EC seul et CPUR. L'option `--usb-mode toolbox` conserve la possibilité de
+reproduire l'ancien profil provisoire. Les invariants contrôlent l'absence
+de kexts USB, USBX et arguments USBToolBox dans l'EFI native. La cartographie
+des prises est différée ; le retrait ne prouve pas que le blocage venait d'une carte USB.
+
+L'EC seul compile sans erreur ; les configurations normale et `-x` générées
+passent `ocvalidate`. Sur la clé, configuration, AML et libellé sont relus
+et comparés après copie ; les six kexts, les deux seuls AML et les sauvegardes
+des kexts retirés sont vérifiés. Le résultat du prochain démarrage reste à relever.
+Le retour arrière complet est `D:/PROFILS-TAHOE/restaurer-avant-retrait-usb.ps1` ;
+les anciens scripts de restauration du seul config.plist nécessitent d'abord
+de restaurer les composants déplacés.
 
 Les photos, configurations privées, relevés et preuves de copie restent
 sous `out/diagnostics/tahoe-prohibitory-20261008/` et
 `out/diagnostics/tahoe-usb-trial-failed-20261008/`, ainsi que
 `out/diagnostics/tahoe-booter-abort-20261008/` et
-`out/diagnostics/tahoe-coreanalytics-usb-led-20261008/`, ignorés par Git.
+`out/diagnostics/tahoe-coreanalytics-usb-led-20261008/` et
+`out/diagnostics/tahoe-remove-usb-20261008/`, ignorés par Git.

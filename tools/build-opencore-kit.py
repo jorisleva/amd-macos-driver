@@ -24,6 +24,17 @@ KEXTS = [('lilu', 'Lilu.kext'), ('smc', 'VirtualSMC.kext'), ('weg', 'WhateverGre
          ('rtl', 'RealtekRTL8111.kext'), ('usb-kext', 'USBToolBox.kext'), ('usb-kext', 'UTBDefault.kext')]
 
 
+def selected_kexts(usb_mode):
+    if usb_mode not in ('native', 'toolbox'):
+        raise ValueError('Unknown USB mode: ' + usb_mode)
+    return [entry for entry in KEXTS if usb_mode == 'toolbox' or entry[0] != 'usb-kext']
+
+
+def selected_acpi(usb_mode):
+    selected_kexts(usb_mode)
+    return ('SSDT-EC' if usb_mode == 'native' else 'SSDT-EC-USBX', 'SSDT-CPUR')
+
+
 def clean_sample(value):
     if isinstance(value, dict):
         return {k: clean_sample(v) for k, v in value.items() if not k.startswith('#')}
@@ -32,16 +43,16 @@ def clean_sample(value):
     return value
 
 
-def config_from_sample(sample, patches, identity):
+def config_from_sample(sample, patches, identity, usb_mode='native'):
     config = clean_sample(copy.deepcopy(sample))
     for section, fields in {'ACPI': ['Add', 'Delete', 'Patch'], 'Booter': ['MmioWhitelist', 'Patch'],
                             'Kernel': ['Add', 'Block', 'Force', 'Patch'], 'Misc': ['Entries', 'Tools']}.items():
         for field in fields:
             config[section][field] = []
     config['DeviceProperties'] = {'Add': {}, 'Delete': {}}
-    for filename in ('SSDT-EC-USBX.aml', 'SSDT-CPUR.aml'):
+    for name in selected_acpi(usb_mode):
         config['ACPI']['Add'].append({'Comment': 'B550M DS3H BIOS FD / observed namespace',
-                                     'Enabled': True, 'Path': filename})
+                                     'Enabled': True, 'Path': name + '.aml'})
     config['Booter']['Quirks'].update(AvoidRuntimeDefrag=True, DevirtualiseMmio=False,
         EnableSafeModeSlide=True, EnableWriteUnprotector=False, ProvideCustomSlide=True,
         RebuildAppleMemoryMap=True, SetupVirtualMap=False, SyncRuntimePermissions=True, ResizeAppleGpuBars=0)
@@ -93,7 +104,7 @@ def config_from_sample(sample, patches, identity):
     return config
 
 
-def validate_config(config, efi=None):
+def validate_config(config, efi=None, usb_mode='native'):
     def require(test, message):
         if not test:
             raise ValueError(message)
@@ -119,7 +130,12 @@ def validate_config(config, efi=None):
     pat = [p for p in config['Kernel']['Patch'] if p['Enabled'] and 'mtrr_update_action' in p['Comment'] and applicable_to_tahoe(p)]
     require(len(pat) == 1 and 'algrey' in pat[0]['Comment'].lower(), 'Exactly one upstream PAT method must apply to Tahoe')
     bundles = [p['BundlePath'] for p in config['Kernel']['Add'] if p['Enabled']]
-    require(set(bundles) == {name for _, name in KEXTS}, 'Unexpected/missing baseline kext; experimental drivers forbidden')
+    require(set(bundles) == {name for _, name in selected_kexts(usb_mode)}, 'Unexpected/missing baseline kext; experimental drivers forbidden')
+    require({p['Path'] for p in config['ACPI']['Add'] if p['Enabled']} ==
+            {name + '.aml' for name in selected_acpi(usb_mode)}, 'Unexpected/missing baseline SSDT')
+    if usb_mode == 'native':
+        require(not any(arg.startswith(('-utb', 'utbwait=')) for arg in args), 'USBToolBox arguments in native USB profile')
+        require(config['UEFI']['Quirks']['ReleaseUsbOwnership'] is False, 'USB ownership trial in native USB profile')
     identity = config['PlatformInfo']['Generic']
     require(identity['SystemProductName'] == 'MacPro7,1', 'Tahoe baseline SMBIOS mismatch')
     require(bool(re.fullmatch('[A-Z0-9]{12}', identity['SystemSerialNumber'])), 'Missing local serial')
@@ -127,6 +143,10 @@ def validate_config(config, efi=None):
     require(uuid.UUID(identity['SystemUUID']).int != 0 and len(identity['ROM']) == 6, 'Missing local UUID/ROM')
     if efi:
         oc = Path(efi) / 'OC'
+        if usb_mode == 'native':
+            require(not any((oc/'Kexts'/name).exists() for key, name in KEXTS if key == 'usb-kext'),
+                    'USBToolBox files remain in native EFI')
+            require(not (oc/'ACPI/SSDT-EC-USBX.aml').exists(), 'USBX AML remains in native EFI')
         for entry in config['Kernel']['Add']:
             base = oc / 'Kexts' / entry['BundlePath']
             require((base / entry['PlistPath']).is_file(), 'Missing kext plist: ' + entry['BundlePath'])
@@ -141,7 +161,7 @@ def validate_config(config, efi=None):
             require(data[:2] == b'MZ', 'Invalid UEFI executable')
             offset = int.from_bytes(data[60:64], 'little')
             require(data[offset:offset+6] == b'PE\0\0\x64\x86', 'UEFI executable is not AMD64')
-    return {'status': 'passed', 'physical_cores': 6, 'core_patches': len(core), 'kexts': bundles,
+    return {'status': 'passed', 'physical_cores': 6, 'core_patches': len(core), 'kexts': bundles, 'usb_mode': usb_mode,
             'gpu_acceleration': 'disabled-by-configuration', 'hardware_boot': 'not-tested'}
 
 
@@ -165,6 +185,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=ROOT/'out/opencore/ryzen5600x-b550-rx9070xt')
     parser.add_argument('--offline', action='store_true')
+    parser.add_argument('--usb-mode', choices=('native', 'toolbox'), default='native',
+                        help='Native USB by default; toolbox restores the optional USBToolBox/USBX preparation')
     args = parser.parse_args()
     if os.name != 'nt':
         raise SystemExit('This kit builder uses the pinned Windows iASL binary; run on the AMD Windows machine.')
@@ -207,12 +229,12 @@ def main():
     shutil.copyfile(oc_src/'OC/Tools/OpenShell.efi', efi/'OC/Tools/OpenShell.efi')
     logs = output/'validation'; logs.mkdir()
     compiler = next(sources['iasl'].rglob('iasl.exe'))
-    for name in ('SSDT-EC-USBX', 'SSDT-CPUR'):
+    for name in selected_acpi(args.usb_mode):
         run_logged([compiler, '-p', efi/'OC/ACPI'/name, PROFILE/(name+'.dsl')], logs/(name+'.log'))
     sample = plistlib.loads((sources['opencore']/'Docs/Sample.plist').read_bytes())
     patches = plistlib.loads((sources['amd-patches']/'patches.plist').read_bytes())
-    config = config_from_sample(sample, patches, identity)
-    for key, name in KEXTS:
+    config = config_from_sample(sample, patches, identity, args.usb_mode)
+    for key, name in selected_kexts(args.usb_mode):
         candidates = [p for p in sources[key].rglob(name) if '__MACOSX' not in p.parts and p.is_dir()]
         if len(candidates) != 1:
             raise ValueError('Ambiguous/missing upstream kext: '+name)
@@ -225,20 +247,24 @@ def main():
             'MaxKernel': '25.99.99', 'MinKernel': '25.0.0', 'PlistPath': 'Contents/Info.plist'})
     config_path = efi/'OC/config.plist'
     config_path.write_bytes(plistlib.dumps(config))
-    semantic = validate_config(config, efi)
+    semantic = validate_config(config, efi, args.usb_mode)
     run_logged([sources['opencore']/'Utilities/ocvalidate/ocvalidate.exe', config_path], logs/'ocvalidate.log')
     recovery = output/'recovery/EFI'; shutil.copytree(efi, recovery)
     safe = copy.deepcopy(config)
     safe['NVRAM']['Add'][NVRAM_GUID]['boot-args'] += ' -x'
     (recovery/'OC/config.plist').write_bytes(plistlib.dumps(safe))
-    validate_config(safe, recovery)
+    validate_config(safe, recovery, args.usb_mode)
     run_logged([sources['opencore']/'Utilities/ocvalidate/ocvalidate.exe', recovery/'OC/config.plist'], logs/'ocvalidate-safe-mode.log')
     notices = output/'NOTICES'; notices.mkdir()
     for item in locks['notices'].values():
         path = fetch(item, cache, args.offline)
         shutil.copyfile(path, notices/path.name)
     shutil.copyfile(PROFILE/'sources.lock.json', notices/'sources.lock.json')
-    shutil.copyfile(PROFILE/'profile.json', output/'machine-profile.json')
+    machine_profile = json.loads((PROFILE/'profile.json').read_text())
+    machine_profile['usb_mode'] = args.usb_mode
+    if args.usb_mode == 'toolbox':
+        machine_profile['usb_mapping'] = 'UTBDefault transitional enumeration; physical socket map not qualified'
+    (output/'machine-profile.json').write_text(json.dumps(machine_profile, indent=2), encoding='utf-8')
     shutil.copyfile(ROOT/'docs/OPENCORE-TAHOE.md', output/'LIRE-AVANT-DEMARRAGE.md')
     recovery_boot = output/'com.apple.recovery.boot'
     recovery_boot.mkdir()
@@ -247,6 +273,7 @@ def main():
     readme += 'Préparation validée par ocvalidate, démarrage matériel NON testé.\n'
     readme += 'Aucun installateur macOS inclus. Voir LIRE-AVANT-DEMARRAGE.md.\n'
     readme += 'EFI/ = référence sans accélération ; recovery/EFI/ = variante avec -x.\n'
+    readme += f'USB : {args.usb_mode} ; démarrage matériel encore à qualifier.\n'
     readme += 'Identifiants SMBIOS personnels inclus : ne pas publier cette archive.\n'
     (output/'LIRE-MOI.txt').write_text(readme, encoding='utf-8')
     (logs/'checks.json').write_text(json.dumps(semantic, indent=2), encoding='utf-8')

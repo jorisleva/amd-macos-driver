@@ -44,6 +44,11 @@ python tools/build-opencore-kit.py
 python tools/build-opencore-kit.py --offline --output out/opencore/reproduction
 ```
 
+Le profil par défaut utilise désormais l'USB natif : aucun USBToolBox,
+UTBDefault ou USBX n'est injecté. `--usb-mode toolbox` reproduit l'ancien
+profil provisoire pour un essai explicitement choisi ; il ne fournit pas
+une cartographie physique validée.
+
 Résultat par défaut : `out/opencore/ryzen5600x-b550-rx9070xt/` et l'archive
 voisine `.zip`. Dans le kit :
 
@@ -93,41 +98,33 @@ Le menu corrigé masque cette entrée OpenCore avec
 [OpenCore 1.0.8](https://github.com/acidanthera/OpenCorePkg/blob/1.0.8/Docs/Configuration.tex).
 Ils ne modifient pas le fichier `config.plist` ni le démarrage USB depuis F12.
 
-Le profil `-x` a ensuite affiché le symbole d'interdiction. Le SMBIOS actuel
-**MacPro7,1** est vérifié et compatible avec Tahoe ; il est conservé.
-Le profil **Installer macOS Tahoe (test USB)** a affiché le même symbole.
-Les photos et le nouveau journal `opencore-2026-10-08-011117.txt` montrent
-un échec de chargement mémoire du noyau en mode `-x`, avant `EXITBS:START`.
-**D: retire maintenant `-x`, ajoute les traces `-liludbgall` et conserve
-`ReleaseUsbOwnership=true`**, avec le libellé
-**Installer macOS Tahoe (diagnostic normal)**. C'est le seul champ de
-configuration modifié ; le SMBIOS et les quirks mémoire sont conservés.
-La configuration copiée est validée et vérifiée. Garder la prise du dernier
-essai, idéalement USB 2.0 arrière direct, et relever les messages au blocage.
-Ce profil a de nouveau atteint CoreAnalytics puis bloqué, avec extinction
-de la LED du disque USB. **D: ajoute maintenant uniquement `-utboff`**,
-avec le libellé **Installer macOS Tahoe (USB natif)**, pour comparer le
-comportement sans intervention de USBToolBox. Les fichiers des kexts restent
-en place. Garder la même prise et les mêmes périphériques ; relever les
-dernières lignes et vérifier si le voyant Verr. Maj. réagit au blocage.
-Le résultat matériel de ce nouvel essai reste à qualifier.
+Le journal `opencore-2026-10-08-011117.txt` documente un arrêt du chargeur
+avec `-x`. Le retour au mode normal atteint de nouveau CoreAnalytics puis
+bloque ; l'utilisateur observe l'extinction de la LED du disque USB et un
+clavier qui ne répond plus. Ces symptômes ne suffisent pas à établir la cause.
+
+À la demande de l'utilisateur, **D: retire maintenant les ajouts USB** :
+USBToolBox et UTBDefault sont sortis de `EFI/OC/Kexts` et de `Kernel/Add` ;
+`SSDT-EC-USBX` est remplacé par `SSDT-EC`, conservant le même faux EC sans
+USBX. Les arguments USBToolBox sont retirés et `ReleaseUsbOwnership=false`.
+Le SMBIOS **MacPro7,1**, le mode normal et les traces Lilu sont conservés.
+Choisir **Installer macOS Tahoe (sans ajouts USB)**, avec la même prise et
+les mêmes périphériques. La configuration copiée et les fichiers restants
+sont validés ; le résultat matériel reste à qualifier.
 Voir le [relevé du 8 octobre](reports/2026-10-08-tahoe-prohibitory.md).
-Le profil normal sauvegardé se restaure depuis Windows avec :
+Le profil précédent et ses fichiers USB se restaurent ensemble avec :
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\PROFILS-TAHOE\restaurer-normal.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\PROFILS-TAHOE\restaurer-avant-retrait-usb.ps1
 ```
 
-`D:\PROFILS-TAHOE\restaurer-safe-x.ps1` restaure le profil `-x` sans cet
-essai de transfert USB, avec la même commande PowerShell.
-`D:\PROFILS-TAHOE\restaurer-usb-test.ps1` restaure le dernier profil `-x`
-avec transfert USB, sauvegardé avant le retour au diagnostic normal.
-`D:\PROFILS-TAHOE\restaurer-normal-debug.ps1` restaure le profil normal
-avec traces et USBToolBox actif, sauvegardé avant l'essai USB natif.
+Les anciens scripts qui restaurent uniquement `config.plist` nécessitent
+d'abord cette restauration complète, sinon ils référencent des kexts absents.
 
 OpenCore **1.0.8 DEBUG**, Lilu **1.7.2**, VirtualSMC **1.3.8**, WhateverGreen
-**1.7.1**, RestrictEvents **1.1.6**, RealtekRTL8111 **3.0.0**, USBToolBox
-**1.2.0** et son UTBDefault ; disabler AppleMCEReporter codeless **1.2**.
+**1.7.1**, RestrictEvents **1.1.6**, RealtekRTL8111 **3.0.0** et disabler
+AppleMCEReporter codeless **1.2**. USBToolBox **1.2.0** et son UTBDefault
+restent épinglés pour l'option `toolbox`, sans être inclus dans l'EFI native.
 Les archives officielles sont vérifiées par SHA-256 avant extraction.
 Les versions, notices et sources sont dans
 [`boot/ryzen5600x-b550/sources.lock.json`](../boot/ryzen5600x-b550/sources.lock.json).
@@ -142,9 +139,9 @@ Référence : [configuration Ryzen de Dortania](https://dortania.github.io/OpenC
 
 Deux SSDT sont compilés par iASL **20250807** :
 
-- `SSDT-EC-USBX` utilise le pont LPC réellement trouvé, `\_SB.PCI0.SBRG`,
-  et expose EC fictif/USBX uniquement sous Darwin. Aucun contrôleur PNP0C09
-  n'est présent dans le DSDT capturé.
+- `SSDT-EC` utilise le pont LPC réellement trouvé, `\_SB.PCI0.SBRG`,
+  et expose le même EC fictif uniquement sous Darwin, sans propriétés USBX.
+  Aucun contrôleur PNP0C09 n'est présent dans le DSDT capturé.
 - `SSDT-CPUR` utilise les douze chemins `\_SB.PLTF.C000` à `C00B`
   confirmés par les propriétés PnP Windows. Il expose les définitions Processor
   attendues par macOS sur cette B550, uniquement sous Darwin.
@@ -153,17 +150,18 @@ Le checksum du DSDT BIOS FD est enregistré dans le profil. Windows ne permet
 pas ici de distinguer toutes les tables SSDT homonymes par
 `GetSystemFirmwareTable` : le relevé n'est pas un dump exhaustif du firmware.
 Les éventuelles collisions ACPI doivent donc être contrôlées au premier boot.
-La compilation EC/USBX n'émet aucun avertissement. CPUR émet douze
+La compilation EC seul n'émet aucun avertissement. CPUR émet douze
 avertissements iASL 3168 pour `Processor()`, une syntaxe ancienne volontairement
 utilisée pour la compatibilité macOS de ce correctif B550, et un message
 « No parent method » lié aux retours de références du modèle CPUR amont.
 Les deux tables compilent sans erreur ; cette preuve reste distincte d'un boot.
 
-Les ports de chaque contrôleur restent sous la limite de 15. UTBDefault sert
-à l'énumération provisoire ; **ce n'est pas une cartographie des prises** et
-le clavier/stockage USB restent à essayer. `XhciPortLimit=false`.
-Remplacer ensuite UTBDefault par une carte UTBMap relevée prise par prise,
-avec les types de connecteurs et les ports internes corrects.
+Les ports de chaque contrôleur restent sous la limite de 15 dans le relevé
+Windows. Le profil d'installation ne contient aucune carte USB injectée ;
+clavier et stockage USB restent à qualifier. `XhciPortLimit=false`.
+La cartographie prise par prise et les types de connecteurs sont différés.
+L'ancien profil `toolbox` utilise UTBDefault pour l'énumération provisoire,
+sans constituer une cartographie validée.
 Référence : [procédure USBToolBox](https://github.com/USBToolBox/kext/tree/1.2.0).
 
 Arguments de démarrage :
@@ -215,8 +213,8 @@ le démarrage effectif d'un OS peut néanmoins modifier la NVRAM.
    pour ce premier démarrage et sélectionner la clé en UEFI. Le générateur
    ne réalise pas cette copie et n'altère pas l'EFI Windows.
 5. **Choisir l'entrée de récupération dans le menu OpenCore.** Pour l'essai
-   actif sans `-x`, avec traces Lilu, transfert USB et `-utboff`, elle est nommée
-   **Installer macOS Tahoe (USB natif)** ;
+   actif sans `-x`, sans kexts USB ni USBX et avec traces Lilu, elle est nommée
+   **Installer macOS Tahoe (sans ajouts USB)** ;
    le profil normal affiche **Installer macOS Tahoe (Recovery)**. Un seul écran directement
    connecté à la Radeon, clavier USB filaire et câble Ethernet. Si un blocage
    survient : relever le dernier message, le connecteur, le build Tahoe et

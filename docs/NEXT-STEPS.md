@@ -34,8 +34,9 @@ MacPro7,1 est vérifié. Le profil `-x` avec transfert USB affiche le même
 symbole. Le nouveau journal du 8 octobre situe cet arrêt au chargement
 mémoire du noyau, avant `EXITBS:START`. Le retour au mode normal atteint
 de nouveau CoreAnalytics puis bloque, avec extinction de la LED du disque.
-Le prochain essai ajoute uniquement `-utboff` pour comparer le comportement
-USB natif ; la LED seule ne prouve pas une déconnexion. Le démarrage reste ouvert.
+Le clavier ne répond plus à ce stade. À la demande de l'utilisateur, le profil
+actuel retire USBToolBox, UTBDefault, USBX et l'essai de transfert USB ;
+la cartographie est différée. Le démarrage reste ouvert.
 Preuve : [diagnostic des journaux USB](reports/2026-10-07-tahoe-boot.md).
 État actuel : [symbole d'interdiction et SMBIOS](reports/2026-10-08-tahoe-prohibitory.md).
 
@@ -61,9 +62,9 @@ Preuve : [diagnostic des journaux USB](reports/2026-10-07-tahoe-boot.md).
    D: OPENCORE contient l'EFI sans accélération et la récupération Apple
    26.6.2 / 25G83 ; E: TAHOEFILES contient le paquet complet 26.7.1 / 25G241
    et l'EFI de secours. Régler l'UEFI selon le [guide](OPENCORE-TAHOE.md),
-   choisir le disque USB via F12 puis **Installer macOS Tahoe (USB natif)**
-   pour l'essai actuel sans `-x`, avec traces Lilu, `ReleaseUsbOwnership=true`
-   et `-utboff`. Conserver la prise et les périphériques du dernier essai.
+   choisir le disque USB via F12 puis **Installer macOS Tahoe (sans ajouts USB)**
+   pour l'essai actuel sans `-x`, sans kexts USB ni USBX, avec traces Lilu.
+   Conserver la prise et les périphériques du dernier essai.
    Au blocage, noter la LED du disque et la réponse du voyant Verr. Maj.,
    puis relever les dernières
    lignes visibles à l'écran : le journal OpenCore seul s'arrête à `EXITBS:START`.
