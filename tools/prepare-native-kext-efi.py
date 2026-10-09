@@ -33,20 +33,27 @@ TRIAL_UUID = '0551A151-04F6-36DF-8852-169828D00C66'
 GUID, DARWIN = helpers.GUID, helpers.DARWIN
 
 
-def injection_entry():
+def injection_entry(compute=False, version=VERSION):
+    comment = ('Experimental GPU init + two shaders ' + version + ' - reboot-only teardown' if compute else
+               'Native PCI/DMA preparation ' + version + ' - GPU firmware blocked')
     return {'Arch': 'x86_64', 'BundlePath': PRODUCT + '.kext',
-            'Comment': 'Native PCI/DMA preparation ' + VERSION + ' - GPU firmware blocked',
+            'Comment': comment,
             'Enabled': True, 'ExecutablePath': 'Contents/MacOS/' + PRODUCT,
             'MinKernel': DARWIN, 'MaxKernel': DARWIN, 'PlistPath': 'Contents/Info.plist'}
 
 
-def boot_delta(offset, size):
+def boot_delta(offset, size, compute=False):
     require(type(offset) is int and type(size) is int and offset >= 0 and
             size >= 24 * 1024 * 1024 and not (offset & 0xffff) and not (size & 0xfff) and
             offset + size <= 256 * 1024 * 1024, 'Candidate must fit the reviewed 256 MiB BAR0 profile')
-    # These parameters select a READ-ONLY placement candidate, NOT free VRAM.
+    if compute:
+        require(not (offset & 0xfffff) and size >= 32 * 1024 * 1024,
+                'Compute scratch requires MiB alignment and at least 32 MiB')
+    # Still NOT a proof/reservation of free VRAM. Compute explicitly authorizes
+    # an experimental takeover/writes rather than fabricating old RO Claims.
     return (' navi48-native-platform=1 navi48-native-scratch-offset=' + hex(offset) +
-            ' navi48-native-scratch-bytes=' + hex(size))
+            ' navi48-native-scratch-bytes=' + hex(size) +
+            (' navi48-native-compute=1 navi48-native-risk=1' if compute else ''))
 
 
 def validate_baseline(config):
@@ -56,27 +63,27 @@ def validate_baseline(config):
             'Baseline already contains native-driver parameters')
 
 
-def validate_profile(baseline, profile, offset, size):
+def validate_profile(baseline, profile, offset, size, compute=False, version=VERSION):
     validate_baseline(baseline)
     restored = copy.deepcopy(profile)
     require(len(restored['Kernel']['Add']) == len(baseline['Kernel']['Add']) + 1,
             'Unexpected injection count')
-    require(plistlib.dumps(restored['Kernel']['Add'].pop()) == plistlib.dumps(injection_entry()),
+    require(plistlib.dumps(restored['Kernel']['Add'].pop()) == plistlib.dumps(injection_entry(compute, version)),
             'Unreviewed native injection entry')
     original = baseline['NVRAM']['Add'][GUID]['boot-args']
-    require(restored['NVRAM']['Add'][GUID]['boot-args'] == original + boot_delta(offset, size),
+    require(restored['NVRAM']['Add'][GUID]['boot-args'] == original + boot_delta(offset, size, compute),
             'Unexpected native boot parameters')
     restored['NVRAM']['Add'][GUID]['boot-args'] = original
     require(plistlib.dumps(restored) == plistlib.dumps(baseline),
             'Changes outside Kernel/Add and boot-args are forbidden')
 
 
-def make_profile(baseline, offset, size):
+def make_profile(baseline, offset, size, compute=False):
     validate_baseline(baseline)
     result = copy.deepcopy(baseline)
-    result['Kernel']['Add'].append(injection_entry())
-    result['NVRAM']['Add'][GUID]['boot-args'] += boot_delta(offset, size)
-    validate_profile(baseline, result, offset, size)
+    result['Kernel']['Add'].append(injection_entry(compute))
+    result['NVRAM']['Add'][GUID]['boot-args'] += boot_delta(offset, size, compute)
+    validate_profile(baseline, result, offset, size, compute)
     return result
 
 
@@ -131,8 +138,12 @@ def main():
     parser.add_argument('--candidate-offset', type=lambda s: int(s, 0), required=True)
     parser.add_argument('--candidate-bytes', type=lambda s: int(s, 0), required=True)
     parser.add_argument('--deploy-probe1401', action='store_true')
+    parser.add_argument('--experimental-compute', action='store_true', help='Explicit risky GPU initialization + two one-shot shaders')
+    parser.add_argument('--replace-native-0.1.2', dest='replace_native_0_1_2', action='store_true', help='Replace ONLY the previously hashed native 0.1.2 trial')
     args = parser.parse_args()
     require(sys.platform == 'darwin', 'macOS is required')
+    require(not args.replace_native_0_1_2 or (args.deploy_probe1401 and args.experimental_compute),
+            'Replacing native 0.1.2 requires explicit compute deployment')
     destination, build = local_output(ROOT, args.output), local_output(ROOT, args.build)
     require(not destination.exists(), 'Choose a fresh output directory')
     require(subprocess.check_output(['uname', '-m'], text=True).strip() == 'x86_64' and
@@ -148,7 +159,7 @@ def main():
     require(os.path.ismount(REFERENCE.parent) and REFERENCE.resolve() == REFERENCE, 'Reference USB must be mounted')
     initial = tree_hashes(REFERENCE)
     baseline = plistlib.loads((REFERENCE / 'OC/config.plist').read_bytes())
-    profile = make_profile(baseline, args.candidate_offset, args.candidate_bytes)
+    profile = make_profile(baseline, args.candidate_offset, args.candidate_bytes, args.experimental_compute)
     require({p.name for p in (REFERENCE / 'OC/Kexts').iterdir() if p.is_dir()} == helpers.BASE_KEXTS,
             'Unexpected reference kext directory')
     current = None
@@ -159,15 +170,29 @@ def main():
         # First native deployment is only from the previously reviewed probe ON
         # profile; any additional USB modifications require a separate review.
         trial_config = plistlib.loads((TRIAL / 'EFI/OC/config.plist').read_bytes())
-        helpers.validate_profile(baseline, trial_config, True)
-        require({p.name for p in (TRIAL / 'EFI/OC/Kexts').iterdir() if p.is_dir()} ==
-                helpers.BASE_KEXTS | {'Navi48PciProbe.kext'}, 'Unexpected existing trial kext directory')
+        if args.replace_native_0_1_2:
+            validate_profile(baseline, trial_config, 0x4000000, 0x1800000, version='0.1.2')
+            previous = ROOT / 'out/efi-native/native-0.1.2-trial/native-hashes.json'
+            require(current == json.loads(previous.read_text()) and
+                    current['OC/Kexts/Navi48Native.kext/Contents/MacOS/Navi48Native'] ==
+                    'ce1f4e39a2795bdabd3789fb8d632fdac3ed3209deab851f30429ca418696e23',
+                    'Native 0.1.2 EFI differs from the previously reviewed deployment')
+            expected_kexts = helpers.BASE_KEXTS | {'Navi48Native.kext'}
+        else:
+            helpers.validate_profile(baseline, trial_config, True)
+            expected_kexts = helpers.BASE_KEXTS | {'Navi48PciProbe.kext'}
+        require({p.name for p in (TRIAL / 'EFI/OC/Kexts').iterdir() if p.is_dir()} == expected_kexts,
+                'Unexpected existing trial kext directory')
     artifact = build / (PRODUCT + '.kext')
     sums = tree_hashes(artifact)
     report = json.loads((build / 'build-report.json').read_text())
     require(report['status'] == 'kext-built-signed-not-load-qualified' and report['version'] == VERSION and
             report['dma_allocator_invoked_by_service'] is True and report['firmwares_verified_in_kext'] == 10 and
             report['warning_count'] == 0, 'Unreviewed native build')
+    if args.experimental_compute:
+        require(report['experimental_compute']['called_by_service'] is True and
+                report['experimental_compute']['io_vm_per_page'] is True and
+                report['compute_shaders_verified_in_kext'] == 2, 'Missing native compute path/shaders')
     require(sums == json.loads((build / 'SHA256SUMS.json').read_text()) and
             digest(artifact / 'Contents/MacOS' / PRODUCT) == report['executable_sha256'], 'Modified kext artifact')
     audit_sources(build / 'source/driver')
@@ -204,7 +229,7 @@ def main():
 
     def validate(path):
         validate_profile(baseline, plistlib.loads((path / 'OC/config.plist').read_bytes()),
-                         args.candidate_offset, args.candidate_bytes)
+                         args.candidate_offset, args.candidate_bytes, args.experimental_compute)
         label = path.parent.name + '-' + path.name
         command([validator, path / 'OC/config.plist'], logs / ('ocvalidate-' + label + '.log'))
         command(['codesign', '--verify', '--strict', path / 'OC/Kexts' / artifact.name],
@@ -219,6 +244,11 @@ def main():
               'symbol_check': symbols, 'profile_config_sha256': hashes['OC/config.plist'],
               'candidate_bar0_offset': args.candidate_offset, 'candidate_bytes': args.candidate_bytes,
               'candidate_is_vram_reservation': False, 'dma_start_allocation_bytes': 65536,
+              'experimental_compute_enabled': args.experimental_compute,
+              'explicit_hardware_risk_acknowledged': args.experimental_compute,
+              'two_one_shot_shaders_scheduled': args.experimental_compute,
+              'native_0_1_2_replacement_acknowledged': args.replace_native_0_1_2,
+              'gpu_command_executed': False,
               'private_smbios_included': True, 'reference_files': len(initial), 'trial_files': len(hashes),
               'reference_efi_unchanged': True, 'trial_efi_replaced': False,
               'system_kext_installed': False, 'kernel_loaded': False, 'boot_test_performed': False,

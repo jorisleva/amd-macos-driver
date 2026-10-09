@@ -61,4 +61,9 @@ def export_compute(root, target, revision):
         raise ValueError('Pinned high-VRAM pool changed')
     text = text.replace(old_hi, 'if (false) { // native trial: NO allocation outside explicit scratch')
     path.write_text(text)
+    # Reuse the previously audited PSP fail-closed patch, not its unguarded
+    # reference version. No warning-and-continue for a divergent MC base.
+    patch = root / 'native/Navi48FirmwareCore/patches/0003-psp-access-errors.patch'
+    subprocess.run(['patch', '--batch', '--fuzz=0', '-p1', '-d', target, '-i', patch],
+                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=30)
     return sorted(selected)

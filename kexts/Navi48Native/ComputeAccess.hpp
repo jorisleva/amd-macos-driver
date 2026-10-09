@@ -34,6 +34,23 @@ inline bool refuse(const DeviceContext &d, IOReturn error) {
 inline bool ready(const DeviceContext &d) {
     return d.fault == kIOReturnSuccess && d.trialEnabled && d.leaseAlive && d.leaseAlive(d.lease);
 }
+// Same error-propagation surface as the audited native PSP patch, but these
+// helpers guard ONLY this explicitly permitted experiment, not old Claims.
+enum class AccessError { Alignment, McAddress, Timeout };
+enum class AccessOp { Address, Poll };
+inline IOReturn access_status(const DeviceContext &d) {
+    return ready(d) ? kIOReturnSuccess : (d.fault != kIOReturnSuccess ? d.fault : kIOReturnNotReady);
+}
+inline void access_fail(const DeviceContext &d, AccessError e, AccessOp, uint64_t = 0, uint64_t = 0) {
+    refuse(d, e == AccessError::Timeout ? kIOReturnTimeout : kIOReturnBadArgument);
+}
+inline bool access_source(const DeviceContext &d, const void *src, uint64_t bytes) {
+    const uintptr_t address = reinterpret_cast<uintptr_t>(src);
+    return (ready(d) && src && bytes && bytes <= UINTPTR_MAX - address) || refuse(d, kIOReturnBadArgument);
+}
+inline bool hdp_flush_ready(const DeviceContext &d) {
+    return (ready(d) && d.hdpConfigured) || refuse(d, kIOReturnNotReady);
+}
 inline bool span(uint64_t size, uint64_t offset, uint64_t bytes) {
     return bytes && offset <= size && bytes <= size - offset;
 }
@@ -46,6 +63,7 @@ inline bool vramSpan(const DeviceContext &d, uint64_t offset, uint64_t bytes, ui
         d.vramLimit <= d.vramSizeBytes && offset >= d.vramBase && span(d.vramLimit, offset, bytes)) ||
         refuse(d, kIOReturnBadArgument);
 }
+inline bool access_vram(const DeviceContext &d, uint64_t offset, uint64_t bytes) { return vramSpan(d, offset, bytes); }
 inline uint64_t DeviceContext::vramMC(uint64_t offset) const {
     if (!vramSpan(*this, offset, 1, 1) || !vramMcBase || vramSizeBytes > UINT64_MAX - vramMcBase) {
         refuse(*this, kIOReturnBadArgument); return UINT64_MAX;

@@ -6,7 +6,18 @@ L'objectif est de réutiliser la couche Metal du fork NVIDIA de NullMoth, puis d
 
 **Statut : calcul et rendu Apple AIR validés sur la RX 9070 XT sous Windows.** Les quatre shaders graphiques compilés sur Mac et traduits en SPIR-V passent les 48 cas du banc Radeon : 330 984 pixels RGBA exactement conformes, aucun écart de gardes/entrées et aucune erreur Vulkan/synchronisation. Leurs 96 fichiers RGBA sont identiques à ceux du contrôle GLSL rejoué. Le calcul Apple et le contrôle GLSL passent 36 cas chacun ; les trois rejets attendus, 15 tests Rust ciblés, 13 CTest et huit tests Python passent sous Windows. Preuves : [rapport Metal/Radeon](docs/reports/2026-10-07-metal-graphics-radeon.md). Tahoe installé démarre maintenant sur ce PC, sans accélération. Navi48Bringup est construit deux fois pour x86_64 et contrôlé statiquement ; son chargement, RADV Darwin et le rendu via Metal sous macOS restent à qualifier. Ce dossier ne fournit pas encore de pilote installable ; le fork contient toujours le pilote NVIDIA.
 
-La progression et les conditions de passage entre étapes sont décrites dans [ROADMAP.md](ROADMAP.md).
+**Dernier état natif : `Navi48Native.kext` 0.2.0 sur PROBE1401.** Le service
+appelle désormais l'initialisation PSP/GMC/SMU/IMU/RLC/CP/MES/GFX puis deux
+shaders gfx1201, fences et comparaison de 64 résultats. **Code compilé/signé et
+EFI déployée, pas encore exécutés dans le noyau/Radeon** : étapes matérielles
+1/2 non terminées, pas de Metal/WindowServer ni API de calcul libre. Essai
+matériel explicitement risqué, ressources conservées jusqu'au reboot ; OPENCORE
+intact et ancien essai 0.1.2 sauvegardé. **Procédure actuelle :
+[essai initialisation/calcul 0.2.0](docs/NATIVE-COMPUTE-ESSAI.md)** ·
+[rapport](docs/reports/2026-10-09-native-compute.md).
+
+Les sections datées ci-dessous conservent l'historique, pas l'état actuel de la
+clé. La progression et les conditions de passage sont dans [ROADMAP.md](ROADMAP.md).
 
 **9 octobre 2026 : travail effectué sur le Hackintosh Tahoe 26.7.1 / 25G241.**
 L'EFI active est sauvegardée sur OPENCORE et localement, avec 98 fichiers
@@ -92,7 +103,7 @@ les étapes matérielles 1 et 2 restent ouvertes. [État précis](docs/reports/2
 prépare 64 Kio de RAM via IODMACommand hors gate, gère l'annulation et revalide
 le provider ; nettoyage DMA avant fermeture PCI. 234 contrôles service/DMA,
 2 271 contrôleur et 76 tests Python passent ; bundle final sans avertissement,
-signé, dix firmwares vérifiés. La clé injectera le kext au prochain démarrage :
+signé, dix firmwares vérifiés. À ce checkpoint, la clé devait injecter le kext au prochain démarrage :
 112 fichiers conformes, ancienne EFI sauvegardée, 101 fichiers OPENCORE intacts.
 **Pas encore chargé dans le noyau courant, aucun firmware envoyé ni calcul GPU.**
 [Boot à effectuer et vérification](docs/NATIVE-KEXT-ESSAI.md) ·

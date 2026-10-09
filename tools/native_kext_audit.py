@@ -43,7 +43,7 @@ def audit_imports(demangled):
     # function or framework implementation may remain unresolved at this link.
     classes = ('IOService::', 'IORegistryEntry::', 'OSMetaClass::', 'OSMetaClassBase::',
                'OSObject::', 'OSNumber::', 'OSDictionary::', 'IOCommandGate::', 'IOWorkLoop::',
-               'IOBufferMemoryDescriptor::', 'IODMACommand::', 'IOMapper::', 'OSIterator::')
+               'IOBufferMemoryDescriptor::', 'IODMACommand::', 'IOMapper::', 'OSIterator::', 'IOPMrootDomain::')
     functions = {'_IOLog', '_IOSleep', '_PE_parse_boot_argn', '_IOLockAlloc', '_IOLockFree',
                  '_IOLockLock', '_IOLockUnlock', '_OSCompareAndSwapPtr', '_bzero', '___bzero',
                  '_current_thread', '_kernel_task', '_memcpy', '_memset', '_vsnprintf',

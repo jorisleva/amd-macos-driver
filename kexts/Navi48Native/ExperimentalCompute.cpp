@@ -21,18 +21,26 @@
 #include <libkern/c++/OSIterator.h>
 #include <libkern/OSAtomic.h>
 #include <IOKit/IOMemoryDescriptor.h>
+#include <IOKit/pwr_mgt/RootDomain.h>
 #include <kern/task.h>
 using namespace n48compute;
 namespace n48native {
 struct ExperimentalCompute::Resources final : n48::HwAccess {
     ExperimentalCompute *parent{nullptr}; IOService *owner{nullptr}; IOPCIDevice *pci{nullptr}; IOWorkLoop *loop{nullptr};
     IOMemoryMap *maps[3]{}; IODeviceMemory *descriptors[3]{};
+    uint32_t barConfig[5]{};
+    IOPMrootDomain *powerRoot{nullptr}; IOPMDriverAssertionID sleepAssertion{kIOPMUndefinedDriverAssertionID};
     DeviceContext dev{}; IpDiscovery discovery; uint8_t discoveryBytes[10240]{};
     GMCContext gmc{}; PSPContext psp{}; IMUContext imu{}; RLCContext rlc{};
     CPContext cp{}; MESContext mes{}; GFXConfig gfx{}; FwLoaderState fw{}; DmaPool pool{};
     bool live() const {
         return !__atomic_load_n(&parent->cancelled_, __ATOMIC_ACQUIRE) && !owner->isInactive() && !pci->isInactive() &&
-            owner->getProvider() == pci && pci->isOpen(owner);
+            owner->getProvider() == pci && pci->isOpen(owner) &&
+            pci->extendedConfigRead16(0) == 0x1002 && pci->extendedConfigRead16(2) == 0x7550 &&
+            (pci->extendedConfigRead16(4) & 6) == 6 &&
+            pci->extendedConfigRead32(0x10) == barConfig[0] && pci->extendedConfigRead32(0x14) == barConfig[1] &&
+            pci->extendedConfigRead32(0x18) == barConfig[2] && pci->extendedConfigRead32(0x1c) == barConfig[3] &&
+            pci->extendedConfigRead32(0x24) == barConfig[4];
     }
     static bool liveCallback(void *p) { return static_cast<Resources *>(p)->live(); }
     uint32_t regReadIp(uint16_t hw, uint8_t instance, uint8_t seg, uint32_t reg) override {
@@ -54,6 +62,10 @@ struct ExperimentalCompute::Resources final : n48::HwAccess {
     ~Resources() {
         // Only used BEFORE the first indirect/register write. Published sessions
         // retain the owner/module and all mappings until cold reboot, never unload.
+        if (powerRoot) {
+            if (sleepAssertion != kIOPMUndefinedDriverAssertionID) powerRoot->releasePMAssertion(sleepAssertion);
+            powerRoot->release();
+        }
         for (unsigned i = 3; i-- > 0;) { if (maps[i]) maps[i]->release(); if (descriptors[i]) descriptors[i]->release(); }
         if (dev.indirectLock) IOLockFree(dev.indirectLock);
         if (loop) loop->release(); if (pci) pci->release(); if (owner) owner->release();
@@ -68,11 +80,16 @@ void ExperimentalCompute::cancel() { __atomic_store_n(&cancelled_, 1, __ATOMIC_R
 bool ExperimentalCompute::hardwareTouched() const { return facts_.hardwareTouched; }
 ExperimentalCompute::Snapshot ExperimentalCompute::snapshot() const { return facts_; }
 IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop *loop, const Input &input) {
-    if (resources_ || !owner || !pci || !loop || loop->inGate() || owner->getProvider() != pci || !pci->isOpen(owner))
+    if (resources_ || !owner || !pci || !loop || loop->inGate() || owner->getProvider() != pci || !pci->isOpen(owner)) {
+        facts_.failedStage = 1; facts_.result = static_cast<uint32_t>(kIOReturnBadArgument);
         return kIOReturnBadArgument;
+    }
     auto fail = [&](uint32_t stage, IOReturn result) {
         facts_.failedStage = stage; facts_.result = static_cast<uint32_t>(result);
-        if (resources_) facts_.dmaBuffers = resources_->pool.count;
+        if (resources_) {
+            facts_.dmaBuffers = resources_->pool.count;
+            if (!facts_.hardwareTouched) { delete resources_; resources_ = nullptr; facts_.idleSleepPrevented = false; }
+        }
         IOLog("Navi48Native: compute FAILED stage=%u result=0x%x touched=%u; retained until reboot, no retry\n",
               stage, result, facts_.hardwareTouched ? 1u : 0u);
         return result;
@@ -120,11 +137,23 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
             map->getPhysicalSegment(0, &bytes, kIOMemoryMapperNone) != input.barPhysical[i] || bytes != input.barBytes[i])
             return fail(1, kIOReturnBadArgument);
     }
+    constexpr uint8_t configRegs[5] = {0x10, 0x14, 0x18, 0x1c, 0x24};
+    for (unsigned i = 0; i < 5; ++i) r.barConfig[i] = pci->extendedConfigRead32(configRegs[i]);
+    if (((uint64_t{r.barConfig[1]} << 32) | (r.barConfig[0] & 0xfffffff0u)) != input.barPhysical[0] ||
+        ((uint64_t{r.barConfig[3]} << 32) | (r.barConfig[2] & 0xfffffff0u)) != input.barPhysical[1] ||
+        (r.barConfig[4] & 0xfffffff0u) != input.barPhysical[2]) return fail(1, kIOReturnBadArgument);
     r.dev.rmmio = reinterpret_cast<volatile uint32_t *>(r.maps[2]->getAddress()); r.dev.rmmioSize = input.barBytes[2];
     r.dev.bar0 = reinterpret_cast<volatile uint8_t *>(r.maps[0]->getAddress()); r.dev.bar0Size = input.barBytes[0]; r.dev.bar0Phys = input.barPhysical[0];
     r.dev.bar2 = reinterpret_cast<volatile uint8_t *>(r.maps[1]->getAddress()); r.dev.bar2Size = input.barBytes[1]; r.dev.bar2Phys = input.barPhysical[1];
     r.dev.vramBase = input.offset; r.dev.vramLimit = input.offset + input.bytes;
     r.dev.lease = &r; r.dev.leaseAlive = Resources::liveCallback; r.dev.trialEnabled = true;
+    r.powerRoot = IOService::getPMRootDomain();
+    if (!r.powerRoot) return fail(1, kIOReturnNotReady);
+    r.powerRoot->retain();
+    r.sleepAssertion = r.powerRoot->createPMAssertion(kIOPMDriverAssertionPreventSystemIdleSleepBit | kIOPMDriverAssertionPreventDisplaySleepBit,
+        kIOPMDriverAssertionLevelOn, owner, "Navi48 native compute experiment, reboot-only teardown");
+    if (r.sleepAssertion == kIOPMUndefinedDriverAssertionID) return fail(1, kIOReturnNotReady);
+    facts_.idleSleepPrevented = true; // DOES NOT block demand/forced sleep
     if (!r.live() || !OSCompareAndSwapPtr(nullptr, &r, &terminalSession)) return fail(1, kIOReturnNotReady);
     // Before FIRST indirect write: keep this owner (and its PCI controller) alive
     // for the rest of the boot. The trial never pretends teardown is qualified.
@@ -183,6 +212,8 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
     facts_.stage = 4;
     r.gmc.skipDisplayRisky = true; // preserve VBIOS MMHUB cache/AGP/TLB model
     if ((kr = step(5, gmc_init(r.dev, r.gmc)))) return kr;
+    if (r.gmc.vram_start != facts_.mcBase || r.gmc.real_vram_size != facts_.vramBytes ||
+        r.dev.vramMcBase != facts_.mcBase) return fail(5, kIOReturnIOError);
     if ((kr = step(6, psp_init(r.dev, r.psp)))) return kr;
     if ((kr = step(6, psp_parse_sos_microcode(r.psp, sos->data, sos->size)))) return kr;
     if ((kr = step(6, psp_adopt_sos_alive(r.dev, r.psp)))) return kr;
@@ -214,7 +245,11 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
     for (unsigned variant = 0; variant < 2; ++variant) {
         ComputeTestResult result{};
         kr = compute_dispatch_test(r.dev, r.gmc, r.cp, &result, variant != 0);
-        facts_.elapsedUs[variant] = result.elapsed_us; facts_.lanesChecked += result.lanes_checked; facts_.lanesWrong += result.lanes_mismatched;
+        facts_.elapsedUs[variant] = result.elapsed_us;
+        facts_.fenceLanded[variant] = result.fence_landed; facts_.ibTestPassed[variant] = result.ib_test_passed;
+        if (result.fence_landed && result.ib_test_passed) { // do not count upstream's prefilled 32 before execution
+            facts_.lanesChecked += result.lanes_checked; facts_.lanesWrong += result.lanes_mismatched;
+        }
         for (unsigned i = 0; i < 4; ++i) { facts_.observed[variant][i] = result.observed[i]; facts_.expected[variant][i] = result.expected[i]; }
         if (kr || !result.fence_landed || !result.ib_test_passed || result.lanes_checked != 32 || result.lanes_mismatched)
             return fail(17, kr ? kr : kIOReturnIOError);

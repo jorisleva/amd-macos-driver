@@ -1,4 +1,10 @@
-# Chargement du pilote natif depuis PROBE1401
+# Chargement du pilote natif depuis PROBE1401 — historique 0.1.2
+
+> **Profil remplacé, sans boot 0.1.2 :** PROBE1401 contient désormais 0.2.0 avec
+> initialisation et calcul explicitement activés. Utiliser
+> [NATIVE-COMPUTE-ESSAI.md](NATIVE-COMPUTE-ESSAI.md), pas les attentes RO/DMA de
+> cette procédure historique. L'EFI 0.1.2 est conservée dans
+> `EFI.BACKUP-native-0.2.0-compute-trial` et localement.
 
 **9 octobre 2026 — EFI d'essai réellement déployée, démarrage pas encore effectué.**
 La clé `PROBE1401` contient `Navi48Native.kext` **0.1.2**, activé dans

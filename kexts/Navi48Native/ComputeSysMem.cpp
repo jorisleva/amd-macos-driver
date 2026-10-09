@@ -4,7 +4,7 @@
 namespace n48compute {
 static void *volatile activePool = nullptr;
 bool sysmem_set_pool(DmaPool *pool) { return pool && OSCompareAndSwapPtr(nullptr, pool, &activePool); }
-kern_return_t sysmem_alloc(SysMem &m, uint64_t bytes, uint64_t align) {
+IOReturn sysmem_alloc(SysMem &m, uint64_t bytes, uint64_t align) {
     auto *pool = static_cast<DmaPool *>(activePool);
     if (!pool || m.md || !bytes || bytes > 1024 * 1024 || !align || (align & (align - 1)) || align > 4096 || pool->count >= 64)
         return kIOReturnBadArgument;

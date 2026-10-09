@@ -13,8 +13,9 @@ public:
     };
     struct Snapshot {
         uint32_t stage{0}, failedStage{0}, result{static_cast<uint32_t>(kIOReturnNotReady)};
-        bool hardwareTouched{false}, firmwareLoaded{false}, initialized{false}, computePassed{false};
+        bool hardwareTouched{false}, firmwareLoaded{false}, initialized{false}, computePassed{false}, idleSleepPrevented{false};
         uint64_t vramBytes{0}, mcBase{0}, elapsedUs[2]{};
+        bool fenceLanded[2]{}, ibTestPassed[2]{};
         uint32_t dmaBuffers{0}, lanesChecked{0}, lanesWrong{0}, observed[2][4]{}, expected[2][4]{};
     };
     ExperimentalCompute() = default;

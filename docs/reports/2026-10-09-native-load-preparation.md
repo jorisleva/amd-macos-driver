@@ -1,5 +1,10 @@
 # Navi48Native 0.1.2 — DMA raccordée et chargement OpenCore préparé
 
+> **Historique conservé :** cette EFI 0.1.2 a été remplacée, avant tout boot
+> natif, par l'essai 0.2.0 initialisation/calcul. Les preuves de cette passe
+> restent valides pour son déploiement, pas pour l'état actuel de PROBE1401.
+> Voir [la suite](2026-10-09-native-compute.md).
+
 ## Verdict
 
 **Le pilote natif est réellement déployé sur l'EFI d'essai PROBE1401**, activé

@@ -19,13 +19,14 @@ namespace fake {
 enum class Error { None, Allocate, Length, MemoryPrepare, Command, Assign, Prepare, Range,
  Generate, Cursor, Count, Zero, Alignment, PageLength, Limit, Alias, Sync, Transfer, Clear, Complete };
 inline Error error=Error::None;
-inline bool deviceMapper=true, discontiguous=false;
+inline bool deviceMapper=true, discontiguous=false, differentDescriptor=false;
+inline UInt8 addressBits=0;
 inline unsigned live=0, physicalReads=0, prepares=0, clears=0, completes=0, allocations=0;
 inline uint32_t syncDirection=0;
 inline void (*callback)()=nullptr;
 inline void (*afterGenerate)()=nullptr;
 inline std::vector<uint8_t> gpuBytes;
-inline constexpr uint64_t dmaBase=0x0000100000000000ULL; // intentionally NOT CPU physical
+inline uint64_t dmaBase=0x0000100000000000ULL; // intentionally NOT CPU physical
 }
 #ifndef NAVI48_DMA_SHARED_IOKIT
 class OSObject {
@@ -89,7 +90,7 @@ public:
   UInt64 transfer,UInt32 align,IOMapper *mapper=nullptr,void *ref=nullptr){
   if(function!=OutputHost64||(bits!=48&&bits!=64)||segment!=4096||map!=kMapped||transfer||align!=4096||ref||
    bool(mapper)!=fake::deviceMapper||fake::error==fake::Error::Command)return nullptr;
-  return new IODMACommand;
+  fake::addressBits=bits;return new IODMACommand;
  }
  IOReturn setMemoryDescriptor(IOBufferMemoryDescriptor *memory,bool autoPrepare){
   if(autoPrepare||fake::error==fake::Error::Assign)return kIOReturnIOError;
@@ -106,7 +107,7 @@ public:
   *offset=fake::error==fake::Error::Range?4096:0;*bytes=memory_->data.size();return 0;
  }
  const IOBufferMemoryDescriptor *getMemoryDescriptor()const{return memory_;}
- IOBufferMemoryDescriptor *getIOMemoryDescriptor()const{return memory_;}
+ IOBufferMemoryDescriptor *getIOMemoryDescriptor()const{return fake::differentDescriptor?nullptr:memory_;}
  IOReturn gen64IOVMSegments(UInt64 *offset,Segment64 *pages,UInt32 *count){
   if(fake::error==fake::Error::Generate)return kIOReturnIOError;
   for(uint32_t i=0;i<*count;++i)pages[i]={fake::dmaBase+uint64_t{i}*(fake::discontiguous?8192:4096),4096};

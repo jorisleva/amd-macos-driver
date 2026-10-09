@@ -48,6 +48,8 @@ inline unsigned liveObjects = 0, liveLocks = 0, mapsMade = 0, mapsFreed = 0, boo
 inline thread_local unsigned gateDepth = 0;
 inline bool bootPresent = true, lockFails = false;
 inline uint32_t bootValue = 1;
+inline bool computePresent = false, riskPresent = false;
+inline uint32_t computeValue = 0, riskValue = 0;
 inline bool offsetPresent = true, bytesPresent = true, baseStart = true;
 inline uint64_t scratchOffset = 64 * 1024 * 1024, scratchBytes = 24 * 1024 * 1024;
 inline int allocationBudget = -1;
@@ -286,6 +288,12 @@ inline bool PE_parse_boot_argn(const char *key, void *out, int bytes) {
     ++fake::bootReads;
     if (!std::strcmp(key, "navi48-native-platform") && bytes == 4 && fake::bootPresent) {
         std::memcpy(out, &fake::bootValue, 4); return true;
+    }
+    if (!std::strcmp(key, "navi48-native-compute") && bytes == 4 && fake::computePresent) {
+        std::memcpy(out, &fake::computeValue, 4); return true;
+    }
+    if (!std::strcmp(key, "navi48-native-risk") && bytes == 4 && fake::riskPresent) {
+        std::memcpy(out, &fake::riskValue, 4); return true;
     }
     if (!std::strcmp(key, "navi48-native-scratch-offset") && bytes == 8 && fake::offsetPresent) {
         std::memcpy(out, &fake::scratchOffset, 8); return true;

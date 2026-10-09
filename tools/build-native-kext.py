@@ -188,6 +188,19 @@ def main():
             raise ValueError('Native DMA lifecycle/IOVM test failed')
         report['dma_smoke'] = {'checks': int(match[1]), 'failed': 0, 'sanitizers': ['address', 'undefined'],
                                'scope': 'actual DMA adapter with IOKit doubles; no actual DMA/GPU'}
+        for label, test, units, include in (
+            ('compute-memory', 'compute_memory_test.cpp', [driver / 'DmaBuffer.cpp', driver / 'ComputeSysMem.cpp'],
+             ['-I', dma_tests / 'stubs', '-I', driver, '-I', subset]),
+            ('compute-access', 'compute_access_test.cpp', [],
+             ['-Damdgpu=n48compute', '-I', ROOT / 'tests/native-platform/stubs', '-I', driver, '-I', subset, '-I', hardware / 'amd'])):
+            binary = destination / label
+            run(['xcrun', 'clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror', '-Wshadow', '-O1', '-g',
+                 '-fsanitize=address,undefined', '-fno-sanitize-recover=all'] + include + units +
+                 [tests / test, '-o', binary], logs / (label + '-build.log'))
+            run([binary], logs / (label + '.log'))
+            match = re.search(r'(\d+) checks, (\d+) failed', (logs / (label + '.log')).read_text())
+            if not match or int(match[2]): raise ValueError('Compute model test failed: ' + label)
+            report[label + '_model'] = {'checks': int(match[1]), 'failed': 0, 'scope': 'RAM/IOKit doubles only, no GPU'}
         objects = destination / 'objects'; objects.mkdir()
         for name in inputs:
             shutil.copyfile(core / name, objects / name)

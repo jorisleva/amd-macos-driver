@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <thread>
 
+namespace fakecompute { extern unsigned calls; extern bool simulatePublication; extern void (*onRun)(); }
 static unsigned checks = 0, failed = 0;
 #define CHECK(x) do { ++checks; if (!(x)) { ++failed; std::fprintf(stderr, "%d: %s\n", __LINE__, #x); } } while (0)
 void IOLog(const char *, ...) {}
@@ -18,6 +19,8 @@ struct Fixture {
     Fixture() {
         fake::bootPresent = true; fake::bootValue = 1; fake::offsetPresent = true; fake::bytesPresent = true;
         fake::scratchOffset = 64 * MiB; fake::scratchBytes = 24 * MiB;
+        fake::computePresent = fake::riskPresent = false; fake::computeValue = fake::riskValue = 0;
+        fakecompute::onRun = nullptr; fakecompute::simulatePublication = false;
         fake::allocationBudget = -1; fake::baseStart = true; fake::lockFails = false; fake::events.clear();
         fake::error = fake::Error::None; fake::callback = nullptr; fake::afterGenerate = nullptr;
         fake::deviceMapper = true; fake::discontiguous = false;
@@ -52,6 +55,9 @@ struct Fixture {
         CHECK(driver.registrations == 0 && pci.propertyWrites == 0);
     }
 };
+// Published-model fixtures intentionally remain reachable, like a boot-long
+// terminal lease. Never reinterpret this lifetime model as hardware success.
+static std::vector<Fixture *> terminalFixtures;
 static Navi48Native *callbackDriver;
 static IOPCIDevice *callbackProvider;
 static uint64_t value(OSDictionary *dictionary, const char *key) {
@@ -96,6 +102,37 @@ int main() {
         f.pci.afterClose = [](IOPCIDevice *) { callbackDriver->stop(callbackProvider); };
         f.driver.stop(&f.pci); f.closed(); CHECK(f.driver.stops == 1);
         CHECK(!f.driver.start(&f.pci)); // no hot restart/rearm
+    }
+    // Hardware trial requires BOTH explicit args. No call with partial/invalid opt-in.
+    for (unsigned invalid = 0; invalid < 4; ++invalid) {
+        Fixture f; f.init();
+        fake::computePresent = true; fake::riskPresent = true;
+        fake::computeValue = invalid == 0 ? 0 : 1; fake::riskValue = invalid == 1 ? 0 : 1;
+        if (invalid == 2) fake::computeValue = 2;
+        if (invalid == 3) fake::riskPresent = false;
+        const auto calls = fakecompute::calls;
+        CHECK(!f.driver.start(&f.pci)); CHECK(fakecompute::calls == calls);
+        CHECK(f.pci.opens == 0 && f.driver.starts == 0); f.closed();
+    }
+    // The REAL service calls the lifecycle double outside its gate. Double
+    // reports a pre-write failure, NOT a simulated successful shader/Radeon.
+    for (bool stopDuring : {false, true}) {
+        Fixture f; f.init(); fake::scratchBytes = 64 * MiB;
+        fake::computePresent = fake::riskPresent = true; fake::computeValue = fake::riskValue = 1;
+        callbackDriver = &f.driver; callbackProvider = &f.pci;
+        fakecompute::onRun = stopDuring ? +[]() {
+            CHECK(!callbackDriver->getWorkLoop()->inGate());
+            CHECK(callbackProvider->client == callbackDriver);
+            std::thread stop([]() { callbackDriver->stop(callbackProvider); }); stop.join();
+        } : nullptr;
+        const auto calls = fakecompute::calls;
+        CHECK(!f.driver.start(&f.pci)); CHECK(fakecompute::calls == calls + 1);
+        auto *report = dynamic_cast<OSDictionary *>(f.driver.getProperty("Navi48Native,Compute"));
+        CHECK(value(report, "HardwareTouched") == 0 && value(report, "ComputePassed") == 0);
+        CHECK(value(report, "FailedStage") == 1);
+        CHECK(value(report, "HardwareQualificationComplete") == 0 && value(report, "MetalAcceleration") == 0);
+        f.closed(); CHECK(f.driver.stops == 1);
+        fakecompute::onRun = nullptr;
     }
     // Exact PCI target and partial acquisition propagate failure through start.
     for (bool wrongCard : {false, true}) {
@@ -193,6 +230,27 @@ int main() {
         CHECK(!f.driver.init()); f.closed(); fake::allocationBudget = -1;
     }
     CHECK(fake::liveObjects == 0 && fake::liveLocks == 0 && fake::mapsMade == fake::mapsFreed);
+    // GPU-visible lifetime MODEL: even a failed trial or failed publication must
+    // retain PCI/mappings/DMA and module owner, outside all stop callbacks.
+    for (bool publicationFails : {false, true}) {
+        auto *f = new Fixture; terminalFixtures.push_back(f); f->init();
+        fake::scratchBytes = 64 * MiB; fake::computePresent = fake::riskPresent = true;
+        fake::computeValue = fake::riskValue = 1; fakecompute::simulatePublication = true;
+        if (publicationFails) fakecompute::onRun = []() { fake::allocationBudget = 0; };
+        const auto closes = f->pci.closes, clears = fake::clears, freed = fake::mapsFreed;
+        CHECK(f->driver.start(&f->pci)); CHECK(f->driver.registrations == 1);
+        if (!publicationFails) {
+            auto *report = dynamic_cast<OSDictionary *>(f->driver.getProperty("Navi48Native,Compute"));
+            CHECK(value(report, "ResourcesRetainedUntilReboot") == 1);
+            CHECK(value(report, "GPUInitialized") == 0 && value(report, "ComputePassed") == 0);
+        }
+        fake::allocationBudget = -1; fakecompute::onRun = nullptr;
+        CHECK(f->driver.message(kIOMessageServiceIsSuspended, &f->pci) == kIOReturnSuccess);
+        CHECK(f->pci.closes == closes && fake::clears == clears && fake::mapsFreed == freed);
+        CHECK(f->pci.client == &f->driver && f->driver.references() > 1 && f->driver.stops == 0);
+        f->driver.stop(&f->pci); CHECK(f->driver.stops == 1);
+        CHECK(!f->driver.start(&f->pci));
+    }
     std::printf("native_kext_smoke: %u checks, %u failed\n", checks, failed);
     return failed ? 1 : 0;
 }

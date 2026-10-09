@@ -1,6 +1,17 @@
 # Travail restant — Hackintosh Tahoe
 
-## État actuel, 9 octobre 2026
+## Dernier état : essai matériel natif 0.2.0 prêt
+
+PROBE1401 injectera maintenant **0.2.0**, avec chemin firmware/GMC/GART/CP/MES/GFX
+appelé par le service et deux dispatchs gfx1201, fences et 64 comparaisons.
+321 + 162 + 29 + 39 contrôles RAM/doubles, 78 tests Python, dix firmwares/deux
+shaders vérifiés et zéro avertissement. OPENCORE intact, ancienne EFI 0.1.2
+sauvegardée. **Aucun boot/chargement/init/calcul Radeon natif encore observé.**
+Essai explicitement risqué ; ressources hardware retenues jusqu'au reboot,
+pas de sommeil/retry/unload, pas de Metal ou de client pour programmes libres.
+[Procédure actuelle](NATIVE-COMPUTE-ESSAI.md) · [rapport](reports/2026-10-09-native-compute.md).
+
+## Historique, 9 octobre 2026
 
 Le système installé **Tahoe 26.7.1 / 25G241** est exécuté sur le Ryzen/Radeon,
 avec affichage de base mais zéro périphérique Metal. L'EFI active est
@@ -175,14 +186,15 @@ Réglages, sauvegarde et commandes Git pour le Mac :
    pour rejouer les instructions historiques ci-dessus.
 4. **Étape 1 : faire initialiser la Radeon par `Navi48Native.kext`.** Le vrai
    bundle est maintenant créé ; aucun essai noyau ou firmware réel n'est encore
-   effectué. L'essai natif 0.1.2 est désormais déployé sur PROBE1401, DMA
-   raccordée ; redémarrer via F12 sur cette clé puis observer chargement et
-   ressources réelles. Référence OPENCORE intacte. Établir ensuite
-   console/réservations/géométrie VRAM/base MC,
-   propriété GPU exclusive, HDP, DMA applicable et puissance/arrêt/restauration,
-   puis raccorder ces conditions à l'orchestration PSP/SMU/bootloader. Le service
-   d'acquisition démarré ne signifie pas GPU initialisé. Cible suivante : étape 2,
-   première commande/calcul réellement exécuté et résultat relu. Ne pas élargir
+   effectué. L'essai natif **0.2.0** est désormais déployé sur PROBE1401 :
+   orchestration firmware/GMC/GART/CP/MES/GFX et deux shaders raccordés au service.
+   Redémarrer via F12 sur cette clé selon [la procédure actuelle](NATIVE-COMPUTE-ESSAI.md),
+   puis observer chargement, étapes matérielles, fences et résultats Radeon.
+   Référence OPENCORE intacte. Établir/qualifier ensuite console, réservations,
+   géométrie/base MC, propriété GPU exclusive, HDP, DMA et puissance/restauration.
+   L'essai explicite ne transforme pas les conditions inconnues en Claims vrais.
+   Le service chargé ne signifie pas GPU initialisé : étapes 1/2 exigent
+   initialisation réelle, calcul réellement exécuté et résultat relu. Ne pas élargir
    l'observateur, répéter des campagnes hôte sans cette cible ni charger
    Navi48Bringup complet.
 5. **Construire Mesa/RADV Darwin**, puis le qualifier seulement après les

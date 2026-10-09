@@ -172,11 +172,13 @@ IOReturn Navi48Native::computeFinishGated(Action &action) {
         number(report, "VRAMBytes", f.vramBytes) && number(report, "MCBase", f.mcBase) &&
         number(report, "DMABuffers", f.dmaBuffers, 32) && number(report, "LanesChecked", f.lanesChecked, 32) &&
         number(report, "LanesWrong", f.lanesWrong, 32) && number(report, "ResourcesRetainedUntilReboot", f.hardwareTouched, 32) &&
+        number(report, "IdleSleepAssertion", f.idleSleepPrevented, 32) && number(report, "DemandSleepSupported", 0, 32) &&
         number(report, "HardwareQualificationComplete", 0, 32) && number(report, "MetalAcceleration", 0, 32);
     for (unsigned variant = 0; ok && variant < 2; ++variant) {
-        auto *values = OSDictionary::withCapacity(9);
+        auto *values = OSDictionary::withCapacity(11);
         if (!values) { ok = false; break; }
-        ok = number(values, "ElapsedUs", f.elapsedUs[variant]);
+        ok = number(values, "ElapsedUs", f.elapsedUs[variant]) && number(values, "FenceLanded", f.fenceLanded[variant], 32) &&
+            number(values, "IBTestPassed", f.ibTestPassed[variant], 32);
         constexpr const char *observed[4] = {"Observed0", "Observed1", "Observed2", "Observed3"};
         constexpr const char *expected[4] = {"Expected0", "Expected1", "Expected2", "Expected3"};
         for (unsigned i = 0; ok && i < 4; ++i) ok = number(values, observed[i], f.observed[variant][i], 32) && number(values, expected[i], f.expected[variant][i], 32);
@@ -191,6 +193,7 @@ IOReturn Navi48Native::computeFinishGated(Action &action) {
     // even when a stage times out or registry publication fails. NO hot unload.
     if (!ok) IOLog("Navi48Native: compute report publication failed; GPU-visible resources retained\n");
     if (cancelStart_ || isInactive()) withdrawGated(action, true);
+    else registerService();
     return kIOReturnSuccess; // service retains diagnostic FAILURE as well as success
 }
 bool Navi48Native::publish(const n48native::PlatformSnapshot &snapshot, const n48native::DmaBuffer::Snapshot &dma) {

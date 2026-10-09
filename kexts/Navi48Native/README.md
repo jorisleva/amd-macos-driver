@@ -1,111 +1,108 @@
-# Navi48Native.kext — pilote natif, premier essai noyau préparé
+# Navi48Native.kext — service PCI/DMA et essai init/compute
 
-**Vrai bundle noyau x86_64 0.1.2**, avec personnalité PCI, service IOKit,
-points d'entrée kmod, contrôleur PCI et adaptateur DMA raccordés.
-Il est maintenant **déployé dans l'EFI de la clé d'essai PROBE1401**, activé
-pour le prochain démarrage. **Pas encore chargé dans le noyau courant.**
-Aucune installation dans `/Library/Extensions`, aucune initialisation GPU,
-commande Radeon ou accélération Metal observée.
+**Vrai bundle noyau x86_64 0.2.0**, personnalité PCI, service IOKit et points
+kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
+calculs gfx1201 internes, avec fences et comparaison des 64 résultats. Aucun
+accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
+**Compilé/signé/déployé sur PROBE1401, pas encore chargé ni exécuté sur Radeon.**
+Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
-[Redémarrage et vérification du vrai noyau](../../docs/NATIVE-KEXT-ESSAI.md) ·
-[Rapport et empreintes](../../docs/reports/2026-10-09-native-load-preparation.md)
+**Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
+[rapport](../../docs/reports/2026-10-09-native-compute.md).
 
-## Chemin réellement implémenté
+## Deux chemins distincts, pas des preuves inventées
 
-- Identité `com.amd-macos-driver.Navi48Native`, cible PCI
-  `1002:7550 / 1849:5417`, révision `c0`, classe `030000`.
-- Le service possède `IOKitController` : ouverture PCI non-seize, mappings
-  privés RO/UC BAR0/BAR2/BAR5 conservés, contrôle de configuration et console.
-- Le code IP/PSP/SMU/IMU et dix firmwares épinglés sont réellement liés dans le
-  binaire. **Ils ne sont pas encore appelés pour initialiser le matériel.**
-- `start()` acquiert les ressources sous `IOCommandGate`, puis prépare
-  **64 Kio de RAM DMA hors gate** avec le vrai `DmaBuffer`. Le service,
-  provider, workloop et gate sont retenus pendant cette phase bloquante.
-- Arrêt/terminaison/suspension pendant préparation annulent le démarrage sans
-  fermer le bail utilisé par l'allocateur. Finalisation/revalidation et transfert
-  de propriété sont sous gate ; DMA/mappings/PCI/base-stop sont nettoyés hors gate.
-- `revalidateHeld()` invalide les observations en cas de divergence, mais
-  conserve le bail pour nettoyer DMA avant la fermeture PCI.
-- Les ressources DMA incertaines restent en quarantaine ; aucune adresse
-  n'est publiée au GPU. Aucun client utilisateur, accélérateur, hook NVIDIA
-  ou personnalité graphique Apple. Pas de réactivation à chaud.
+1. **Socle RO/DMA** : `IOKitController` acquiert BAR0/BAR2/BAR5 en RO/UC, ouvre
+   le provider sans seize, compare identité/configuration/descripteurs/mappings
+   et console. `start()` prépare 64 Kio de RAM DMA hors gate puis revalide sous
+   gate. Le contexte RO reste privé/désactivé et ses blockers ne sont pas effacés.
+   Sans opt-in compute, arrêt ici : aucune commande/écriture GPU.
+2. **Essai matériel explicitement autorisé** : `ExperimentalCompute` possède
+   un autre contexte/type ABI (`n48compute`), mappings RW/UC privés et accès
+   bornés dans `ComputeAccess.hpp`. Découverte IP, vérifications MC/origine,
+   bootloader PSP, GMC/GART, PSP/ring/TMR/firmwares, SMU/IMU/RLC, CP/MES/GFX,
+   queue MES, fences et deux shaders publics. Pas de réutilisation d'un contexte
+   RO « débloqué » ou de `Claims` fabriqués. Ce chemin est un essai risqué, pas une
+   qualification de réservation VRAM/restauration/puissance/sommeil.
 
-Le cycle complet de puissance/sommeil n'est pas implémenté. Les messages reçus
-sont traités, mais aucun pilote de puissance enregistré ne prétend maîtriser
-le matériel. Cela reste bloquant avant l'initialisation réelle.
+L'identité reste strictement `1002:7550 / 1849:5417 / c0 / 030000`, BAR0
+256 Mio, BAR2 2 Mio, BAR5 512 Kio. Console ambiguë, autre accélérateur,
+provider occupé, divergence de BAR ou erreur protocole conduisent au refus.
+Aucun argument de l'ancien pilote amont n'active ce chemin.
 
-## RAM DMA : appelée par le service, pas qualifiée par la Radeon
+## DMA → GART → commandes, réellement raccordés dans le code
 
-`DmaBuffer.cpp/.hpp` emploie `IOBufferMemoryDescriptor`,
-`IOMapper::copyMapperForDevice` et `IODMACommand::kMapped`. Les pages IOVM
-proviennent de `gen64IOVMSegments`, jamais d'une conversion CPU physique.
-Pages non contiguës conservées ; écritures/lectures du descripteur original et
-synchronisation des bounce buffers ; préparation/nettoyage hors gate,
-protection contre réentrée et quarantaine terminale après publication/incertitude.
+- `DmaBuffer` utilise `IOBufferMemoryDescriptor` et `IODMACommand::kMapped` ;
+  pages issues de `gen64IOVMSegments`, jamais de `getPhysicalSegment` CPU.
+- `ComputeSysMem` remplace le SysMem amont : alignement/limites/alias validés,
+  pages discontiguës conservées, publication avant remise de l'adresse.
+- `gmc_bind_existing` construit chaque PTE depuis `sysmem_iovm_page()` ; ne
+  dérive pas `first + page*4096`. Aucun allocateur high VRAM hors scratch.
+- Rings/fences : vue CPU originale, sortie DMA 64 bits empêchant le bounce
+  lié à la largeur d'adresse, pages néanmoins sous 48 bits, rejet si le
+  descripteur DMA diffère de l'original. Fences nécessaires avant comparaison.
+- Les anciennes opérations `read/write/syncForDevice/syncForCpu` restent
+  disponibles pour les buffers à bounce ; synchroniser n'est pas une fence.
 
-**En 0.1.2, `allocate()` est effectivement dans le chemin de démarrage.**
-Une réussite matérielle n'a toutefois pas encore été observée : elle demandera
-le boot de l'EFI préparée. GMC/GART et les moteurs CP/MES/calcul restent à
-raccorder. L'amont `amdgpu_sysmem.cpp` n'est pas remplacé dans un pilote exécuté.
-Une liste IOVM, même obtenue sur IOKit réel, ne prouvera pas un transfert GPU.
-Aucun blocage firmware n'est supprimé à la seule réussite de l'allocation.
+L'allocation/revalidation et les écritures GPU ne prouvent pas que la DMA marche.
+Seuls les vrais résultats et fences Radeon après le boot pourront le démontrer.
 
-## Activation explicite et limites
+## Durée de vie/annulation
 
-Le service ne s'attache pas sans trois paramètres distincts :
+Préparation RAM et orchestration bloquante hors `IOCommandGate`. Le service,
+provider, loop et gate restent retenus ; stop pendant la préparation annule et
+attend la finalisation pour nettoyer DMA avant fermeture PCI. Avant hardware,
+les mappings RW/ressources/PM temporaires sont nettoyés hors gate sur échec.
 
-- `navi48-native-platform=1` ;
-- `navi48-native-scratch-offset`, candidat BAR0-relatif aligné 64 Kio ;
-- `navi48-native-scratch-bytes`, multiple de 4 Kio, au moins 24 Mio.
+**Après la première opération hardware : conservation terminale jusqu'au
+reboot**, même après timeout/erreur/annulation/échec de publication IORegistry.
+Le propriétaire garde le module, contrôleur/bail PCI, mappings et buffers
+publiés. Pas de quiescement inventé, de réarmement ou d'unload à chaud.
+L'assertion PM évite la veille automatique/de l'affichage, pas la veille forcée.
+Ne pas mettre la session d'essai en veille.
 
-L'EFI d'essai choisit explicitement `0x4000000` / `0x1800000`.
-**Ce candidat d'observation RO ne réserve aucune VRAM**, n'autorise pas de
-firmware et n'est pas la taille RAM DMA. Aucun placement implicite ni argument
-« force » ne transforme les sept familles de preuves manquantes en autorisation.
+`Navi48Native,Resources` schéma 2 décrit le socle RO/DMA non qualifié.
+`Navi48Native,Compute` schéma 1 décrit les étapes/erreurs réellement observées,
+fences et premiers résultats de chaque shader. La réussite exige deux fences,
+deux tests IB et 64 comparaisons sans erreur ; `HardwareTouched` seul ne suffit
+pas. Qualification globale et Metal restent zéro, même après un calcul passé.
 
-`start()` réussi signifie **ressources PCI/DMA préparées**, pas GPU prêt.
-`Navi48Native,Resources`, schéma 2, publie les observations sur notre nœud,
-jamais sur le provider. `DMAAllocatorInvoked=1`, `DMAPhase=Prepared` et les
-64 Kio/16 pages permettent de distinguer le raccordement DMA d'un simple bundle
-chargé. `DMAAddressPublished`, `GPUDMAValidated`, `FirmwareExecuted`,
-`GPUInitialized` et `AccessEnabled` restent zéro.
+## Activation explicite
 
-## Compiler et reproduire
+Le socle exige `navi48-native-platform=1`, scratch offset aligné 64 Kio et
+size multiple 4 Kio/minimum 24 Mio. Compute exige en plus :
 
-Bundle actuel : **`out/native-kext/kernel-trial/Navi48Native.kext`**, ZIP voisin.
-Core/controller actuel : `out/native-platform/service-dma/`. Les sorties
-historiques `stage1/` (0.1.0) et `dma-integration/` (0.1.1) restent conservées.
-Le premier `service-dma/` kext avait un avertissement de signedness ; il n'a
-pas été déployé. L'image `kernel-trial/` corrige cette conversion, zéro warning.
-
-```sh
-python3 -B tools/build-native-firmware-core.py --output out/native-platform/nouveau
-python3 -B tools/build-native-kext.py \
-  --core-build out/native-platform/nouveau --output out/native-kext/nouveau
+```text
+navi48-native-compute=1 navi48-native-risk=1
 ```
 
-Le builder vérifie les objets/source/SDK/firmwares, teste le vrai service et
-l'adaptateur sur doubles IOKit sous ASan/UBSan, compile/lie/signe le kext et
-revérifie les dix firmwares dans le Mach-O final. Tout avertissement noyau
-fait maintenant refuser le build. La signature et les noms d'imports trouvés
-dans le BootKC ne prouvent pas la liaison/ABI/acceptation par Tahoe.
-Les notices amont et firmware sont incluses dans le produit.
+Le scratch compute doit être aligné 1 Mio, au moins 32 Mio ; le profil revu
+utilise offset **64 Mio**, taille **64 Mio**. Il sélectionne une zone de l'essai,
+**pas une réservation VRAM prouvée**. Aucun placement implicite. Le profil USB
+conserve sécurité, SMBIOS, CPU patches et les cinq kexts de référence.
 
-## Ce qui reste pour les étapes matérielles 1 et 2
+## Compilation reproductible, sans installation/chargement
 
-1. Observer le chargement, l'attachement PCI et l'allocation IOKit au boot réel.
-2. Établir propriété/quiescement, placement/réservations et géométrie/origine/base
-   MC de la VRAM, HDP, chemin DMA applicable et récupération après panne.
-3. Raccorder le contexte autorisé et l'orchestration PSP/SMU/GMC/GART/moteurs.
-4. Soumettre une commande puis un shader, attendre une fence bornée, relire et
-   comparer le résultat réellement produit par la Radeon.
+```sh
+python3 -B tools/build-native-kext.py \
+  --core-build out/native-platform/service-dma \
+  --output out/native-kext/<repertoire-neuf>
+python3 -B -m unittest discover -s tests/tools -v
+```
 
-**Aucune de ces deux étapes matérielles n'est déclarée terminée.**
-`OPENCORE` reste intact. PROBE1401 est désormais l'essai natif, pas l'ancien
-observateur. Le builder n'effectue ni copie EFI ni chargement à chaud ; le
-préparateur séparé ne redémarre jamais. Ne pas présenter ce bundle comme un
-pilote graphique fonctionnel ou un bureau accéléré.
+Bundle déployé : `out/native-kext/compute-trial-0.2.0/Navi48Native.kext`.
+Le builder vérifie core/controller/source/SDK, exporte la révision Navi48
+épinglée et applique la correction PSP fail-closed déjà auditée. Les moteurs
+sont renommés à la compilation, sans service/hook graphique amont. Dix
+firmwares et deux bytecodes publics sont vérifiés dans le Mach-O signé.
+Tout warning ou import non revu fait échouer le build.
 
-[Historique du kext](../../docs/reports/2026-10-09-native-kext.md) ·
-[Historique DMA 0.1.1](../../docs/reports/2026-10-09-native-dma.md) ·
-[Contrôleur](../../native/Navi48FirmwareCore/IOKIT-CONTROLLER.md)
+321 contrôles service/lifecycle, 162 DMA, 29 pool IOVM et 39 accès RAM, tous
+ASan/UBSan, plus 78 tests Python. **Les doubles ne fabriquent jamais une preuve
+positive de calcul Radeon.** Les notices amont/firmware restent dans le bundle.
+Les exports EFI privés et sorties de compilation restent hors Git.
+
+Historique conservé : [0.1.0](../../docs/reports/2026-10-09-native-kext.md),
+[DMA 0.1.1](../../docs/reports/2026-10-09-native-dma.md),
+[essai PCI/DMA 0.1.2](../../docs/reports/2026-10-09-native-load-preparation.md),
+[contrôleur RO](../../native/Navi48FirmwareCore/IOKIT-CONTROLLER.md).

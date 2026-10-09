@@ -3,16 +3,19 @@
 #include "ExperimentalCompute.hpp"
 namespace fakecompute {
 unsigned calls = 0;
+bool simulatePublication = false;
 void (*onRun)() = nullptr;
 }
 namespace n48native {
 ExperimentalCompute::~ExperimentalCompute() = default;
 void ExperimentalCompute::cancel() { __atomic_store_n(&cancelled_, 1, __ATOMIC_RELEASE); }
-bool ExperimentalCompute::hardwareTouched() const { return false; }
+bool ExperimentalCompute::hardwareTouched() const { return facts_.hardwareTouched; }
 ExperimentalCompute::Snapshot ExperimentalCompute::snapshot() const { return facts_; }
-IOReturn ExperimentalCompute::run(IOService *, IOPCIDevice *, IOWorkLoop *, const Input &) {
+IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop *loop, const Input &) {
     ++fakecompute::calls;
     if (fakecompute::onRun) fakecompute::onRun();
+    facts_.hardwareTouched = fakecompute::simulatePublication; // lifetime model ONLY
+    if (facts_.hardwareTouched) { owner->retain(); pci->retain(); loop->retain(); } // boot-long model, no GPU work
     facts_.failedStage = 1;
     facts_.result = static_cast<uint32_t>(kIOReturnNotReady);
     return kIOReturnNotReady;

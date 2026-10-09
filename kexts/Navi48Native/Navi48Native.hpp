@@ -7,8 +7,9 @@
 #include "DmaBuffer.hpp"
 #include "ExperimentalCompute.hpp"
 
-// Stage-1 native driver. Owns the real PCI resource controller; never advertises
-// an accelerator or executes firmware while the controller has hardware blockers.
+// Native PCI/DMA service, plus a separately permitted one-shot hardware trial.
+// Old RO Claims/blockers remain intact. Never advertises an accelerator;
+// experimental firmware/compute requires BOTH compute=1 and risk=1.
 class Navi48Native final : public IOService {
     OSDeclareDefaultStructors(Navi48Native)
 public:

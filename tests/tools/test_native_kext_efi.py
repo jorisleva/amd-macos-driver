@@ -29,6 +29,34 @@ class ProfileTests(unittest.TestCase):
             'navi48-native-platform=1 navi48-native-scratch-offset=0x4000000 navi48-native-scratch-bytes=0x1800000'))
         efi.validate_profile(source, plistlib.loads(plistlib.dumps(result)), OFFSET, SIZE)
 
+    def test_compute_profile_is_explicit_and_exact(self):
+        source = baseline()
+        result = efi.make_profile(source, OFFSET, 64 * 1024 * 1024, compute=True)
+        efi.validate_profile(source, result, OFFSET, 64 * 1024 * 1024, compute=True)
+        self.assertTrue(result['NVRAM']['Add'][efi.GUID]['boot-args'].endswith(
+            'navi48-native-compute=1 navi48-native-risk=1'))
+        with self.assertRaises(ValueError):
+            efi.validate_profile(source, result, OFFSET, 64 * 1024 * 1024)
+        for offset, size in ((OFFSET, SIZE), (OFFSET + 65536, 64 * 1024 * 1024)):
+            with self.assertRaises(ValueError):
+                efi.make_profile(source, offset, size, compute=True)
+        for key in ('navi48-native-compute=1', 'navi48-native-risk=1'):
+            changed = copy.deepcopy(result)
+            changed['NVRAM']['Add'][efi.GUID]['boot-args'] = changed['NVRAM']['Add'][efi.GUID]['boot-args'].replace(key, '')
+            with self.assertRaises(ValueError):
+                efi.validate_profile(source, changed, OFFSET, 64 * 1024 * 1024, compute=True)
+
+    def test_previous_native_profile_requires_exact_version_and_shape(self):
+        source = baseline()
+        old = efi.make_profile(source, OFFSET, SIZE)
+        old['Kernel']['Add'][-1] = efi.injection_entry(version='0.1.2')
+        efi.validate_profile(source, old, OFFSET, SIZE, version='0.1.2')
+        with self.assertRaises(ValueError):
+            efi.validate_profile(source, old, OFFSET, SIZE)
+        old['Kernel']['Add'][-1]['Enabled'] = False
+        with self.assertRaises(ValueError):
+            efi.validate_profile(source, old, OFFSET, SIZE, version='0.1.2')
+
     def test_bad_candidates_fail_without_modifying_source(self):
         source = baseline()
         before = plistlib.dumps(source)
