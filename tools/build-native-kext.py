@@ -95,7 +95,7 @@ def check_dependencies(dep_files, source, sdk):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--core-build', type=Path, default=ROOT / 'out/native-platform/final-a')
+    parser.add_argument('--core-build', type=Path, default=ROOT / 'out/native-platform/service-dma')
     args = parser.parse_args()
     if sys.platform != 'darwin':
         parser.error('macOS Command Line Tools required')
@@ -238,10 +238,13 @@ def main():
         with zipfile.ZipFile(package, 'w', compression=zipfile.ZIP_DEFLATED) as bundle:
             for path in sorted(artifact.rglob('*')):
                 if path.is_file(): bundle.write(path, path.relative_to(destination).as_posix())
+        warnings = sum(len(re.findall(r'\bwarning:', p.read_text())) for p in logs.glob('*-compile.log'))
+        if warnings:
+            raise ValueError('Kernel compilation warnings require review: ' + str(warnings))
         report.update(status='kext-built-signed-not-load-qualified', architecture='x86_64',
                       artifact=str(artifact.relative_to(ROOT)), executable_sha256=digest(executable),
                       package_sha256=digest(package), firmwares_verified_in_kext=len(embedded),
-                      warning_count=sum(len(re.findall(r'\bwarning:', p.read_text())) for p in logs.glob('*-compile.log')))
+                      warning_count=warnings)
     except Exception as error:
         report.update(status='failed', error=str(error))
         raise

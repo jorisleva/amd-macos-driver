@@ -148,7 +148,7 @@ bool Navi48Native::publish(const n48native::PlatformSnapshot &snapshot, const n4
         number(report, "GPUInitialized", 0, 32) &&
         number(report, "DMAAllocatorInvoked", 1, 32) &&
         number(report, "DMAPhase", static_cast<uint32_t>(dma.phase), 32) &&
-        number(report, "DMAResult", dma.result, 32) && number(report, "DMABytes", dma.bytes) &&
+        number(report, "DMAResult", static_cast<uint32_t>(dma.result), 32) && number(report, "DMABytes", dma.bytes) &&
         number(report, "DMAPages", dma.pages, 32) && number(report, "DMADeviceMapper", dma.deviceMapper, 32) &&
         number(report, "DMAAddressPublished", 0, 32) && number(report, "GPUDMAValidated", 0, 32) &&
         number(report, "CandidateBAR0Offset", snapshot.candidateInBar0.offset) &&
