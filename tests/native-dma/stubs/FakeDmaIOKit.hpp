@@ -87,7 +87,7 @@ public:
  static bool OutputHost64(IODMACommand *,Segment64,void *,UInt32){return true;}
  static IODMACommand *withSpecification(SegmentFunction function,UInt8 bits,UInt64 segment,MappingOptions map,
   UInt64 transfer,UInt32 align,IOMapper *mapper=nullptr,void *ref=nullptr){
-  if(function!=OutputHost64||bits!=48||segment!=4096||map!=kMapped||transfer||align!=4096||ref||
+  if(function!=OutputHost64||(bits!=48&&bits!=64)||segment!=4096||map!=kMapped||transfer||align!=4096||ref||
    bool(mapper)!=fake::deviceMapper||fake::error==fake::Error::Command)return nullptr;
   return new IODMACommand;
  }
@@ -106,6 +106,7 @@ public:
   *offset=fake::error==fake::Error::Range?4096:0;*bytes=memory_->data.size();return 0;
  }
  const IOBufferMemoryDescriptor *getMemoryDescriptor()const{return memory_;}
+ IOBufferMemoryDescriptor *getIOMemoryDescriptor()const{return memory_;}
  IOReturn gen64IOVMSegments(UInt64 *offset,Segment64 *pages,UInt32 *count){
   if(fake::error==fake::Error::Generate)return kIOReturnIOError;
   for(uint32_t i=0;i<*count;++i)pages[i]={fake::dmaBase+uint64_t{i}*(fake::discontiguous?8192:4096),4096};

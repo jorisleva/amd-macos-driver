@@ -4,8 +4,9 @@ import re
 
 PRODUCT = 'Navi48Native'
 BUNDLE_ID = 'com.amd-macos-driver.' + PRODUCT
-VERSION = '0.1.2'
-SOURCE_FILES = ('Navi48Native.cpp', 'Navi48Native.hpp', 'DmaBuffer.cpp', 'DmaBuffer.hpp', 'kmod_info.c', 'Info.plist')
+VERSION = '0.2.0'
+SOURCE_FILES = ('Navi48Native.cpp', 'Navi48Native.hpp', 'DmaBuffer.cpp', 'DmaBuffer.hpp', 'kmod_info.c', 'Info.plist',
+                'ExperimentalCompute.cpp', 'ExperimentalCompute.hpp', 'ComputeAccess.hpp', 'ComputeSysMem.cpp', 'ComputeSysMem.hpp', 'ComputeLog.cpp')
 CORE_HEADERS = ('IOKitController.hpp', 'AmdGpuAccess.hpp', 'Preflight.hpp', 'NativeLog.hpp', 'amd/amdgpu_ip.h')
 LIBRARIES = {'com.apple.iokit.IOPCIFamily': '1.0', 'com.apple.kpi.iokit': '20.0.0',
              'com.apple.kpi.libkern': '20.0.0', 'com.apple.kpi.mach': '20.0.0',
@@ -42,11 +43,12 @@ def audit_imports(demangled):
     # function or framework implementation may remain unresolved at this link.
     classes = ('IOService::', 'IORegistryEntry::', 'OSMetaClass::', 'OSMetaClassBase::',
                'OSObject::', 'OSNumber::', 'OSDictionary::', 'IOCommandGate::', 'IOWorkLoop::',
-               'IOBufferMemoryDescriptor::', 'IODMACommand::', 'IOMapper::')
+               'IOBufferMemoryDescriptor::', 'IODMACommand::', 'IOMapper::', 'OSIterator::')
     functions = {'_IOLog', '_IOSleep', '_PE_parse_boot_argn', '_IOLockAlloc', '_IOLockFree',
                  '_IOLockLock', '_IOLockUnlock', '_OSCompareAndSwapPtr', '_bzero', '___bzero',
                  '_current_thread', '_kernel_task', '_memcpy', '_memset', '_vsnprintf',
-                 'operator new(unsigned long)', 'operator delete(void*)', 'vtable for IOService'}
+                 'operator new(unsigned long)', 'operator delete(void*)', 'vtable for IOService',
+                 '_mach_absolute_time', '_absolutetime_to_nanoseconds', '_IODelay', '_IOLockTryLock', '_snprintf'}
     pci = {'IOPCIDevice::metaClass', 'IOPCIDevice::extendedConfigRead8(unsigned long long)',
            'IOPCIDevice::extendedConfigRead16(unsigned long long)',
            'IOPCIDevice::extendedConfigRead32(unsigned long long)'}
@@ -64,7 +66,8 @@ def audit_defined(symbols):
     required = {'__start', '__stop', '_kmod_info', '__realmain', '__antimain',
                 '__ZN12Navi48Native5startEP9IOService',
                 '__ZN9n48native15IOKitController7acquireEP9IOServiceS2_RKNS_15PlatformRequestE',
-                '__ZN6amdgpu8psp_initERNS_13DeviceContextERNS_10PSPContextE'}
+                '__ZN6amdgpu8psp_initERNS_13DeviceContextERNS_10PSPContextE',
+                '__ZN10n48compute8psp_initERNS_13DeviceContextERNS_10PSPContextE'}
     if not any(symbol.startswith('__ZN9n48native9DmaBuffer8allocateE') for symbol in symbols):
         raise ValueError('Missing real DMA allocator implementation')
     if not required.issubset(symbols):
@@ -74,4 +77,4 @@ def audit_defined(symbols):
         raise ValueError('Legacy graphics hook/client included in native kext')
     return {'kmod_entry_points': True, 'native_ioservice': True,
             'platform_controller_linked': True, 'psp_core_linked': True,
-            'dma_allocator_linked': True, 'legacy_hooks': False}
+            'dma_allocator_linked': True, 'native_compute_engines_linked': True, 'legacy_hooks': False}

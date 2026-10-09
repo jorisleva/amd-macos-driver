@@ -195,7 +195,7 @@ def audit_platform_symbols(undefined, defined, allowed):
             'hardware_authorized': False}
 
 
-def verify_firmware_bytes(data, sections, listing, firmware_dir, expected):
+def verify_firmware_bytes(data, sections, listing, firmware_dir, expected, shader_dir=None):
     symbols = {}
     for line in listing.splitlines():
         fields = line.split()
@@ -204,6 +204,8 @@ def verify_firmware_bytes(data, sections, listing, firmware_dir, expected):
                 raise ValueError('Duplicate firmware symbol')
             symbols[fields[2]] = int(fields[0], 16)
     wanted = {'_fw_' + Path(name).stem + suffix for name in expected for suffix in ('', '_size')}
+    shader_names = ('store_magic', 'store_magic_hsa') if shader_dir is not None else ()
+    wanted |= {'_fw_shader_' + name + suffix for name in shader_names for suffix in ('', '_size')}
     if set(symbols) != wanted:
         raise ValueError('Missing/extra firmware; no optional private Apple blobs accepted')
 
@@ -226,4 +228,11 @@ def verify_firmware_bytes(data, sections, listing, firmware_dir, expected):
         if actual != source or hashlib.sha256(actual).hexdigest() != expected_hash:
             raise ValueError('Embedded firmware hash/bytes mismatch')
         result[filename] = {'bytes': size, 'sha256': expected_hash}
+    for stem in shader_names:
+        source = (Path(shader_dir) / (stem + '.bin')).read_bytes()
+        name = '_fw_shader_' + stem
+        size = struct.unpack('<Q', read(name + '_size', 8))[0]
+        if size != len(source) or read(name, size) != source:
+            raise ValueError('Embedded compute shader mismatch: ' + stem)
+        result['shaders/' + stem + '.bin'] = {'bytes': size, 'sha256': hashlib.sha256(source).hexdigest()}
     return result

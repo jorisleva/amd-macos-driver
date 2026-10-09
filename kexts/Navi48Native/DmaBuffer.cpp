@@ -69,7 +69,7 @@ IOReturn DmaBuffer::fail(IOReturn result) {
     (void)retire(); // cleanup failure becomes terminal quarantine, never success
     return result;
 }
-IOReturn DmaBuffer::allocate(IOService *owner, IOPCIDevice *pci, IOWorkLoop *loop, uint64_t bytes) {
+IOReturn DmaBuffer::allocate(IOService *owner, IOPCIDevice *pci, IOWorkLoop *loop, uint64_t bytes, bool directCpu) {
     if (operating_ || facts_.phase != Phase::Empty) return kIOReturnNotReady;
     Operation operation(operating_);
     facts_.phase = Phase::Preparing;
@@ -105,7 +105,8 @@ IOReturn DmaBuffer::allocate(IOService *owner, IOPCIDevice *pci, IOWorkLoop *loo
     // it is NEVER converted into a manually asserted identity-DMA qualification.
     r->mapper = IOMapper::copyMapperForDevice(pci);
     facts_.deviceMapper = r->mapper != nullptr;
-    r->command = IODMACommand::withSpecification(kIODMACommandOutputHost64, 48,
+    directCpu_ = directCpu;
+    r->command = IODMACommand::withSpecification(kIODMACommandOutputHost64, directCpu ? 64 : 48,
         kPageBytes, IODMACommand::kMapped, 0, static_cast<UInt32>(kPageBytes), r->mapper);
     if (!r->command) return fail(kIOReturnNoMemory);
     result = r->command->setMemoryDescriptor(r->memory, false);
@@ -133,6 +134,11 @@ IOReturn DmaBuffer::allocate(IOService *owner, IOPCIDevice *pci, IOWorkLoop *loo
     if (!liveLease()) return fail(kIOReturnNotReady);
     facts_.phase = Phase::Prepared; facts_.result = kIOReturnSuccess;
     return kIOReturnSuccess;
+}
+void *DmaBuffer::coherentCpuAddress() const {
+    if (operating_ || !directCpu_ || !ready() || resources_->command->getIOMemoryDescriptor() != resources_->memory)
+        return nullptr;
+    return resources_->memory->getBytesNoCopy();
 }
 bool DmaBuffer::pageAddress(uint32_t page, uint64_t &ioVmAddress) const {
     ioVmAddress = 0;

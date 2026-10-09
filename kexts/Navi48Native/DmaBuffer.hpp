@@ -29,7 +29,10 @@ public:
     ~DmaBuffer();
     DmaBuffer(const DmaBuffer &) = delete;
     DmaBuffer &operator=(const DmaBuffer &) = delete;
-    IOReturn allocate(IOService *owner, IOPCIDevice *pci, IOWorkLoop *loop, uint64_t bytes);
+    IOReturn allocate(IOService *owner, IOPCIDevice *pci, IOWorkLoop *loop, uint64_t bytes, bool directCpu = false);
+    // For ring/fence consumers: 64-bit DMA output prevents address-width bounce;
+    // reject a different DMA descriptor. Lifetime MUST be retained/quarantined.
+    void *coherentCpuAddress() const;
     Snapshot snapshot() const { return facts_; }
     // Addresses are IOVM output from IODMACommand, never getPhysicalSegment().
     // A GART consumer must bind each page, not mistake this for a GPU VA.
@@ -60,6 +63,7 @@ private:
     Resources *resources_{nullptr};
     static void *volatile quarantine_;
     Snapshot facts_{};
+    bool directCpu_{false};
     bool operating_{false}; // foreign callbacks cannot reenter release/prepare
     bool ready() const;
     bool outsideGate() const;

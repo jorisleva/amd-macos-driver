@@ -20,6 +20,7 @@ from native_core_audit import (LOCAL_FILES, PLATFORM_FILES, audit_symbols, audit
 from native_kext_audit import (PRODUCT, VERSION, SOURCE_FILES, CORE_HEADERS,
                                audit_sources, audit_imports, audit_defined)
 from navi48_binary import file_segments
+from native_compute_build import export_compute
 from pinned_downloads import digest, extract_zip, fetch, local_output
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -74,8 +75,9 @@ def verify_core(core, lock, manifest):
 
 
 def check_dependencies(dep_files, source, sdk):
-    allowed = {'driver/' + name for name in SOURCE_FILES if name.endswith(('.cpp', '.hpp', '.c'))} | {
+    required = {'driver/' + name for name in SOURCE_FILES if name.endswith(('.cpp', '.hpp', '.c'))} | {
         'core/' + name for name in CORE_HEADERS}
+    allowed = required | {p.relative_to(source).as_posix() for p in (source / 'hardware').rglob('*') if p.is_file()}
     seen = set()
     for dep in dep_files:
         for name in dep.read_text().replace('\\\n', '').split(':', 1)[1].split():
@@ -87,7 +89,7 @@ def check_dependencies(dep_files, source, sdk):
                 seen.add(relative)
             elif not path.is_relative_to(sdk):
                 raise ValueError('Kext dependency outside isolated source/SDK: ' + str(path))
-    if seen != allowed:
+    if not required.issubset(seen):
         raise ValueError('Missing selected kernel compilation dependency')
     return sorted(seen)
 
@@ -140,6 +142,8 @@ def main():
         for name in CORE_HEADERS + ('IOKitController.cpp',):
             target = subset / name; target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(core / 'source' / name, target)
+        hardware = source / 'hardware'; hardware.mkdir()
+        engine_sources = export_compute(ROOT, hardware, manifest['navi48_revision'])
         tests = destination / 'tests'; shutil.copytree(test_root, tests)
         dma_tests = destination / 'dma-tests'; shutil.copytree(dma_test_root, dma_tests)
         snapshots = destination / 'inputs'; snapshots.mkdir()
@@ -147,7 +151,7 @@ def main():
         shutil.copyfile(MODULE / 'manifest.json', snapshots / 'native-manifest.json')
         shutil.copyfile(core / 'build-report.json', snapshots / 'core-build-report.json')
         for name in ('build-native-kext.py', 'native_kext_audit.py', 'native_core_audit.py',
-                     'navi48_binary.py', 'pinned_downloads.py'):
+                     'navi48_binary.py', 'pinned_downloads.py', 'native_compute_build.py'):
             shutil.copyfile(ROOT / 'tools' / name, snapshots / name)
         report['source_sha256'] = {p.relative_to(source).as_posix(): digest(p) for p in sorted(source.rglob('*')) if p.is_file()}
         report['test_sha256'] = {p.relative_to(tests).as_posix(): digest(p) for p in sorted(tests.rglob('*')) if p.is_file()}
@@ -166,7 +170,7 @@ def main():
         run(['xcrun', 'clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror', '-Wshadow',
              '-O1', '-g', '-fsanitize=address,undefined', '-fno-sanitize-recover=all',
              '-I', tests / 'stubs', '-I', dma_tests / 'stubs', '-I', driver, '-I', subset, driver / 'Navi48Native.cpp',
-             subset / 'IOKitController.cpp', driver / 'DmaBuffer.cpp', tests / 'service_smoke.cpp', '-o', smoke], logs / 'smoke-build.log')
+             subset / 'IOKitController.cpp', driver / 'DmaBuffer.cpp', tests / 'experimental_stub.cpp', tests / 'service_smoke.cpp', '-o', smoke], logs / 'smoke-build.log')
         run([smoke], logs / 'smoke.log')
         match = re.search(r'native_kext_smoke: (\d+) checks, (\d+) failed', (logs / 'smoke.log').read_text())
         if not match or int(match[2]):
@@ -200,13 +204,26 @@ def main():
                      '-fno-c++-static-destructors'] if cxx else []
             run(['xcrun', 'clang++' if cxx else 'clang'] + common + flags +
                 ['-MF', dep, '-c', driver / name, '-o', obj], logs / (obj.stem + '-compile.log'))
+        for path in [driver / 'ExperimentalCompute.cpp', driver / 'ComputeSysMem.cpp', driver / 'ComputeLog.cpp'] + [hardware / n for n in engine_sources]:
+            obj = objects / ('compute-' + path.stem + '.o'); dep = obj.with_suffix('.d'); deps.append(dep)
+            flags = ['-std=c++17', '-fapple-kext', '-fno-exceptions', '-fno-rtti', '-fcheck-new',
+                     '-fno-c++-static-destructors', '-Damdgpu=n48compute', '-I', hardware, '-I', hardware / 'amd']
+            run(['xcrun', 'clang++'] + common + flags + ['-MF', dep, '-c', path, '-o', obj], logs / (obj.stem + '-compile.log'))
         report['compiled_source_dependencies'] = check_dependencies(deps, source, sdk)
+        report['experimental_compute'] = {'linked': True, 'called_by_service': True,
+            'opt_in': ['navi48-native-compute=1', 'navi48-native-risk=1'],
+            'engine_namespace': 'n48compute', 'shaders': 2, 'expected_lanes': 64,
+            'io_vm_per_page': True, 'cpu_physical_dma_assumption': False,
+            'gpu_visible_resources_retained_until_reboot': True,
+            'hardware_execution_observed': False, 'metal_implemented': False,
+            'user_client_implemented': False}
         artifact = destination / (PRODUCT + '.kext')
         executable = artifact / 'Contents/MacOS' / PRODUCT; executable.parent.mkdir(parents=True)
         run(['xcrun', 'clang++', '-arch', 'x86_64', '-target', 'x86_64-apple-macos11.0',
              '-isysroot', sysroot, '-nostdlib', '-Xlinker', '-kext', objects / 'Navi48Native.o',
              objects / 'kmod_info.o', objects / 'DmaBuffer.o',
              objects / 'Navi48PlatformController.o', objects / 'Navi48FirmwareCore.o',
+             *sorted(objects.glob('compute-*.o')),
              '-L' + str(sdk / 'Library/x86_64'), '-lkmodc++', '-lkmod', '-Wl,-no_deduplicate',
              '-o', executable], logs / 'link.log')
         shutil.copyfile(driver / 'Info.plist', artifact / 'Contents/Info.plist')
@@ -230,7 +247,7 @@ def main():
         report['symbol_audit'] = audit_defined(defined)
         data = executable.read_bytes()
         embedded = verify_firmware_bytes(data, file_segments(data), output(['nm', '-n', executable]),
-                                         core / 'firmware', lock['linux_firmware']['expected_sha256'])
+                                         core / 'firmware', lock['linux_firmware']['expected_sha256'], hardware / 'shaders')
         (destination / 'embedded-firmware.json').write_text(json.dumps(embedded, indent=2) + '\n')
         sums = {p.relative_to(artifact).as_posix(): digest(p) for p in sorted(artifact.rglob('*')) if p.is_file()}
         (destination / 'SHA256SUMS.json').write_text(json.dumps(sums, indent=2) + '\n')
@@ -243,7 +260,8 @@ def main():
             raise ValueError('Kernel compilation warnings require review: ' + str(warnings))
         report.update(status='kext-built-signed-not-load-qualified', architecture='x86_64',
                       artifact=str(artifact.relative_to(ROOT)), executable_sha256=digest(executable),
-                      package_sha256=digest(package), firmwares_verified_in_kext=len(embedded),
+                      package_sha256=digest(package), firmwares_verified_in_kext=sum(not n.startswith('shaders/') for n in embedded),
+                      compute_shaders_verified_in_kext=sum(n.startswith('shaders/') for n in embedded),
                       warning_count=warnings)
     except Exception as error:
         report.update(status='failed', error=str(error))

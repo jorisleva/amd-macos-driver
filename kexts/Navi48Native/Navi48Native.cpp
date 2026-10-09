@@ -24,6 +24,13 @@ bool readRequest(n48native::PlatformRequest &out) {
     out = {{offset, bytes}, kPspLayoutBytes}; // candidate only; NOT a VRAM ownership proof
     return true;
 }
+bool computeOptIn(bool &enabled) {
+    uint32_t compute = 0, risk = 0;
+    const bool c = PE_parse_boot_argn("navi48-native-compute", &compute, sizeof(compute));
+    const bool r = PE_parse_boot_argn("navi48-native-risk", &risk, sizeof(risk));
+    enabled = c && r && compute == 1 && risk == 1;
+    return enabled || ((!c || compute == 0) && (!r || risk == 0));
+}
 bool number(OSDictionary *dictionary, const char *key, uint64_t value, unsigned bits = 64) {
     auto *entry = OSNumber::withNumber(value, bits);
     if (!entry) return false;
@@ -48,6 +55,7 @@ void Navi48Native::free() {
     // IOKit must have drained external calls before free. stop/failure normally
     // already withdrew everything; this also handles partially initialized objects.
     if (gateAdded_) stop(getProvider());
+    if (compute_) { delete compute_; compute_ = nullptr; }
     if (gateAdded_) workLoop_->removeEventSource(gate_);
     gateAdded_ = false;
     if (gate_) gate_->release();
@@ -63,7 +71,8 @@ IOService *Navi48Native::probe(IOService *provider, SInt32 *score) {
 bool Navi48Native::start(IOService *provider) {
     Action action{};
     action.provider = provider;
-    if (!gateAdded_ || !readRequest(action.request) || !OSDynamicCast(IOPCIDevice, provider)) return false;
+    if (!gateAdded_ || !readRequest(action.request) || !computeOptIn(action.computeRequested) ||
+        !OSDynamicCast(IOPCIDevice, provider)) return false;
     // IODMACommand::prepare/complete can block and call back into this service.
     // Keep the service, provider and workloop alive across the unlocked phase.
     retain(); provider->retain();
@@ -76,6 +85,11 @@ bool Navi48Native::start(IOService *provider) {
             OSDynamicCast(IOPCIDevice, provider), loop, kDmaBytes) : kIOReturnNoMemory;
         if (action.preparedDma) action.dmaFacts = action.preparedDma->snapshot();
         result = gate->runAction(finishAction, &action);
+        if (result == kIOReturnSuccess && action.runCompute) {
+            (void)compute_->run(this, OSDynamicCast(IOPCIDevice, provider), loop, action.computeInput);
+            action.computeFacts = compute_->snapshot();
+            result = gate->runAction(computeFinishAction, &action);
+        }
     }
     dispose(action); // DMA first, then BAR mappings/PCI close, ALL outside gate
     gate->release(); loop->release(); provider->release(); release();
@@ -123,8 +137,20 @@ IOReturn Navi48Native::finishGated(Action &action) {
         return kIOReturnNotReady;
     }
     dma_ = action.preparedDma; action.preparedDma = nullptr;
+    if (action.computeRequested) {
+        compute_ = new n48native::ExperimentalCompute;
+        if (!compute_) { stage_ = Stage::Failed; withdrawGated(action, true); return kIOReturnNoMemory; }
+        auto &input = action.computeInput;
+        input.offset = snapshot.candidateInBar0.offset; input.bytes = snapshot.candidateInBar0.bytes;
+        for (unsigned i = 0; i < 3; ++i) { input.barPhysical[i] = snapshot.bars[i].cpuPhysical; input.barBytes[i] = snapshot.bars[i].bytes; }
+        input.consoleBase = snapshot.console.rawBase; input.rowBytes = snapshot.console.rowBytes;
+        input.width = snapshot.console.width; input.height = snapshot.console.height; input.depth = snapshot.console.depth;
+        input.consoleOffset = snapshot.console.offset; input.consoleLength = snapshot.console.length;
+        action.runCompute = true; stage_ = Stage::Computing;
+        return kIOReturnSuccess;
+    }
     stage_ = Stage::MappedFirmwareBlocked;
-    IOLog("Navi48Native: started 0.1.2 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
+    IOLog("Navi48Native: started 0.2.0 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
           snapshot.bdf, static_cast<unsigned long long>(action.dmaFacts.bytes), action.dmaFacts.pages,
           action.dmaFacts.deviceMapper ? 1u : 0u, snapshot.blockers);
     // Actual RAM allocation + IOVM generation, NOT GPU DMA qualification.
@@ -133,6 +159,40 @@ IOReturn Navi48Native::finishGated(Action &action) {
     return kIOReturnSuccess;
 }
 
+IOReturn Navi48Native::computeFinishAction(OSObject *owner, void *argument, void *, void *, void *) {
+    return static_cast<Navi48Native *>(owner)->computeFinishGated(*static_cast<Action *>(argument));
+}
+IOReturn Navi48Native::computeFinishGated(Action &action) {
+    const auto &f = action.computeFacts;
+    auto *report = OSDictionary::withCapacity(24);
+    bool ok = report && number(report, "SchemaVersion", 1, 32) && number(report, "Stage", f.stage, 32) &&
+        number(report, "FailedStage", f.failedStage, 32) && number(report, "Result", f.result, 32) &&
+        number(report, "HardwareTouched", f.hardwareTouched, 32) && number(report, "FirmwareLoaded", f.firmwareLoaded, 32) &&
+        number(report, "GPUInitialized", f.initialized, 32) && number(report, "ComputePassed", f.computePassed, 32) &&
+        number(report, "VRAMBytes", f.vramBytes) && number(report, "MCBase", f.mcBase) &&
+        number(report, "DMABuffers", f.dmaBuffers, 32) && number(report, "LanesChecked", f.lanesChecked, 32) &&
+        number(report, "LanesWrong", f.lanesWrong, 32) && number(report, "ResourcesRetainedUntilReboot", f.hardwareTouched, 32) &&
+        number(report, "HardwareQualificationComplete", 0, 32) && number(report, "MetalAcceleration", 0, 32);
+    for (unsigned variant = 0; ok && variant < 2; ++variant) {
+        auto *values = OSDictionary::withCapacity(9);
+        if (!values) { ok = false; break; }
+        ok = number(values, "ElapsedUs", f.elapsedUs[variant]);
+        constexpr const char *observed[4] = {"Observed0", "Observed1", "Observed2", "Observed3"};
+        constexpr const char *expected[4] = {"Expected0", "Expected1", "Expected2", "Expected3"};
+        for (unsigned i = 0; ok && i < 4; ++i) ok = number(values, observed[i], f.observed[variant][i], 32) && number(values, expected[i], f.expected[variant][i], 32);
+        if (ok) ok = report->setObject(variant ? "LLVMShader" : "AssemblyShader", values);
+        values->release();
+    }
+    if (ok) ok = setProperty("Navi48Native,Compute", report);
+    if (report) report->release();
+    stage_ = Stage::TrialFinished;
+    if (!f.hardwareTouched) { stage_ = Stage::Failed; withdrawGated(action, true); return kIOReturnNotReady; }
+    // Once GPU-visible, retain the service/module, RAM, mappings and PCI lease
+    // even when a stage times out or registry publication fails. NO hot unload.
+    if (!ok) IOLog("Navi48Native: compute report publication failed; GPU-visible resources retained\n");
+    if (cancelStart_ || isInactive()) withdrawGated(action, true);
+    return kIOReturnSuccess; // service retains diagnostic FAILURE as well as success
+}
 bool Navi48Native::publish(const n48native::PlatformSnapshot &snapshot, const n48native::DmaBuffer::Snapshot &dma) {
     auto *report = OSDictionary::withCapacity(24);
     if (!report) return false;
@@ -172,6 +232,13 @@ bool Navi48Native::publish(const n48native::PlatformSnapshot &snapshot, const n4
     return ok;
 }
 void Navi48Native::withdrawGated(Action &action, bool stopBase) {
+    if (compute_ && compute_->hardwareTouched()) {
+        compute_->cancel();
+        action.stopBase = stopBase && baseStarted_;
+        if (stopBase) baseStarted_ = false;
+        removeProperty(kResources); // diagnostics never advertise an active lease after stop
+        return; // terminal owner cycle retains every GPU-visible object until reboot
+    }
     action.retiredDma = dma_; dma_ = nullptr;
     action.retiredController = controller_; controller_ = nullptr;
     action.stopBase = stopBase && baseStarted_;
@@ -192,7 +259,8 @@ void Navi48Native::dispose(Action &action) {
 }
 IOReturn Navi48Native::retireAction(OSObject *owner, void *argument, void *stopBase, void *, void *) {
     auto *self = static_cast<Navi48Native *>(owner);
-    if (self->stage_ == Stage::Starting || self->stage_ == Stage::PreparingDma) {
+    if (self->stage_ == Stage::Starting || self->stage_ == Stage::PreparingDma || self->stage_ == Stage::Computing) {
+        if (self->compute_) self->compute_->cancel();
         self->cancelStart_ = true; // finishAction owns rollback, including base stop
         return kIOReturnSuccess;
     }
