@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstring>
 #include <vector>
+#ifndef NAVI48_DMA_SHARED_IOKIT
 using UInt8 = uint8_t; using UInt16 = uint16_t; using UInt32 = uint32_t; using UInt64 = uint64_t;
 using IOReturn = uint32_t; using IOOptionBits = uint32_t;
 using vm_size_t = uint64_t; using vm_offset_t = uint64_t;
@@ -13,6 +14,7 @@ constexpr IOReturn kIOReturnSuccess=0, kIOReturnNotReady=1, kIOReturnBadArgument
  kIOReturnNoMemory=3, kIOReturnIOError=4, kIOReturnNotPermitted=5;
 constexpr IOOptionBits kIODirectionIn=1, kIODirectionOut=2, kIODirectionInOut=3;
 inline int taskTag; inline task_t kernel_task=&taskTag;
+#endif
 namespace fake {
 enum class Error { None, Allocate, Length, MemoryPrepare, Command, Assign, Prepare, Range,
  Generate, Cursor, Count, Zero, Alignment, PageLength, Limit, Alias, Sync, Transfer, Clear, Complete };
@@ -21,9 +23,11 @@ inline bool deviceMapper=true, discontiguous=false;
 inline unsigned live=0, physicalReads=0, prepares=0, clears=0, completes=0, allocations=0;
 inline uint32_t syncDirection=0;
 inline void (*callback)()=nullptr;
+inline void (*afterGenerate)()=nullptr;
 inline std::vector<uint8_t> gpuBytes;
 inline constexpr uint64_t dmaBase=0x0000100000000000ULL; // intentionally NOT CPU physical
 }
+#ifndef NAVI48_DMA_SHARED_IOKIT
 class OSObject {
  unsigned references_=1;
 public:
@@ -46,6 +50,7 @@ public:
  case 0x2c:return 0x1849;case 0x2e:return 0x5417;default:return 0;}}
  uint32_t configRead32(uint8_t){++reads;return 0x030000c0;}
 };
+#endif
 class IOMapper:public OSObject {
 public:
  static IOMapper *copyMapperForDevice(IOService *){return fake::deviceMapper?new IOMapper:nullptr;}
@@ -114,6 +119,7 @@ public:
   }
   *offset=memory_->data.size()-(fake::error==fake::Error::Cursor?4096:0);
   if(fake::error==fake::Error::Count)--*count;
+  if(fake::afterGenerate)fake::afterGenerate();
   return 0;
  }
  IOReturn synchronize(IOOptionBits direction){

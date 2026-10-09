@@ -3,6 +3,7 @@
 // Adapted from the previous mapping doubles, without changing/replaying their suite.
 // Mapping VAs remain opaque sentinels; there is no GPU or firmware execution.
 #pragma once
+#define NAVI48_DMA_SHARED_IOKIT 1 // reuse the dedicated DMA doubles with these base classes
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -15,6 +16,9 @@ using SInt32 = int32_t;
 using UInt8 = uint8_t;
 using UInt16 = uint16_t;
 using UInt32 = uint32_t;
+using UInt64 = uint64_t;
+using vm_size_t = uint64_t;
+using vm_offset_t = uint64_t;
 using IOByteCount = uint64_t;
 using IOOptionBits = uint32_t;
 using IOReturn = uint32_t;
@@ -26,6 +30,8 @@ constexpr IOReturn kIOReturnUnsupported = 2;
 constexpr IOReturn kIOReturnTimeout = 3;
 constexpr IOReturn kIOReturnIOError = 4;
 constexpr IOReturn kIOReturnBadArgument = 5;
+constexpr IOReturn kIOReturnNoMemory = 6, kIOReturnNotPermitted = 7;
+constexpr IOOptionBits kIODirectionIn = 1, kIODirectionOut = 2, kIODirectionInOut = 3;
 constexpr IOOptionBits kIOMapAnywhere = 0x1, kIOMapCacheMask = 0xf00, kIOMapInhibitCache = 0x100;
 constexpr IOOptionBits kIOMapReadOnly = 0x1000, kIOMapUnique = 0x4000000, kIOMemoryMapperNone = 0x800;
 inline int kernelTaskTag;
@@ -39,6 +45,7 @@ constexpr uint32_t kIOMessageServiceIsTerminated = 1, kIOMessageServiceIsRequest
 constexpr uint32_t kIOMessageServiceIsSuspended = 3, kIOMessageDeviceWillPowerOff = 4;
 namespace fake {
 inline unsigned liveObjects = 0, liveLocks = 0, mapsMade = 0, mapsFreed = 0, bootReads = 0;
+inline thread_local unsigned gateDepth = 0;
 inline bool bootPresent = true, lockFails = false;
 inline uint32_t bootValue = 1;
 inline bool offsetPresent = true, bytesPresent = true, baseStart = true;
@@ -132,13 +139,16 @@ public:
     explicit IOCommandGate(OSObject *owner) : owner_(owner) {}
     static IOCommandGate *commandGate(OSObject *owner, Action = nullptr) { return fake::admit() ? new IOCommandGate(owner) : nullptr; }
     virtual IOReturn runAction(Action action, void *a = nullptr, void *b = nullptr, void *c = nullptr, void *d = nullptr) {
-        std::lock_guard<std::recursive_mutex> guard(mutex); return action(owner_, a, b, c, d);
+        std::lock_guard<std::recursive_mutex> guard(mutex);
+        struct Depth { Depth() { ++fake::gateDepth; } ~Depth() { --fake::gateDepth; } } depth;
+        return action(owner_, a, b, c, d);
     }
 };
 class IOWorkLoop : public OSObject {
     IOCommandGate *gate_ = nullptr;
 public:
     static IOWorkLoop *workLoop() { return fake::admit() ? new IOWorkLoop : nullptr; }
+    bool inGate() const { return fake::gateDepth != 0; }
     virtual IOReturn addEventSource(IOCommandGate *gate) { gate_ = gate; gate_->retain(); return kIOReturnSuccess; }
     virtual IOReturn removeEventSource(IOCommandGate *gate) {
         if (gate_ != gate) return kIOReturnBadArgument;

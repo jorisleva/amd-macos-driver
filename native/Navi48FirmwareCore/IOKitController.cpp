@@ -293,4 +293,17 @@ PlatformResult IOKitController::revalidate() {
     const auto result = revalidateLocked();
     return result == PlatformResult::MappingsHeldUnqualified ? result : failLocked(result, retired);
 }
+PlatformResult IOKitController::revalidateHeld() {
+    if (!lock_) return PlatformResult::NoLock;
+    Guard guard(lock_);
+    if (facts_.phase != PlatformPhase::MappedUnqualified) return PlatformResult::NotMapped;
+    const auto result = revalidateLocked();
+    if (result != PlatformResult::MappingsHeldUnqualified) {
+        facts_.phase = PlatformPhase::Failed;
+        facts_.result = result;
+        context_ = {}; // never expose a stale context while holding the invalid lease
+        updateValidity();
+    }
+    return result;
+}
 } // namespace n48native

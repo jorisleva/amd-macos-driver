@@ -4,7 +4,7 @@ import re
 
 PRODUCT = 'Navi48Native'
 BUNDLE_ID = 'com.amd-macos-driver.' + PRODUCT
-VERSION = '0.1.1'
+VERSION = '0.1.2'
 SOURCE_FILES = ('Navi48Native.cpp', 'Navi48Native.hpp', 'DmaBuffer.cpp', 'DmaBuffer.hpp', 'kmod_info.c', 'Info.plist')
 CORE_HEADERS = ('IOKitController.hpp', 'AmdGpuAccess.hpp', 'Preflight.hpp', 'NativeLog.hpp', 'amd/amdgpu_ip.h')
 LIBRARIES = {'com.apple.iokit.IOPCIFamily': '1.0', 'com.apple.kpi.iokit': '20.0.0',

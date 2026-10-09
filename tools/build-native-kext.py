@@ -126,7 +126,8 @@ def main():
               'installed': False, 'loaded': False, 'hardware_qualified': False,
               'gpu_initialized': False, 'firmware_sent': False, 'default_enabled': False,
               'activation_boot_arg': 'navi48-native-platform=1', 'explicit_scratch_required': True,
-              'dma_allocator_linked': True, 'dma_allocator_invoked_by_service': False,
+              'dma_allocator_linked': True, 'dma_allocator_invoked_by_service': True,
+              'dma_start_allocation_bytes': 65536, 'dma_allocation_outside_workloop_gate': True,
               'gpu_dma_validated': False, 'step1_complete': False, 'step2_complete': False,
               'core_build': str(core.relative_to(ROOT)), 'core_object_sha256': inputs,
               'sdk_revision': sdk_pin['revision'], 'navi48_revision': manifest['navi48_revision']}
@@ -164,8 +165,8 @@ def main():
         smoke = destination / 'native_kext_smoke'
         run(['xcrun', 'clang++', '-std=c++17', '-Wall', '-Wextra', '-Werror', '-Wshadow',
              '-O1', '-g', '-fsanitize=address,undefined', '-fno-sanitize-recover=all',
-             '-I', tests / 'stubs', '-I', driver, '-I', subset, driver / 'Navi48Native.cpp',
-             subset / 'IOKitController.cpp', tests / 'service_smoke.cpp', '-o', smoke], logs / 'smoke-build.log')
+             '-I', tests / 'stubs', '-I', dma_tests / 'stubs', '-I', driver, '-I', subset, driver / 'Navi48Native.cpp',
+             subset / 'IOKitController.cpp', driver / 'DmaBuffer.cpp', tests / 'service_smoke.cpp', '-o', smoke], logs / 'smoke-build.log')
         run([smoke], logs / 'smoke.log')
         match = re.search(r'native_kext_smoke: (\d+) checks, (\d+) failed', (logs / 'smoke.log').read_text())
         if not match or int(match[2]):

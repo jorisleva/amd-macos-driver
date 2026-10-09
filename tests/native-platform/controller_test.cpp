@@ -336,6 +336,18 @@ static void instability() {
         CHECK(s.blockers & MappingLease); f.closed(); CHECK(f.acquire(c) == PlatformResult::Used);
     }
 }
+static void deferredRelease() {
+    Fixture f; IOKitController c; f.mapped(c);
+    CHECK(c.revalidateHeld() == PlatformResult::MappingsHeldUnqualified);
+    f.platform.video.v_length = 2 * MiB;
+    CHECK(c.revalidateHeld() == PlatformResult::ConsoleChanged);
+    const auto s = c.snapshot();
+    CHECK(s.phase == PlatformPhase::Failed && !s.observationsValid && !s.accessEnabled);
+    CHECK(s.mappingsHeld && s.providerOpen && f.pci.client == &f.owner);
+    CHECK((s.blockers & MappingLease) != 0 && f.pci.closes == 0);
+    CHECK(c.revalidateHeld() == PlatformResult::NotMapped && f.acquire(c) == PlatformResult::Used);
+    c.release(); f.closed(); CHECK(f.pci.closes == 1);
+}
 static IOKitController *reentrantController = nullptr;
 static void reentrantCleanup() {
     for (bool failure : {false, true}) {
@@ -374,7 +386,7 @@ static void serializedLifetime() {
     a.join(); b.join(); closer.join(); CHECK(valid.load()); f.closed();
 }
 int main() {
-    admission(); configAndDescriptors(); candidates(); mapsAndLifetime(); consoleEvidence(); instability(); reentrantCleanup(); serializedLifetime();
+    admission(); configAndDescriptors(); candidates(); mapsAndLifetime(); consoleEvidence(); instability(); deferredRelease(); reentrantCleanup(); serializedLifetime();
     CHECK(fake::liveObjects == 0 && fake::liveLocks == 0 && fake::mapsMade == fake::mapsFreed);
     std::printf("native_platform_test: %u checks, %u failed\n", checks, failed);
     return failed ? 1 : 0;

@@ -10,6 +10,7 @@ OSDefineMetaClassAndStructors(Navi48Native, IOService)
 namespace {
 constexpr const char *kResources = "Navi48Native,Resources";
 constexpr uint64_t kPspLayoutBytes = 24 * 1024 * 1024;
+constexpr uint64_t kDmaBytes = 64 * 1024; // system RAM, independent of the BAR0 candidate
 bool readRequest(n48native::PlatformRequest &out) {
     out = {};
     uint32_t enabled = 0;
@@ -63,8 +64,21 @@ bool Navi48Native::start(IOService *provider) {
     Action action{};
     action.provider = provider;
     if (!gateAdded_ || !readRequest(action.request) || !OSDynamicCast(IOPCIDevice, provider)) return false;
-    const IOReturn result = gate_->runAction(startAction, &action);
-    dispose(action);
+    // IODMACommand::prepare/complete can block and call back into this service.
+    // Keep the service, provider and workloop alive across the unlocked phase.
+    retain(); provider->retain();
+    auto *loop = workLoop_; auto *gate = gate_;
+    loop->retain(); gate->retain();
+    IOReturn result = gate->runAction(startAction, &action);
+    if (result == kIOReturnSuccess) {
+        action.preparedDma = new n48native::DmaBuffer;
+        action.dmaResult = action.preparedDma ? action.preparedDma->allocate(this,
+            OSDynamicCast(IOPCIDevice, provider), loop, kDmaBytes) : kIOReturnNoMemory;
+        if (action.preparedDma) action.dmaFacts = action.preparedDma->snapshot();
+        result = gate->runAction(finishAction, &action);
+    }
+    dispose(action); // DMA first, then BAR mappings/PCI close, ALL outside gate
+    gate->release(); loop->release(); provider->release(); release();
     return result == kIOReturnSuccess;
 }
 IOReturn Navi48Native::startAction(OSObject *owner, void *argument, void *, void *, void *) {
@@ -80,35 +94,49 @@ IOReturn Navi48Native::startGated(Action &action) {
     if (controller_ && !cancelStart_) result = controller_->acquire(this, action.provider, action.request);
     n48native::PlatformSnapshot snapshot{};
     if (controller_) snapshot = controller_->snapshot();
-    if (result != n48native::PlatformResult::MappingsHeldUnqualified || cancelStart_ || isInactive() ||
-        !publish(snapshot)) {
+    if (result != n48native::PlatformResult::MappingsHeldUnqualified || cancelStart_ || isInactive()) {
         IOLog("Navi48Native: start refused result=%u bar=0x%x; firmware not executed\n",
               static_cast<unsigned>(result), snapshot.failedBar);
         stage_ = Stage::Failed;
         withdrawGated(action, true);
         return kIOReturnNotReady;
     }
-    // Successful SERVICE acquisition is not successful GPU initialization. The
-    // actual firmware core is linked in the bundle, but cannot be invoked using
-    // fabricated Claims or a guessed writable VRAM interval.
-    // Keep Starting during all foreign publication calls, so a recursive stop
-    // cancels setup rather than freeing a controller that setup is still using.
-    if (cancelStart_ || isInactive()) {
+    stage_ = Stage::PreparingDma;
+    return kIOReturnSuccess; // continue start() OUTSIDE the workloop gate
+}
+IOReturn Navi48Native::finishAction(OSObject *owner, void *argument, void *, void *, void *) {
+    return static_cast<Navi48Native *>(owner)->finishGated(*static_cast<Action *>(argument));
+}
+IOReturn Navi48Native::finishGated(Action &action) {
+    auto result = n48native::PlatformResult::NotMapped;
+    if (stage_ == Stage::PreparingDma && controller_ && !cancelStart_ && !isInactive() &&
+        action.dmaResult == kIOReturnSuccess && action.dmaFacts.phase == n48native::DmaBuffer::Phase::Prepared)
+        result = controller_->revalidateHeld();
+    n48native::PlatformSnapshot snapshot{};
+    if (controller_) snapshot = controller_->snapshot();
+    if (result != n48native::PlatformResult::MappingsHeldUnqualified || cancelStart_ || isInactive() ||
+        !publish(snapshot, action.dmaFacts) || cancelStart_ || isInactive()) {
+        IOLog("Navi48Native: DMA/final validation refused dma=0x%x platform=%u cancelled=%u; no GPU submission\n",
+              action.dmaResult, static_cast<unsigned>(result), cancelStart_ ? 1u : 0u);
         stage_ = Stage::Failed;
         withdrawGated(action, true);
         return kIOReturnNotReady;
     }
+    dma_ = action.preparedDma; action.preparedDma = nullptr;
     stage_ = Stage::MappedFirmwareBlocked;
-    IOLog("Navi48Native: PCI resources held bdf=0x%x blockers=0x%x; GPU initialization blocked\n",
-          snapshot.bdf, snapshot.blockers);
-    // No registerService/accelerator capability: no GPU client can use this yet.
+    IOLog("Navi48Native: started 0.1.2 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
+          snapshot.bdf, static_cast<unsigned long long>(action.dmaFacts.bytes), action.dmaFacts.pages,
+          action.dmaFacts.deviceMapper ? 1u : 0u, snapshot.blockers);
+    // Actual RAM allocation + IOVM generation, NOT GPU DMA qualification.
+    // Never markPublished(), write BAR contents, invoke firmware or register an
+    // accelerator using fabricated Claims or a guessed writable VRAM interval.
     return kIOReturnSuccess;
 }
 
-bool Navi48Native::publish(const n48native::PlatformSnapshot &snapshot) {
+bool Navi48Native::publish(const n48native::PlatformSnapshot &snapshot, const n48native::DmaBuffer::Snapshot &dma) {
     auto *report = OSDictionary::withCapacity(24);
     if (!report) return false;
-    bool ok = number(report, "SchemaVersion", 1, 32) &&
+    bool ok = number(report, "SchemaVersion", 2, 32) &&
         number(report, "PlatformPhase", static_cast<uint32_t>(snapshot.phase), 32) &&
         number(report, "PlatformResult", static_cast<uint32_t>(snapshot.result), 32) &&
         number(report, "PCIBDF", snapshot.bdf, 32) && number(report, "PCICommand", snapshot.command, 32) &&
@@ -118,6 +146,11 @@ bool Navi48Native::publish(const n48native::PlatformSnapshot &snapshot) {
         number(report, "AccessEnabled", snapshot.accessEnabled, 32) &&
         number(report, "FirmwareCoreLinked", 1, 32) && number(report, "FirmwareExecuted", 0, 32) &&
         number(report, "GPUInitialized", 0, 32) &&
+        number(report, "DMAAllocatorInvoked", 1, 32) &&
+        number(report, "DMAPhase", static_cast<uint32_t>(dma.phase), 32) &&
+        number(report, "DMAResult", dma.result, 32) && number(report, "DMABytes", dma.bytes) &&
+        number(report, "DMAPages", dma.pages, 32) && number(report, "DMADeviceMapper", dma.deviceMapper, 32) &&
+        number(report, "DMAAddressPublished", 0, 32) && number(report, "GPUDMAValidated", 0, 32) &&
         number(report, "CandidateBAR0Offset", snapshot.candidateInBar0.offset) &&
         number(report, "CandidateBytes", snapshot.candidateInBar0.bytes) &&
         number(report, "ConsoleResult", static_cast<uint32_t>(snapshot.console.result), 32) &&
@@ -139,12 +172,17 @@ bool Navi48Native::publish(const n48native::PlatformSnapshot &snapshot) {
     return ok;
 }
 void Navi48Native::withdrawGated(Action &action, bool stopBase) {
+    action.retiredDma = dma_; dma_ = nullptr;
     action.retiredController = controller_; controller_ = nullptr;
     action.stopBase = stopBase && baseStarted_;
     if (stopBase) baseStarted_ = false; // before any foreign close can reenter stop
     removeProperty(kResources); // no stale "MappingsHeld" report after withdrawal
 }
 void Navi48Native::dispose(Action &action) {
+    // No buffer address was published: safe cleanup of this prepared allocation.
+    // On uncertain complete/clear DmaBuffer retains a terminal quarantine instead.
+    if (action.preparedDma) { delete action.preparedDma; action.preparedDma = nullptr; }
+    if (action.retiredDma) { delete action.retiredDma; action.retiredDma = nullptr; }
     if (action.retiredController) {
         action.retiredController->release();
         delete action.retiredController;
@@ -154,8 +192,8 @@ void Navi48Native::dispose(Action &action) {
 }
 IOReturn Navi48Native::retireAction(OSObject *owner, void *argument, void *stopBase, void *, void *) {
     auto *self = static_cast<Navi48Native *>(owner);
-    if (self->stage_ == Stage::Starting) {
-        self->cancelStart_ = true; // recursive callback: do not touch an acquiring controller
+    if (self->stage_ == Stage::Starting || self->stage_ == Stage::PreparingDma) {
+        self->cancelStart_ = true; // finishAction owns rollback, including base stop
         return kIOReturnSuccess;
     }
     if (self->stage_ != Stage::Failed) self->stage_ = Stage::Retired;
@@ -174,7 +212,7 @@ void Navi48Native::invalidate() {
     Action action{}; action.provider = getProvider();
     gate_->runAction(retireAction, &action);
     dispose(action);
-    IOLog("Navi48Native: unpublished resources retired; no automatic GPU resume\n");
+    IOLog("Navi48Native: resource retirement requested; no automatic GPU resume\n");
 }
 IOReturn Navi48Native::message(UInt32 type, IOService *provider, void *argument) {
     if (provider == getProvider() && (type == kIOMessageServiceIsTerminated ||

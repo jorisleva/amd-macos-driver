@@ -3,6 +3,7 @@
 // No core PSP routine is linked into this process; all device APIs are doubles.
 #include "Navi48Native.hpp"
 #include <cstdio>
+#include <thread>
 
 static unsigned checks = 0, failed = 0;
 #define CHECK(x) do { ++checks; if (!(x)) { ++failed; std::fprintf(stderr, "%d: %s\n", __LINE__, #x); } } while (0)
@@ -18,6 +19,8 @@ struct Fixture {
         fake::bootPresent = true; fake::bootValue = 1; fake::offsetPresent = true; fake::bytesPresent = true;
         fake::scratchOffset = 64 * MiB; fake::scratchBytes = 24 * MiB;
         fake::allocationBudget = -1; fake::baseStart = true; fake::lockFails = false; fake::events.clear();
+        fake::error = fake::Error::None; fake::callback = nullptr; fake::afterGenerate = nullptr;
+        fake::deviceMapper = true; fake::discontiguous = false;
         driver.provider = &pci; fake::platform = &platform;
         pci.set16(0x00, 0x1002); pci.set16(0x02, 0x7550); pci.set16(0x2c, 0x1849); pci.set16(0x2e, 0x5417);
         pci.set32(0x08, 0x030000c0); pci.set16(0x04, 7);
@@ -36,6 +39,7 @@ struct Fixture {
         platform.video.v_width = 1024; platform.video.v_height = 256; platform.video.v_depth = 32;
     }
     ~Fixture() {
+        fake::callback = nullptr; fake::afterGenerate = nullptr;
         driver.free();
         for (auto *d : descriptors) d->release();
         fake::platform = nullptr;
@@ -77,6 +81,11 @@ int main() {
         CHECK(value(report, "MappingsHeld") == 1 && value(report, "ObservationsValid") == 1);
         CHECK(value(report, "Blockers") == n48native::kUnimplementedHardwareProofs);
         CHECK(value(report, "GPUInitialized") == 0 && value(report, "FirmwareExecuted") == 0 && value(report, "AccessEnabled") == 0);
+        CHECK(value(report, "SchemaVersion") == 2 && value(report, "DMAAllocatorInvoked") == 1);
+        CHECK(value(report, "DMAPhase") == static_cast<uint32_t>(n48native::DmaBuffer::Phase::Prepared));
+        CHECK(value(report, "DMAResult") == kIOReturnSuccess);
+        CHECK(value(report, "DMABytes") == 65536 && value(report, "DMAPages") == 16);
+        CHECK(value(report, "DMADeviceMapper") == 1 && value(report, "DMAAddressPublished") == 0 && value(report, "GPUDMAValidated") == 0);
         auto *bar = dynamic_cast<OSDictionary *>(report ? report->getObject("BAR0") : nullptr);
         CHECK(value(bar, "CPUPhysical") == 0x440000000ULL);
         IOUserClient *client = reinterpret_cast<IOUserClient *>(uintptr_t{1});
@@ -108,6 +117,69 @@ int main() {
         f.descriptors[2]->afterMap = [](IOMemoryDescriptor *) { fake::allocationBudget = 0; };
         CHECK(!f.driver.start(&f.pci)); f.closed(); CHECK(f.driver.stops == 1);
         fake::allocationBudget = -1;
+    }
+    // Blocking prepare is outside the gate; stop on ANOTHER thread returns
+    // without withdrawing the PCI lease until allocation exits and unwinds.
+    {
+        Fixture f; f.init(); callbackDriver = &f.driver; callbackProvider = &f.pci;
+        const auto allocations = fake::allocations, clears = fake::clears, completes = fake::completes;
+        fake::callback = []() {
+            CHECK(!callbackDriver->getWorkLoop()->inGate());
+            CHECK(callbackProvider->client == callbackDriver);
+            std::thread stop([]() { callbackDriver->stop(callbackProvider); }); stop.join();
+        };
+        CHECK(!f.driver.start(&f.pci));
+        CHECK(fake::allocations == allocations + 1 && fake::clears == clears + 1 && fake::completes == completes + 1);
+        f.closed(); CHECK(f.driver.stops == 1);
+    }
+    // Prepare failures unwind outside the gate, before closing the provider.
+    for (auto error : {fake::Error::Allocate, fake::Error::MemoryPrepare, fake::Error::Command,
+                       fake::Error::Prepare, fake::Error::Generate, fake::Error::Alias}) {
+        Fixture f; f.init(); callbackDriver = &f.driver; callbackProvider = &f.pci;
+        fake::error = error;
+        fake::callback = []() {
+            CHECK(!callbackDriver->getWorkLoop()->inGate());
+            CHECK(callbackProvider->client == callbackDriver);
+        };
+        CHECK(!f.driver.start(&f.pci)); f.closed(); CHECK(f.driver.stops == 1);
+    }
+    // Configuration/console can change while the gate is released. Revalidation
+    // invalidates the controller but holds its lease until DMA cleanup finishes.
+    for (bool console : {false, true}) {
+        Fixture f; f.init(); callbackDriver = &f.driver; callbackProvider = &f.pci;
+        const auto clears = fake::clears, completes = fake::completes;
+        if (console) fake::afterGenerate = []() { ++fake::platform->video.v_height; };
+        else fake::afterGenerate = []() { callbackProvider->set16(0x04, 3); };
+        fake::callback = []() {
+            CHECK(!callbackDriver->getWorkLoop()->inGate());
+            CHECK(callbackProvider->client == callbackDriver);
+        };
+        CHECK(!f.driver.start(&f.pci));
+        CHECK(fake::clears == clears + 1 && fake::completes == completes + 1);
+        f.closed(); CHECK(f.driver.stops == 1);
+    }
+    // Final publication failure also cleans the actual DMA allocation.
+    {
+        Fixture f; f.init(); const auto clears = fake::clears;
+        fake::afterGenerate = []() { fake::allocationBudget = 0; };
+        CHECK(!f.driver.start(&f.pci));
+        CHECK(fake::clears == clears + 1); f.closed(); CHECK(f.driver.stops == 1);
+        fake::allocationBudget = -1;
+    }
+    // Default mapper + discontiguous page list are reported, never labelled GPU
+    // qualified. A complete service suspension drains RAM before closing PCI.
+    {
+        Fixture f; f.init(); fake::deviceMapper = false; fake::discontiguous = true;
+        CHECK(f.driver.start(&f.pci));
+        auto *report = dynamic_cast<OSDictionary *>(f.driver.getProperty("Navi48Native,Resources"));
+        CHECK(value(report, "DMADeviceMapper") == 0 && value(report, "GPUDMAValidated") == 0);
+        callbackDriver = &f.driver; callbackProvider = &f.pci;
+        fake::callback = []() {
+            CHECK(!callbackDriver->getWorkLoop()->inGate());
+            CHECK(callbackProvider->client == callbackDriver);
+        };
+        CHECK(f.driver.message(kIOMessageServiceIsSuspended, &f.pci) == kIOReturnSuccess);
+        f.closed(); f.driver.stop(&f.pci); CHECK(f.driver.stops == 1);
     }
     // Provider termination invalidates mappings, then base stop happens once.
     {

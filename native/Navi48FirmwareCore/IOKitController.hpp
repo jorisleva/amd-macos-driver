@@ -68,6 +68,10 @@ public:
     // memory/bus-master enable, MMIO read/write or firmware invocation.
     PlatformResult acquire(IOService *owner, IOService *provider, const PlatformRequest &request);
     PlatformResult revalidate(); // uncertainty is terminal; releases this unpublished lease
+    // Same checks, but on failure leaves invalid mappings/PCI lease retained so
+    // the service can retire DMA OUTSIDE its gate BEFORE release()/PCI close.
+    // Failure is terminal; observations/access are invalid, no retry/rearm.
+    PlatformResult revalidateHeld();
     PlatformSnapshot snapshot(); // values only: NEVER returns pointers, maps or a DeviceContext
     void release(); // only unpublished resources exist in this implementation
 
