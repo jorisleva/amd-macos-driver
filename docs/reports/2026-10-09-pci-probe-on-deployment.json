@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "status": "on-profile-deployed-and-readback-verified-awaiting-reboot",
+  "created_utc": "2026-10-09T10:30:25.042508+00:00",
+  "destination_efi": "/Volumes/PROBE1401/EFI",
+  "source_profile": "out/efi-pci/pci-probe-20261009-essai-c/package/02-enabled/EFI",
+  "efi_files": 104,
+  "off_to_on_changed_files": [
+    "OC/config.plist"
+  ],
+  "only_semantic_config_change": "navi48-pci-probe=0 -> navi48-pci-probe=1",
+  "on_config_sha256": "8c62c5f6a5e0cc58c873f4028437b8b2cced410865478064f62c3839078e059b",
+  "executable_sha256": "8146414908a073e9fe504ca89b285d3ee076f2e327eb606cecaf023d0cd1ca94",
+  "off_backup_usb": "/Volumes/PROBE1401/PROFILS-TAHOE/avant-on-20261009T102938Z/EFI",
+  "off_backup_local": "out/efi-pci/enable-probe1401-20261009T102938Z/off-backup/EFI",
+  "off_boot_logs_preserved_sha256": {
+    "opencore-2026-10-09-095215.txt": "8110936525da2651f4cae3a7843053cc085d239f1936a86ba467a111b15a0d05"
+  },
+  "remount_readback_verified": true,
+  "ocvalidate_passed": true,
+  "signature_verified": true,
+  "open_core_efi_files_unchanged": 101,
+  "current_session_boot_args": "-v keepsyms=1 debug=0x100 navi48bringup=0 rdna4-off=1 -liludbgall navi48-pci-probe=0",
+  "sip": "System Integrity Protection status: enabled.",
+  "authenticated_root": "Authenticated Root status: enabled",
+  "reboot_performed": false,
+  "hot_load_or_unload_performed": false,
+  "on_boot_test_performed": false,
+  "format_performed": false,
+  "nvram_or_security_changed_by_tool": false,
+  "local_evidence_directory": "out/efi-pci/enable-probe1401-20261009T102938Z",
+  "local_evidence_sha256": {
+    "out/efi-pci/enable-probe1401-20261009T102938Z/EFI-ON-SHA256SUMS.json": "52e3349b49942a13272ed47c1ee5b5a61eddc0ed9dc1803b8fae15762bface77",
+    "out/efi-pci/enable-probe1401-20261009T102938Z/remount.log": "41d68716702ae562f86a8eb21d391ebedcd193aa6b4b87908148d4fefc9faadd",
+    "out/efi-pci/enable-probe1401-20261009T102938Z/report.json": "9bd534a9c259589f4eeeb396ff0092b5453856b6ac3121b4176180523757bb96",
+    "out/efi-pci/enable-probe1401-20261009T102938Z/staged-ocvalidate.log": "c6ed79189c6862a6ed768118e807789856d19d7d5a680daed0112defafc01566",
+    "out/efi-pci/enable-probe1401-20261009T102938Z/staged-signature.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/enable-probe1401-20261009T102938Z/sync.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/enable-probe1401-20261009T102938Z/unmount.log": "9b264d6d96b8e5996b7e3e47c1b67ec790ef3b96a8ef040a4e57b25f78a34e7d",
+    "out/efi-pci/enable-probe1401-20261009T102938Z/usb-ocvalidate.log": "40d5e7737bdb0d4e6c7bdbe20dd9d174a3fdf13b572c44f8a537f9269b59d8da",
+    "out/efi-pci/enable-probe1401-20261009T102938Z/usb-signature.log": "f2bcdb8df3685439c5bdb8a3b2e9ed863a938b864122bf6e63b42b1c05c1e3f1"
+  }
+}

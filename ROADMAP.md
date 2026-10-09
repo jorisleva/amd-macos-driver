@@ -1,16 +1,18 @@
 # Roadmap — RX 9070 XT sur macOS Tahoe
 
-Cette feuille de route décrit le développement pour le PC **Ryzen 5 5600X + RX 9070 XT**, avec Windows comme système actuel et un autre Mac disponible pour compiler.
+Cette feuille de route décrit le développement pour le PC **Ryzen 5 5600X + RX 9070 XT**, désormais démarré sous Tahoe. Windows reste le banc de référence des shaders ; un autre Mac a produit le corpus AIR.
 
 L'architecture, le périmètre et les références sont détaillés dans [README.md](README.md).
 
 **État au 7 octobre 2026 : calcul et rendu Apple AIR validés sur la Radeon sous Windows.** Le nouveau corpus graphique passe 48 cas, avec 330 984 pixels exacts, zéro écart et zéro erreur Vulkan/synchronisation ; ses 96 fichiers RGBA sont identiques au contrôle GLSL rejoué. Les deux calculs passent 36 cas chacun, les trois rejets attendus passent, ainsi que 15 tests Rust ciblés, 13 CTest et huit tests Python. Le support USB OpenCore/Tahoe est préparé et vérifié. Le boot physique, Navi48, RADV Darwin et la couche Metal sous macOS restent ouverts ; aucune étape globale macOS n’est déclarée complète. Preuves : [rapport Metal/Radeon et USB](docs/reports/2026-10-07-metal-graphics-radeon.md), [rapport Metal/Mac](docs/reports/2026-10-07-metal-graphics.md) et [rapport Apple AIR/Radeon](docs/reports/2026-10-07-apple-air-radeon.md).
 
-**Mise à jour du 9 octobre :** l'utilisateur atteint le menu d'installation
-Tahoe avec le profil RapidEFI adapté. Le correctif de langue française est
-préparé. Ce premier accès à la récupération ne clôt pas l'étape 3 :
-installation, identification de la carte et stabilité restent à contrôler.
-Voir le [rapport RapidEFI](docs/reports/2026-10-09-rapidefi.md).
+**Mise à jour du 9 octobre :** Tahoe 26.7.1 / 25G241 est exécuté sur le PC,
+sans accélération. L'EFI est sauvegardée sur OPENCORE et localement. Deux
+builds Navi48 x86_64, les dix firmwares liés, 2 905 contrôles logiciels et 160
+mutations sont vérifiés ; aucun chargement. Le secours et les démarrages
+répétés restent à qualifier : l'étape 3 n'est pas clôturée. L'audit refuse
+l'usage du bundle amont comme module PCI strictement passif.
+Voir le [rapport Navi48](docs/reports/2026-10-09-navi48-build-audit.md).
 
 ## Principes de progression
 
@@ -45,7 +47,7 @@ La préparation de Tahoe peut avancer en parallèle des étapes 1 et 2. L'intég
 - [ ] Choisir l'écran et le connecteur utilisés pour la première qualification.
 - [x] Relever le modèle du Mac, son système, Xcode et les SDK disponibles (MacBookAir7,2 x86_64, 8 Gio, macOS 15.7.8 / 24G824, Xcode 26.3 / 17C529 et SDK macOS 26.2 ; [inventaire](docs/reports/2026-10-07-apple-air.md)).
 - [x] Créer une branche de développement dédiée dans le fork (`codex/amd-validation-bootstrap`).
-- [x] Fixer les révisions du fork, du projet AMD, de Mesa, de MacKernelSDK et des firmwares (SDK et dix blobs récupérés avec empreintes conformes ; [préparation](docs/AMD-DEPENDENCIES.md), compilation/hardware encore ouverts).
+- [x] Fixer les révisions du fork, du projet AMD, de Mesa, de MacKernelSDK et des firmwares (SDK et dix blobs vérifiés jusque dans le build Navi48 ; [préparation](docs/AMD-DEPENDENCIES.md), Mesa et essais matériels encore ouverts).
 - [x] Inventorier les fonctions Metal génériques et les dépendances directes à NVK, NVRM, NVIDIAShared et NVENC ([audit initial](docs/AMD-INTEGRATION.md), wrapper à approfondir).
 - [x] Définir les contrats du backend AMD : buffers, images, mémoire partagée, commandes, synchronisation et présentation ([contrat proposé](docs/AMD-INTEGRATION.md), implémentation et qualification à faire).
 - [x] Inventorier les licences et notices à conserver ([inventaire](docs/AMD-INTEGRATION.md), MacKernelSDK APSL 2.0 et notices firmware désormais récupérés ; redistribution du futur paquet à vérifier).
@@ -58,13 +60,13 @@ La préparation de Tahoe peut avancer en parallèle des étapes 1 et 2. L'intég
 
 - [x] Compiler le traducteur Rust et lancer ses tests logiciels pertinents (Mac x86_64 et Windows : 15 tests réussis dont quatre régressions graphiques ; suite complète toujours bloquée par corpus absent).
 - [x] Installer et qualifier les outils de compilation Metal et de validation SPIR-V pour le premier calcul (Apple Metal 32023.864, LLVM 20.1.8 et SPIRV-Tools v2026.2 essayés sur Mac ; SDK Vulkan 1.4.350.0 utilisé sur Windows ; [procédure Mac](docs/VALIDATION-MACOS.md)).
-- [ ] Compiler le pilote AMD pour x86_64 avec MacKernelSDK.
+- [x] Compiler le pilote AMD pour x86_64 avec MacKernelSDK (Navi48 0.0.620 construit deux fois depuis des exports propres, signature et firmwares liés vérifiés ; [rapport](docs/reports/2026-10-09-navi48-build-audit.md), aucun chargement).
 - [ ] Construire Mesa à la révision attendue et appliquer les adaptations RADV Darwin dans l'ordre prévu.
 - [ ] Construire les outils de test et les composants Metal pour x86_64.
 - [ ] Remplacer les chemins propres à la machine de l'auteur par des paramètres documentés.
 - [ ] Traiter les fichiers et caches absents du dépôt public : générer ceux nécessaires à nos propres tests et identifier ceux qui restent nécessaires à l'intégration du bureau.
-- [ ] Vérifier l'architecture des binaires, les bibliothèques requises, les symboles et la signature des bundles.
-- [ ] Refaire la compilation depuis une copie propre, sans dépendre de fichiers non déclarés.
+- [ ] Vérifier l'architecture des binaires, les bibliothèques requises, les symboles et la signature des bundles (contrôles statiques Navi48 faits ; imports noyau Tahoe et autres composants ouverts).
+- [ ] Refaire la compilation depuis une copie propre, sans dépendre de fichiers non déclarés (deux builds Navi48 faits ; code/données identiques, binaires complets différents par métadonnées de debug/signature ; autres composants ouverts).
 - [ ] Préparer des paquets versionnés avec leurs empreintes et leur provenance.
 
 Les éléments produits ici sont des artefacts de test. Ils ne sont pas encore qualifiés pour être installés sur le PC.
@@ -96,15 +98,18 @@ La référence CPU sert uniquement à vérifier le résultat. Elle ne remplace p
 
 ## Étape 3 — Préparer Tahoe et identifier la carte
 
-- [ ] Préparer un disque de test et une configuration OpenCore adaptée au Ryzen et à la carte mère (support USB GPT préparé, récupération et deux EFI copiés/vérifiés, `ocvalidate` 1.0.8 réussi ; [guide](docs/OPENCORE-TAHOE.md). Partition cible et boot physique à qualifier).
-- [x] Fixer les versions/builds des supports Tahoe (récupération Apple 26.6.2 / 25G83, paquet complet 26.7.1 / 25G241 ; relever aussi le système réellement installé).
-- [ ] Obtenir un démarrage de référence sans notre accélération graphique.
+- [ ] Préparer un disque de test et une configuration OpenCore adaptée au Ryzen et à la carte mère (support USB GPT préparé, récupération et deux EFI copiés/vérifiés, `ocvalidate` 1.0.8 réussi ; [guide](docs/OPENCORE-TAHOE.md). EFI RapidEFI désormais sauvegardée ; répétabilité et secours à qualifier).
+- [x] Fixer les versions/builds des supports Tahoe (récupération Apple 26.6.2 / 25G83 ; système installé observé : 26.7.1 / 25G241).
+- [x] Obtenir un démarrage de référence sans notre accélération graphique (bureau IONDRVFramebuffer 1920 × 1080 observé ; zéro périphérique Metal).
 - [ ] Vérifier clavier, stockage, réseau et possibilité de récupérer les diagnostics.
-- [ ] Préparer et essayer le démarrage de secours permettant de désactiver le pilote expérimental.
-- [ ] Développer ou extraire un module minimal limité à l'identification PCI et aux dimensions des plages mémoire, sans initialisation GPU ni changement de mode d'affichage.
-- [ ] Vérifier l'identité de la carte et les plages mémoire par rapport au relevé matériel.
-- [ ] Vérifier que le module refuse les périphériques qui ne correspondent pas à la cible autorisée.
-- [ ] Vérifier le comportement lorsque le module est désactivé.
+- [ ] Préparer et essayer le démarrage de secours permettant de désactiver le pilote expérimental (copie vérifiée ; essai différé à la demande de l'utilisateur, non déclaré réussi).
+- [x] Développer ou extraire un module minimal limité à l'identification PCI et aux dimensions des plages mémoire, sans initialisation GPU ni changement de mode d'affichage ([Navi48PciProbe 0.1.0](kexts/Navi48PciProbe/), propriétés IORegistry seulement ; deux builds identiques, 1 048 contrôles et 25 mutations, aucun chargement à cette phase de développement).
+- [x] Préparer les configurations EFI d'essai OFF/ON et une référence exacte de l'EFI actuelle (copies vérifiées, `ocvalidate`, 44 tests Python ; [rapport](docs/reports/2026-10-09-pci-probe-efi.md)). Aucun boot exécuté pendant cette préparation.
+- [x] Préparer le support d'essai PROBE1401 avec le profil OFF (formatage autorisé sans sauvegarde ; 104 fichiers, signature et plist vérifiés après remontage ; OPENCORE intact ; [rapport](docs/reports/2026-10-09-probe1401-deployment.md)).
+- [x] Vérifier l'identité et les ressources rapportées par le module minimal : premier boot ON, six champs et cinq ressources conformes au provider du même boot, dont `1002:7550 / 1849:5417`, BAR0 256 Mio, BAR2 2 Mio, BAR5 512 Kio ([rapport ON](docs/reports/2026-10-09-pci-probe-on-boot.md)). Comparaison IORegistry seulement, pas validation d'accès aux BAR/VRAM.
+- [ ] Vérifier que le module refuse les périphériques qui ne correspondent pas à la cible autorisée (filtres et rejets validés en logiciel, pas encore dans le noyau).
+- [x] Vérifier un premier démarrage avec `navi48-pci-probe=0` : module réellement chargé, UUID conforme, aucun nœud attaché ([rapport OFF](docs/reports/2026-10-09-pci-probe-off-boot.md)). Pas de trace de chaque appel de probe ; répétabilité et stabilité prolongée restent ouvertes.
+- [x] Vérifier un premier retour à OPENCORE après ON : boot du 9 octobre à 11:31 UTC sans argument d'essai, module ou nœud d'observation, deux EFI inchangées ([rapport](docs/reports/2026-10-09-native-isolation.md)). Pas un test de restauration d'EFI endommagée.
 
 Le pilote existant doit être audité avant d'être utilisé pour ce premier relevé. Un commentaire « lecture seule » ne suffit pas à prouver l'absence d'écritures matérielles sur tous les chemins.
 
@@ -114,6 +119,11 @@ Le pilote existant doit être audité avant d'être utilisé pour ce premier rel
 
 ## Étape 4 — Valider le pilote noyau AMD
 
+- [x] Extraire un premier sous-ensemble firmware/IP/PSP/SMU/IMU en bibliothèque non chargeable, sans hooks Apple ni client utilisateur : deux builds identiques, dix firmwares liés vérifiés, 1 582 contrôles du modèle local, 22 mutations détectées ([rapport](docs/reports/2026-10-09-native-isolation.md)). Aucun chemin matériel exécuté.
+- [x] Raccorder les accès bornés BAR0/BAR2/MMIO, le binder et les chemins PSP layout/staging/GPCOM ; tester le même code sur RAM et vérifier les octets/trames, sans accès matériel (398 contrôles ASan/UBSan, [rapport](docs/reports/2026-10-09-native-access.md)).
+- [x] Coder le contrôleur de ressources IOKit : acquisition BAR0/BAR2/BAR5, références conservées, concordance PCI/descripteur/mapping, intervalle console rapporté, cache RO/UC demandé, revalidation et nettoyage partiel hors verrou ; 2 241 contrôles ASan/UBSan sur doubles IOKit ([rapport](docs/reports/2026-10-09-native-platform.md)). Aucun mapping Radeon exécuté, contexte désactivé.
+- [x] Produire le premier `Navi48Native.kext` : service IOKit possédant le contrôleur, personnalité PCI/entrées kmod, code firmware et dix blobs réellement liés ; compilé/signé, non installé/non chargé ([livrable](docs/reports/2026-10-09-native-kext.md)). GPU non initialisé ; ce livrable ne termine pas l'étape 1 matérielle.
+- [ ] Faire fonctionner/qualifier ce kext sur la plateforme : propriété GPU exclusive, origine/taille/base MC et réservations VRAM, console, cohérence HDP, DMA applicable, puissance/arrêt/restauration ; raccorder l'orchestration et couvrir les autres phases/bootloader, puis extraire mémoire/commandes compute. Un bail IOKit ou un bundle signé ne qualifie pas l'initialisation GPU.
 - [ ] Qualifier les firmwares nécessaires à la carte et enregistrer leurs empreintes.
 - [ ] Activer progressivement l'initialisation des blocs nécessaires aux essais mémoire et calcul.
 - [ ] Vérifier les allocations, transferts, protections et limites de mémoire.
@@ -230,8 +240,12 @@ Ces travaux seront classés après les premiers résultats :
 
 La liste opérationnelle des tâches et blocages est dans [Travail restant](docs/NEXT-STEPS.md).
 
-Exécuter le [corpus graphique Metal/AIR produit sur Mac](tests/shaders/apple/graphics/) sur la Radeon avec `tools/run-windows-graphics-probe.ps1 -DeviceId 0x7550 -ShaderOrigin metal-air`, puis rejouer le contrôle GLSL avec le banc modifié. AIR/SPIR-V/réflexion et l'adaptation statique de l'ABI sont livrés ; les pixels restent à qualifier. Commandes et limites : [validation graphique](docs/VALIDATION-GRAPHICS.md) et [rapport Metal/Mac](docs/reports/2026-10-07-metal-graphics.md). Conserver le calcul Apple AIR et les 48 cas hors écran comme contrôles de régression. La [procédure Mac/transfert](docs/VALIDATION-MACOS.md) et le [banc Windows](docs/VALIDATION-WINDOWS.md) permettent de rejouer le calcul.
+Les premiers boots **OFF puis ON** sur PROBE1401 sont observés : module chargé/non attaché en OFF, attaché à la bonne Radeon avec dictionnaire conforme en ON. [Rapport ON](docs/reports/2026-10-09-pci-probe-on-boot.md). Le premier retour OPENCORE est désormais vérifié, sans argument d'essai ni module chargé. La clé PROBE1401 reste ON, les deux EFI inchangées.
 
-MacKernelSDK et firmwares sont désormais épinglés et récupérés ; poursuivre la [compilation AMD](docs/AMD-DEPENDENCIES.md) sur Mac. L'EFI sans accélération et sa variante de secours sont préparés : compléter l'inventaire, choisir les supports et qualifier le [premier démarrage Tahoe](docs/OPENCORE-TAHOE.md). L'assemblage AMD, le boot et la récupération physiques restent ouverts.
+Le premier `Navi48Native.kext` est créé, avec son service IOKit, le contrôleur et le vrai core firmware lié. Non installé/non chargé, GPU non initialisé. Objectif immédiat de l'étape 1 : essai de boot préparé séparément et raccordement matériel mémoire/propriété/HDP/arrêt permettant d'invoquer l'orchestration PSP/SMU. Pas une nouvelle campagne sur l'observateur. Ensuite : première commande GPU réelle, rendu, Metal et WindowServer. [Livrable et blocages](docs/reports/2026-10-09-native-kext.md). Ne pas installer Navi48Bringup complet ni charger/décharger à chaud.
 
-Le premier succès de calcul est obtenu : un shader Metal écrit pour le projet, compilé en AIR par Apple puis traduit par le fork produit les résultats attendus sur la RX 9070 XT sous Windows. Le banc de rendu Windows est désormais vérifié avec des contrôles GLSL et des références d'images. La traduction graphique est obtenue et vérifiée logiciellement ; son rendu sur Radeon et les essais noyau/rendu sous macOS restent à obtenir.
+L'essai du secours est différé, pas marqué réussi. La nouvelle référence conserve les 101 fichiers de l'EFI actuelle, dont les changements OpenCore antérieurs : [rapport de préparation](docs/reports/2026-10-09-pci-probe-efi.md).
+
+Les [constats de l'audit Navi48](docs/reports/2026-10-09-navi48-build-audit.md) demeurent applicables au pilote GPU complet, notamment console, DMA/IOMMU, voies Apple et retour arrière.
+
+Navi48 compile ; préparer ensuite Mesa/RADV Darwin, mais ne qualifier aucun résultat GPU avant les essais natifs mémoire/commandes. Conserver les 36 cas de calcul et 48 cas graphiques Apple AIR/GLSL déjà validés sous Windows comme références pour le futur banc Tahoe. La restauration de secours, le chargement du pilote complet, RADV et Metal sous macOS restent ouverts.

@@ -3,10 +3,31 @@
 Profil préparé le 7 octobre 2026 pour **la machine relevée sous Windows**.
 Objectif : atteindre l'installateur puis un bureau avec affichage de base,
 sans accélération Metal et sans installer le pilote du projet.
-**Le démarrage matériel n'est pas encore qualifié.** Une configuration OpenCore
-valide ne prouve pas que le framebuffer EFI de cette RX 9070 XT sera repris
-correctement par Tahoe. Si l'écran devient noir, le relevé du dernier message
-et le connecteur utilisé permettront de traiter ce blocage.
+**Mise à jour du 9 octobre : Tahoe installé 26.7.1 / 25G241 fonctionne avec
+l'affichage de base IONDRVFramebuffer, sans accélération.** L'EFI active est
+sauvegardée sur OPENCORE et localement, 98 fichiers relus. Les démarrages
+répétés et le secours restent non qualifiés. Voir le
+[rapport Hackintosh/Navi48](reports/2026-10-09-navi48-build-audit.md).
+Les instructions ci-dessous conservent l'historique de préparation : ne pas
+régénérer ou remplacer l'EFI fonctionnelle pour les rejouer.
+
+**Essai PCI préparé le 9 octobre :** copie exacte de l'EFI actuelle (101 fichiers)
+et variantes OFF/ON, validées et rangées dans `OPENCORE/PROFILS-TAHOE`, **sans
+activation ni remplacement du dossier EFI habituel**. Le premier profil OFF est
+maintenant déployé sur la clé **PROBE1401**, formatée et vérifiée après remontage
+sur demande utilisateur. Son premier boot OFF est maintenant observé : module
+réellement chargé avec argument 0, aucun nœud attaché. Le premier boot **ON**
+est aussi observé : module attaché, dictionnaire conforme au provider Radeon.
+Le premier retour OPENCORE est vérifié à 11:31 UTC : aucun argument d'essai,
+module ou nœud observateur. La clé reste ON, OFF est archivé, les deux EFI sont
+inchangées. La première coupe native est une bibliothèque non chargeable,
+pas un nouveau profil EFI. [Retour et isolation native](reports/2026-10-09-native-isolation.md).
+[Résultat ON](reports/2026-10-09-pci-probe-on-boot.md).
+[Passage à ON](reports/2026-10-09-pci-probe-on-deployment.md).
+[Déploiement](reports/2026-10-09-probe1401-deployment.md) ·
+[Résultat OFF](reports/2026-10-09-pci-probe-off-boot.md).
+Utiliser désormais le [guide PCI](PCI-PROBE-EFI-ESSAI.md) pour cet essai, pas les
+étapes d'installation historiques ci-dessous. [Rapport](reports/2026-10-09-pci-probe-efi.md).
 
 Depuis le **9 octobre**, D: utilise l'essai **Installer macOS Tahoe (RapidEFI)**,
 préparé dans RapidEFI 5.8.0 puis contrôlé et adapté pour conserver le retrait
@@ -33,7 +54,7 @@ sont décrites à la fin du même rapport.
 | SATA | Contrôleur AHCI AMD `1022:43EB` ; aucun RAID observé |
 | Réseau | Ethernet Realtek `10EC:8168` ; RealtekRTL8111 3.0.0 inclus |
 | USB | AMD `1022:43EE` : 14 ports racine ; `1022:149C` : 8, selon USBToolBox sous Windows |
-| OS visé | Récupération Tahoe 26.6.2 / 25G83 ; paquet complet 26.7.1 / 25G241 disponible ; relever le build réellement installé |
+| OS observé | Tahoe installé 26.7.1 / 25G241 ; récupération préparée 26.6.2 / 25G83 |
 | Identité SMBIOS | MacPro7,1 ; identité générée localement, jamais ajoutée à Git |
 
 Le SSD présent est un **inventaire**, pas une sélection de disque à effacer.
@@ -100,7 +121,8 @@ La récupération Apple 26.6.2 / 25G83 est amorçable avec cette disposition,
 mais son installation nécessite Ethernet et Internet. Le paquet complet
 26.7.1 / 25G241 sur E: sert au transfert vers le Mac pour préparer un
 installateur hors ligne ; il n'est pas utilisé hors ligne par la récupération.
-Le démarrage physique et l'affichage de base restent à qualifier.
+Le démarrage physique et l'affichage de base ont depuis été observés ; leur
+répétabilité et la procédure de récupération restent à qualifier.
 
 Les deux essais USB du 7 octobre sont maintenant relevés : le premier a
 sélectionné une entrée qui relançait OpenCore, le second a chargé la récupération

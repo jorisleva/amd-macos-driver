@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "status": "prepared-not-activated-not-boot-tested",
+  "created_utc": "2026-10-09T09:34:44.782107+00:00",
+  "source_config_sha256": "e88ce3555003f97fee228e647114b92ae52a4f40038da14c983d97fed2c27487",
+  "source_files": 101,
+  "source_efi_unchanged": true,
+  "source_efi": "/Volumes/OPENCORE/EFI",
+  "opencore": "1.0.8 DEBUG",
+  "opencore_archive_sha256": "3f5f42b85703cf2c08e8dcd9245a52fb4326c9f4ef335c75b49f516cbbe131c6",
+  "binary_sha256": "8146414908a073e9fe504ca89b285d3ee076f2e327eb606cecaf023d0cd1ca94",
+  "darwin": "25.6.0",
+  "macos_build": "25G241",
+  "probe_build_report_sha256": "936c11b68a27b627c3f7f88577b719fd978c7e0a41bea60a5224e44056c1d7e8",
+  "builder_sha256": "0923f486d45a0f2bf192c9186f5af3af95e22fd653327d928e075ecd42321ae2",
+  "boot_kc_sha256": "21d6da1c4c3e7b72dddf5144da8a4c4b48e294249a16018a5006b61bb2155ccc",
+  "symbol_check": {
+    "imports_found": 294,
+    "missing": [],
+    "symbol_owners": [
+      "com.apple.iokit.IOPCIFamily",
+      "com.apple.kernel"
+    ],
+    "kernel_link_validated": false,
+    "abi_compatibility_validated": false,
+    "scope": "Defined symbol names only, not relocation/vtable/load qualification"
+  },
+  "profiles": {
+    "00-reference": {
+      "files": 101,
+      "changed": [],
+      "added": [],
+      "config_sha256": "e88ce3555003f97fee228e647114b92ae52a4f40038da14c983d97fed2c27487",
+      "ocvalidate_passed": true
+    },
+    "01-disabled": {
+      "files": 104,
+      "changed": [
+        "OC/config.plist"
+      ],
+      "added": [
+        "OC/Kexts/Navi48PciProbe.kext/Contents/Info.plist",
+        "OC/Kexts/Navi48PciProbe.kext/Contents/MacOS/Navi48PciProbe",
+        "OC/Kexts/Navi48PciProbe.kext/Contents/_CodeSignature/CodeResources"
+      ],
+      "config_sha256": "ecb7bf5ed55c9876daf1fe794abe8df5cab76c01eb3fb3a13b5bbfc76ff37aae",
+      "ocvalidate_passed": true
+    },
+    "02-enabled": {
+      "files": 104,
+      "changed": [
+        "OC/config.plist"
+      ],
+      "added": [
+        "OC/Kexts/Navi48PciProbe.kext/Contents/Info.plist",
+        "OC/Kexts/Navi48PciProbe.kext/Contents/MacOS/Navi48PciProbe",
+        "OC/Kexts/Navi48PciProbe.kext/Contents/_CodeSignature/CodeResources"
+      ],
+      "config_sha256": "8c62c5f6a5e0cc58c873f4028437b8b2cced410865478064f62c3839078e059b",
+      "ocvalidate_passed": true
+    }
+  },
+  "boot_efi_replaced": false,
+  "system_kext_installed": false,
+  "boot_test_performed": false,
+  "nvram_or_security_changed_by_tool": false,
+  "private_smbios_included": true,
+  "local_package": "out/efi-pci/pci-probe-20261009-essai-c/package",
+  "staged_package": "/Volumes/OPENCORE/PROFILS-TAHOE/pci-probe-20261009-essai-c",
+  "package_files_verified": 315,
+  "final_state": {
+    "source_efi_matches_reference": true,
+    "source_files": 101,
+    "probe_loaded": false,
+    "navi48_loaded": false,
+    "current_boot_args": "-v keepsyms=1 debug=0x100 navi48bringup=0 rdna4-off=1 -liludbgall",
+    "sip": "System Integrity Protection status: enabled.",
+    "authenticated_root": "Authenticated Root status: enabled",
+    "system_kext_present": false
+  },
+  "python_tests": {
+    "passed": 44,
+    "failed": 0,
+    "new_preparation_tests": 13
+  },
+  "rejected_preparations": {
+    "essai-a": "Apple nm format rejected before EFI copying",
+    "essai-b": "USB copy missing 18 AppleDouble files; marked incomplete"
+  },
+  "local_evidence_sha256": {
+    "out/efi-pci/pci-probe-20261009-essai-c/package/report.json": "64a6f16f41faf6bef4dad8bb5d55ac1a7a2877a5904accaddb23c63f291fde1a",
+    "out/efi-pci/pci-probe-20261009-essai-c/package/SHA256SUMS.json": "49db0d4e37fd40805f3169088f921ae94f2dc51c2a68a6f2802c42c3342c8032",
+    "out/efi-pci/pci-probe-20261009-essai-c/preparation-report.json": "b295e14b637a3f240264b0b9c423a9caab5cd571bb755e8ffe62e4200683583e",
+    "out/efi-pci/pci-probe-20261009-essai-c/final-state.json": "9096854f7a35faef5cdaa29f8592f5383ce3ec4ab8276ca97eabda93eb08be82",
+    "out/efi-pci/preflight/python-tests.log": "a2a3182099a13410eb5c288bb7507ae5adba9ebae6394c637044f357b429d475",
+    "out/efi-pci/pci-probe-20261009-essai-c/validation/00-reference-ocvalidate.log": "372f358958154234f89d1ce7ed0e2cffea6e53e228a29a1f825b71a9129265f2",
+    "out/efi-pci/pci-probe-20261009-essai-c/validation/01-disabled-ocvalidate.log": "2af78028c4966ae2252f707962eccc4a8cc5da8458131a6a08d3f75c1990e448",
+    "out/efi-pci/pci-probe-20261009-essai-c/validation/01-disabled-signature.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/pci-probe-20261009-essai-c/validation/01-disabled-usb-ocvalidate.log": "424da271f2eebe7efe349958f36e86798407d4caf0625b740a3f15488022455b",
+    "out/efi-pci/pci-probe-20261009-essai-c/validation/01-disabled-usb-signature.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/pci-probe-20261009-essai-c/validation/02-enabled-ocvalidate.log": "9a4834603be8eecb1781edb458b54c4abb57613362740b64790309b87b564e0d",
+    "out/efi-pci/pci-probe-20261009-essai-c/validation/02-enabled-signature.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/pci-probe-20261009-essai-c/validation/02-enabled-usb-ocvalidate.log": "fd26672f004557d9ddba73ac86b52104ff27aa52c73dc747a963e0181e1feb12",
+    "out/efi-pci/pci-probe-20261009-essai-c/validation/02-enabled-usb-signature.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/pci-probe-20261009-essai-c/validation/signature.log": "d3a77c85721ffca5f2126c533ecfda4db769d5969f6d96e0d6d54543309eb074",
+    "out/efi-pci/pci-probe-20261009-essai-c/validation/imports.txt": "fd981dea032f6a23402a7cb96e471d057cb11334c597f9843edae842d89ca200",
+    "out/efi-pci/pci-probe-20261009-essai-c/validation/boot-kc-symbols.txt": "5c928c1cedbd0f5ceebfb918ea264108f3f8ee1abccca632f5b1a6e7d173ded9"
+  }
+}

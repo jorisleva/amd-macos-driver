@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "status": "iokit-controller-built-host-tested-not-hardware-qualified",
+  "build_created_utc": "2026-10-09T13:17:42.781517+00:00",
+  "system": {
+    "version": "26.7.1",
+    "build": "25G241",
+    "macos_sdk": "26.5",
+    "architecture": "x86_64"
+  },
+  "navi48_revision": "696959753070e9a16677be485580dc53b06a7ab5",
+  "mac_kernel_sdk_revision": "05094e5e88cec7caedbfb35e8449ed0db94bf95b",
+  "firmware_revision": "5ff473283bf11ba0a8b6b04a075ae01676aee10d",
+  "products": {
+    "Navi48PlatformController": {
+      "kind": "non-loadable-static-library",
+      "source": "native/Navi48FirmwareCore/IOKitController.cpp",
+      "object_sha256": "09b6ffd44efe999400e0dbe52d34ded1c8e8bf3a6c4504b7d1dc74f8cb24de96",
+      "library_sha256": "7859a0d7cc750d478abc3a8f181a5a94a3ae2cecee428bfcac5b9ee577361c4c",
+      "kernel_import_count": 15,
+      "internal_symbols_unresolved": false,
+      "kernel_link_validated": false,
+      "automatic_initializers": false,
+      "driver_entry_points": false
+    },
+    "Navi48FirmwareCore": {
+      "kind": "non-loadable-static-library",
+      "object_sha256": "0e4d37fa8add2924ab05e867cdc5fcfc5b7254ad46d79ced0d21cf7a37dd9fb3",
+      "library_sha256": "305e1f9235dbcc8d671a506e469bb4dce57f1a9c41bbab61379633a2fa763f07",
+      "binary_unchanged_from_native_access_step": true,
+      "kernel_import_count": 13,
+      "embedded_firmwares_verified": 10,
+      "kernel_link_validated": false
+    }
+  },
+  "builds": ["out/native-platform/final-a", "out/native-platform/final-b"],
+  "artifacts_byte_identical": true,
+  "local_input_hashes_identical": true,
+  "warning_count_each_build": 0,
+  "host_tests_each_build": {
+    "iokit_controller_doubles": {
+      "checks": 2241,
+      "failed": 0,
+      "sanitizers": ["address", "undefined"],
+      "scope": "same controller translation unit; simulated providers, descriptors and mappings; opaque non-dereferenceable VAs",
+      "live_iokit_calls": false,
+      "gpu_executed": false
+    },
+    "preflight_logger": {
+      "checks": 1582,
+      "failed": 0,
+      "sanitizers": ["address", "undefined"]
+    },
+    "bounded_access_psp_ram": {
+      "checks": 398,
+      "failed": 0,
+      "sanitizers": ["address", "undefined"],
+      "psp_response_simulated": true,
+      "gpu_executed": false
+    }
+  },
+  "python_tests": {"tests": 66, "failed": 0},
+  "implemented_code_not_runtime_evidence": [
+    "separate opt-in, attached owner and non-seizing IOKit open lease",
+    "actual PCI configuration reads, full 64-bit BARs and fixed reviewed aperture sizes",
+    "CPU physical descriptor and map segments with kIOMemoryMapperNone",
+    "descriptor/map reference ownership and backing/task/cache-option checks",
+    "console geometry reported by platform expert and candidate containment/overlap checks",
+    "private disabled DeviceContext, no raw mapping/context escape",
+    "revalidation, terminal refusal and unpublished-resource cleanup outside lock",
+    "reentrant close and serialized snapshots/release tested with doubles"
+  ],
+  "always_missing_hardware_proofs": [
+    "exclusive GPU ownership",
+    "VRAM size, BAR0 VRAM origin and MC base",
+    "VRAM reservation and complete firmware/UEFI reserved intervals",
+    "HDP and CPU/GPU coherency",
+    "DMA/IOMMU mappings",
+    "recovery/restoration tested",
+    "GPU quiescence and lifecycle after hardware publication"
+  ],
+  "live_mappings_acquired": false,
+  "hardware_authorized": false,
+  "gpu_code_executed": false,
+  "firmware_sent": false,
+  "installed": false,
+  "loaded": false,
+  "native_transport_included": false,
+  "pci_observer_modified": false,
+  "efi_verification": {
+    "scope": "all files under each EFI tree; paths and SHA-256 compared before/after",
+    "OPENCORE": {"files": 101, "unchanged": true},
+    "PROBE1401": {"files": 104, "unchanged": true},
+    "before_manifest": "out/native-platform/efi-before.json",
+    "after_manifest": "out/native-platform/efi-after.json",
+    "deployment_performed": false
+  },
+  "reboot_performed": false,
+  "security_settings_changed": false,
+  "next": "Establish missing hardware-proof producers and future IOService lifecycle before writable mappings, binder or firmware invocation; then extend PSP/SMU/bootloader errors and native memory/compute commands."
+}

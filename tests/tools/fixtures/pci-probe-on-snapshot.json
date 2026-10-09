@@ -1,0 +1,19 @@
+{
+  "source": "Sanitized ioreg -a -r -c Navi48PciProbe, actual ON boot 2026-10-09T11:05:25Z, Tahoe 26.7.1 / 25G241; no direct GPU access tested",
+  "snapshot": {
+    "BAR0": {"Base": 18253611008, "ConfigRegister": 16, "Length": 268435456, "RegistryFlags": -1039728624},
+    "BAR2": {"Base": 18522046464, "ConfigRegister": 24, "Length": 2097152, "RegistryFlags": -1039728616},
+    "BAR4": {"Base": 57344, "ConfigRegister": 32, "Length": 256, "RegistryFlags": -2130247648},
+    "BAR5": {"Base": 4239392768, "ConfigRegister": 36, "Length": 524288, "RegistryFlags": -2113470428},
+    "ROM": {"Base": 4239917056, "ConfigRegister": 48, "Length": 131072, "RegistryFlags": -2113470416},
+    "PCIBDF": 458752,
+    "ResourceCount": 5,
+    "SchemaVersion": 1,
+    "class-code": 196608,
+    "device-id": 30032,
+    "revision-id": 192,
+    "subsystem-id": 21527,
+    "subsystem-vendor-id": 6217,
+    "vendor-id": 4098
+  }
+}

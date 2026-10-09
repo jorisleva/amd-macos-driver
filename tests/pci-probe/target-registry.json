@@ -1,0 +1,13 @@
+{
+  "source": "Sanitized ioreg -a -r -c IOPCIDevice observation; Tahoe 26.7.1 / 25G241, 2026-10-09",
+  "hardware_execution": false,
+  "properties_hex": {
+    "vendor-id": "02100000",
+    "device-id": "50750000",
+    "subsystem-vendor-id": "49180000",
+    "subsystem-id": "17540000",
+    "revision-id": "c0000000",
+    "class-code": "00000300",
+    "assigned-addresses": "100007c204000000000000400000000000000010180007c204000000000000500000000000002000200007810000000000e00000000000000001000024000782000000000000b0fc000000000000080030000782000000000000b8fc0000000000000200"
+  }
+}

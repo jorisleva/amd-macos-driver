@@ -1,0 +1,209 @@
+--- a/amd/psp_v14_0.cpp
++++ b/amd/psp_v14_0.cpp
+@@ -86,19 +86,17 @@
+     uint64_t live = 0;
+     uint32_t raw = 0;
+     if (dev.ip.isResolved(IPBlock::MMHUB)) {
+-        const uint32_t mmhub_base = dev.ip.get(IPBlock::MMHUB);
+-        raw = RREG32(dev, mmhub_base + MMHUBRegs::MMMC_VM_FB_LOCATION_BASE);
++        raw = RREG32(dev, SOC15_REG_OFFSET(dev, IPBlock::MMHUB,
++                                          MMHUBRegs::MMMC_VM_FB_LOCATION_BASE));
+         live = ((uint64_t)(raw & MMHUBRegs::kFBBaseMask))
+                << MMHUBRegs::kFBBaseShift;
+     }
+-    if (live != dev.vramMcBase) {
+-        PSP_LOG("read_vram_start: WARNING MMHUB FB_LOCATION_BASE=%#010x -> "
+-                "mc %#llx disagrees with dev.vramMcBase %#llx — using "
+-                "dev.vramMcBase (hardware-proven on this card)",
+-                raw, (unsigned long long)live,
+-                (unsigned long long)dev.vramMcBase);
+-    }
+-    return dev.vramMcBase;
++    if (access_status(dev) != kIOReturnSuccess) return 0;
++    if (!live || live != dev.vramMcBase) {
++        access_fail(dev, AccessError::McAddress, AccessOp::Address, live, 0);
++        return 0; // a mismatch is not a warning followed by a guessed DMA address
++    }
++    return live;
+ }
+ 
+ // VRAM layout for PSP-accessed buffers. IDENTICAL to the reference's
+@@ -124,9 +122,16 @@
+ kern_return_t
+ psp_init(DeviceContext &dev, PSPContext &psp)
+ {
+-    if (psp.fwPriSize != 0) {
+-        return kIOReturnSuccess; // idempotent
+-    }
++    if (access_status(dev) != kIOReturnSuccess) return access_status(dev);
++    if (psp.fwPriSize != 0) return kIOReturnBusy; // no implicit reuse of stale state
++    if ((dev.vramBase & (kPSPFwPriBufSize - 1)) ||
++        (dev.vramMcBase & (kPSPFwPriBufSize - 1))) {
++        access_fail(dev, AccessError::Alignment, AccessOp::Address, dev.vramBase, kPSPVRAMSpanEnd);
++        return kIOReturnBadArgument;
++    }
++    // Validate the WHOLE 24 MiB layout before any MMIO read or state publication.
++    if (!access_vram(dev, dev.vramBase, kPSPVRAMSpanEnd)) return access_status(dev);
++    if (dev.vramMC(dev.vramBase) == UINT64_MAX) return access_status(dev);
+     if (!dev.ip.isResolved(IPBlock::MP0)) {
+         PSP_LOG("MP0 IP base not resolved — IP discovery missing");
+         return kIOReturnNotReady;
+@@ -140,13 +145,14 @@
+     // address. "Allocation" is just picking a VRAM offset; CPU writes go
+     // through the visible BAR0 aperture (256 MB on this card).
+     const uint64_t vram_start = psp_read_vram_start(dev);
++    if (access_status(dev) != kIOReturnSuccess) return access_status(dev);
+     if (vram_start == 0) {
+         PSP_LOG("psp_init: vram_start is 0 — MMHUB FB_LOCATION_BASE not "
+                 "populated / dev.vramMcBase unset");
+         return kIOReturnNotReady;
+     }
+-    if (dev.vramLimit != 0 &&
+-        dev.vramBase + kPSPVRAMSpanEnd > dev.vramLimit) {
++    if (dev.vramBase > dev.vramLimit ||
++        kPSPVRAMSpanEnd > dev.vramLimit - dev.vramBase) {
+         PSP_LOG("psp_init: PSP VRAM span vram+[%#llx, %#llx) overruns the "
+                 "bring-up region (vramLimit %#llx) — refusing",
+                 (unsigned long long)dev.vramBase,
+@@ -412,7 +418,7 @@
+     // Match upstream psp_v14_0_is_sos_alive exactly: any non-zero value
+     // indicates SOS booted. PSP writes a build/version stamp here once SOS
+     // init completes (0x0191ae05 on this card).
+-    return sol != 0;
++    return access_status(dev) == kIOReturnSuccess && sol != 0 && sol != UINT32_MAX;
+ }
+ 
+ //============================================================
+@@ -579,9 +585,28 @@
+                     const void *cmd, uint32_t cmdSize,
+                     uint32_t *outRespStatus)
+ {
+-    if (!psp.ringCreated) {
+-        return kIOReturnNotReady;
+-    }
++    if (outRespStatus) *outRespStatus = UINT32_MAX;
++    if (access_status(dev) != kIOReturnSuccess) return access_status(dev);
++    if (!psp.ringCreated) return kIOReturnNotReady;
++    // Fixed wire geometry; reject zero/modulo, truncation and fence wrap hazards.
++    if (psp.ringSize != kPSPKMRingSize || psp.fenceCounter == UINT32_MAX)
++        return kIOReturnBadArgument;
++    if (!access_vram(dev, psp.ringVRAMOffset, kPSPKMRingBufSize) ||
++        !access_vram(dev, psp.cmdVRAMOffset, kPSPCmdBufSize) ||
++        !access_vram(dev, psp.fenceVRAMOffset, kPSPFenceBufSize)) return access_status(dev);
++    auto overlap = [](uint64_t a, uint64_t b) {
++        return a < b + kPSPKMRingBufSize && b < a + kPSPKMRingBufSize;
++    };
++    if (overlap(psp.ringVRAMOffset, psp.cmdVRAMOffset) ||
++        overlap(psp.ringVRAMOffset, psp.fenceVRAMOffset) ||
++        overlap(psp.cmdVRAMOffset, psp.fenceVRAMOffset)) return kIOReturnBadArgument;
++    if (psp.ringBusAddr != dev.vramMC(psp.ringVRAMOffset) ||
++        psp.cmdBusAddr != dev.vramMC(psp.cmdVRAMOffset) ||
++        psp.fenceBusAddr != dev.vramMC(psp.fenceVRAMOffset)) {
++        access_fail(dev, AccessError::McAddress, AccessOp::Address);
++        return access_status(dev);
++    }
++    if (!hdp_flush_ready(dev)) return access_status(dev);
+     if (cmd == nullptr || cmdSize != kPSPGfxCmdRespSize) {
+         return kIOReturnBadArgument;
+     }
+@@ -595,6 +620,8 @@
+     const uint32_t regWptr = SOC15_REG_OFFSET(dev, IPBlock::MP0,
+                                               MP0Regs::C2PMSG_67);
+ 
++    // Validate the host source before even the diagnostic command-id read.
++    if (!access_source(dev, cmd, cmdSize)) return access_status(dev);
+     // The command id is the third dword of the frame the caller handed us —
+     // log it so every submit is attributable.
+     uint32_t cmd_id = 0;
+@@ -602,6 +629,8 @@
+ 
+     // 1. Get current wptr.
+     uint32_t wptr_dw = RREG32(dev, regWptr);
++    if (access_status(dev) != kIOReturnSuccess) return access_status(dev);
++    if (wptr_dw >= ringSizeDw || wptr_dw % frameSizeDw) return kIOReturnBadArgument;
+ 
+     // 2. Locate the frame slot by VRAM byte offset (the ring is in VRAM).
+     uint32_t frame_slot;
+@@ -623,7 +652,7 @@
+ 
+     // 4. Bump the fence counter, zero the fence dword in VRAM, build the
+     //    frame in a stack buffer and copy it into the ring slot.
+-    uint32_t fence_index = ++psp.fenceCounter;
++    const uint32_t fence_index = psp.fenceCounter + 1; // commit only after publication
+     WBAR0_32(dev, psp.fenceVRAMOffset, 0);
+ 
+     // Upstream amdgpu_psp.c:3485-3492 — memset the frame to zero, then set
+@@ -650,8 +679,11 @@
+     amdgpu_hdp_flush(dev);
+ 
+     // 5b. Advance and publish wptr (in dwords).
++    if (access_status(dev) != kIOReturnSuccess) return access_status(dev);
+     wptr_dw = (wptr_dw + frameSizeDw) % ringSizeDw;
+     WREG32(dev, regWptr, wptr_dw);
++    if (access_status(dev) != kIOReturnSuccess) return access_status(dev);
++    psp.fenceCounter = fence_index;
+ 
+     // 6. Wait for PSP to write the fence value into VRAM. Read it back via
+     //    the BAR0 aperture — BAR0 reads bypass any CPU cache and go straight
+@@ -661,11 +693,13 @@
+     uint32_t observed = 0;
+     while (elapsed < kBudgetUs) {
+         observed = RBAR2_32(dev, psp.fenceVRAMOffset);
++        if (access_status(dev) != kIOReturnSuccess) return access_status(dev);
+         if (observed == fence_index) break;
+         IOSleep(1);
+         elapsed += 1000;
+     }
+     if (observed != fence_index) {
++        access_fail(dev, AccessError::Timeout, AccessOp::Poll, psp.fenceVRAMOffset, kBudgetUs);
+         PSP_LOG("ring_cmd_submit: fence timeout (cmd_id=%#x, expected %u, "
+                 "got %u, wptr now %u, resp.status=%#x, C2PMSG_64=%#010x, C2PMSG_81=%#010x)",
+                 cmd_id, fence_index, observed, RREG32(dev, regWptr),
+@@ -679,6 +713,7 @@
+     //    psp_gfx_cmd_resp.resp.status lives at offset 864.
+     uint32_t resp_status = RBAR2_32(dev,
+         psp.cmdVRAMOffset + kPSPGfxRespStatusOffset);
++    if (access_status(dev) != kIOReturnSuccess) return access_status(dev);
+     if (outRespStatus) *outRespStatus = resp_status;
+     if (resp_status != 0) {
+         PSP_LOG("ring_cmd_submit: cmd_id=%#x PSP returned status %#x "
+@@ -1301,18 +1336,22 @@
+ psp_fw_buf_stage(DeviceContext &dev, PSPContext &psp,
+                  const void *bytes, uint32_t size, uint64_t *outBusAddr)
+ {
+-    if (psp.fwBufSize == 0) {
+-        PSP_LOG("fw_buf_stage: psp_init not called");
+-        return kIOReturnNotReady;
+-    }
+-    if (bytes == nullptr || size == 0 || outBusAddr == nullptr) {
+-        return kIOReturnBadArgument;
+-    }
++    if (outBusAddr) *outBusAddr = 0;
++    if (access_status(dev) != kIOReturnSuccess) return access_status(dev);
++    if (psp.fwBufSize == 0) return kIOReturnNotReady;
++    if (!bytes || !size || !outBusAddr || (size & 3)) return kIOReturnBadArgument;
++    if (!access_vram(dev, psp.fwBufVRAMOffset, psp.fwBufSize)) return access_status(dev);
++    if (psp.fwBufBaseMC != dev.vramMC(psp.fwBufVRAMOffset)) {
++        access_fail(dev, AccessError::McAddress, AccessOp::Address);
++        return access_status(dev);
++    }
++    if (!hdp_flush_ready(dev)) return access_status(dev);
+     constexpr uint64_t kFwBufAlign = 0x1000;
++    if (psp.fwBufBumpOffset > UINT64_MAX - (kFwBufAlign - 1)) return kIOReturnNoSpace;
+     const uint64_t slot_off =
+         (psp.fwBufBumpOffset + kFwBufAlign - 1) & ~(kFwBufAlign - 1);
+-    const uint64_t slot_sz = (size + kFwBufAlign - 1) & ~(kFwBufAlign - 1);
+-    if (slot_off + slot_sz > psp.fwBufSize) {
++    const uint64_t slot_sz = (uint64_t{size} + kFwBufAlign - 1) & ~(kFwBufAlign - 1);
++    if (slot_off > psp.fwBufSize || slot_sz > psp.fwBufSize - slot_off) {
+         PSP_LOG("fw_buf_stage: fw_buf exhausted (want %llu @ %llu, cap %llu)",
+                 (unsigned long long)slot_sz, (unsigned long long)slot_off,
+                 (unsigned long long)psp.fwBufSize);
+@@ -1323,6 +1362,7 @@
+     const uint64_t slot_mc   = psp.fwBufBaseMC     + slot_off;
+     bar0_memcpy_to_vram(dev, slot_vram, bytes, size);
+     amdgpu_hdp_flush(dev);
++    if (access_status(dev) != kIOReturnSuccess) return access_status(dev);
+     psp.fwBufBumpOffset = slot_off + slot_sz;
+     *outBusAddr = slot_mc;
+ 

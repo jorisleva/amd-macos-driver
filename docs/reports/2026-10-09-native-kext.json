@@ -1,0 +1,80 @@
+{
+  "status": "kext-built-signed-not-load-qualified",
+  "product": "Navi48Native",
+  "version": "0.1.0",
+  "kind": "kext-bundle",
+  "artifact": "out/native-kext/stage1/Navi48Native.kext",
+  "executable_sha256": "fafc866c1ed8c330e464876d8ffecd6786f8775e14fc925055ec29596b715972",
+  "package_sha256": "02058801415ed96a1c54dd8ab9cd247da00ea8ae5c784b8aa0a7640c1d684f0d",
+  "created_utc": "2026-10-09T14:02:33.380338+00:00",
+  "finalized_utc": "2026-10-09T14:05:21.338081+00:00",
+  "default_enabled": false,
+  "explicit_scratch_required": true,
+  "core_object_sha256": {
+    "Navi48FirmwareCore.o": "0e4d37fa8add2924ab05e867cdc5fcfc5b7254ad46d79ced0d21cf7a37dd9fb3",
+    "Navi48PlatformController.o": "09b6ffd44efe999400e0dbe52d34ded1c8e8bf3a6c4504b7d1dc74f8cb24de96"
+  },
+  "sdk_revision": "05094e5e88cec7caedbfb35e8449ed0db94bf95b",
+  "navi48_revision": "696959753070e9a16677be485580dc53b06a7ab5",
+  "warning_count": 0,
+  "firmwares_verified_in_kext": 10,
+  "targeted_smoke": {
+    "checks": 109,
+    "failed": 0,
+    "sanitizers": [
+      "address",
+      "undefined"
+    ],
+    "scope": "same service/controller with IOKit doubles, not a loaded kext"
+  },
+  "import_audit": {
+    "undefined_symbols": 308,
+    "direct_pci_imports": [
+      "IOPCIDevice::extendedConfigRead16(unsigned long long)",
+      "IOPCIDevice::extendedConfigRead32(unsigned long long)",
+      "IOPCIDevice::extendedConfigRead8(unsigned long long)",
+      "IOPCIDevice::metaClass"
+    ],
+    "internal_symbols_unresolved": false,
+    "kernel_collection_link_validated": false
+  },
+  "symbol_audit": {
+    "kmod_entry_points": true,
+    "native_ioservice": true,
+    "platform_controller_linked": true,
+    "psp_core_linked": true,
+    "legacy_hooks": false
+  },
+  "installed": false,
+  "loaded": false,
+  "hardware_qualified": false,
+  "gpu_initialized": false,
+  "firmware_sent": false,
+  "finalization_note": "Corrected the symbol inspection to include private SDK kmod entry points; existing binary retained, no recompilation or test rerun.",
+  "schema_version": 1,
+  "step1_completed": false,
+  "core_tests_replayed": false,
+  "observer_campaign_performed": false,
+  "pci_observer_modified": false,
+  "security_settings_changed": false,
+  "reboot_performed": false,
+  "efi_verification": {
+    "OPENCORE": {
+      "files": 101,
+      "unchanged": true
+    },
+    "PROBE1401": {
+      "files": 104,
+      "unchanged": true
+    }
+  },
+  "always_missing_proofs": [
+    "exclusive GPU ownership",
+    "VRAM reservation/geometry/MC base",
+    "HDP/coherency",
+    "applicable DMA mapping",
+    "GPU lifecycle/quiescence",
+    "restoration tested"
+  ],
+  "next_objective": "Controlled boot and hardware memory/ownership/HDP/lifecycle integration enabling actual PSP/SMU initialization; not more host test campaigns."
+}

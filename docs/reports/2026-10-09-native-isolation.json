@@ -1,0 +1,99 @@
+{
+  "status": "reference-return-observed-first-native-subset-isolated",
+  "recorded_utc": "2026-10-09T12:12:22.861828+00:00",
+  "reference_return": {
+    "status": "return-to-reference-observed",
+    "boot_utc": "2026-10-09T11:31:49+00:00",
+    "collected_utc": "2026-10-09T11:48:24.867447+00:00",
+    "boot_args": "-v keepsyms=1 debug=0x100 navi48bringup=0 rdna4-off=1 -liludbgall",
+    "observer_loaded": false,
+    "observer_attached": false,
+    "full_navi48_loaded": false,
+    "ioaccelerator_count": 0,
+    "efi": {
+      "OPENCORE": {
+        "file_count": 101,
+        "unchanged_against_reviewed_profile": "00-reference",
+        "config_sha256": "e88ce3555003f97fee228e647114b92ae52a4f40038da14c983d97fed2c27487"
+      },
+      "PROBE1401": {
+        "file_count": 104,
+        "unchanged_against_reviewed_profile": "02-enabled",
+        "config_sha256": "8c62c5f6a5e0cc58c873f4028437b8b2cced410865478064f62c3839078e059b"
+      }
+    },
+    "backup_restoration_tested": false,
+    "prolonged_stability_qualified": false,
+    "peripherals_comprehensively_tested": false,
+    "writes_to_efi": false
+  },
+  "build": {
+    "product": "Navi48FirmwareCore",
+    "navi48_revision": "696959753070e9a16677be485580dc53b06a7ab5",
+    "kind": "non-loadable-static-library",
+    "architecture": "x86_64",
+    "upstream_units": 9,
+    "upstream_headers": 15,
+    "local_units": 2,
+    "firmware_units": 10,
+    "source_dependency_count": 38,
+    "generated_source_differences": "Only build paths in comment lines 1 and 4 of the ten generated firmware C files",
+    "artifacts": {
+      "Navi48FirmwareCore.o": {
+        "sha256": "7917284c17022ac2d6b7d3b9064140cf74a811783e589a3977d3c451376cbafb",
+        "bytes": 3452004,
+        "byte_identical": true
+      },
+      "libNavi48FirmwareCore.a": {
+        "sha256": "839eaf844bb4886828094a7482ee7a8f9009d8af1a4d10a69916706af1b823c1",
+        "bytes": 3456824,
+        "byte_identical": true
+      }
+    },
+    "warning_count_each": 0,
+    "embedded_firmwares_verified_each": 10,
+    "kernel_import_count": 13,
+    "internal_symbols_unresolved": false,
+    "kernel_link_validated": false,
+    "upstream_checkout_changed": false,
+    "upstream_export_change": "amd/amdgpu_log.h only; bounded local IOLog adapter",
+    "first_build": "out/native-isolation/final-a",
+    "second_build": "out/native-isolation/final-b"
+  },
+  "tests": {
+    "host": {
+      "checks": 1582,
+      "failed": 0,
+      "sanitizers": [
+        "address",
+        "undefined"
+      ],
+      "scope": "local preflight/ownership model and logger, not GPU routines"
+    },
+    "mutants_compiled_and_detected": 22,
+    "mutants_escaped": 0,
+    "mutants_timed_out": 0,
+    "python_tests": 61
+  },
+  "safety": {
+    "efi_trees_unchanged_after_work": true,
+    "efi_writes": false,
+    "reboot_requested_by_tools": false,
+    "security_changed": false,
+    "kext_installed_or_loaded_by_tools": false,
+    "gpu_code_executed": false,
+    "gpu_firmware_sent": false,
+    "io_user_client_exposed": false,
+    "runtime_preflight_adapter_implemented": false,
+    "hardware_qualified": false
+  },
+  "remaining": [
+    "Actual memory/register access bounds and error propagation still require hardening",
+    "No measured console/reserved VRAM placement or DMA/IOMMU qualification",
+    "No exclusive-ownership, real quiescence or runtime preflight adapter",
+    "GMC/GART, engines and native S1b/S1c transport excluded; normative upstream ABI note absent",
+    "Backup restoration, repeated/cold boots, peripheral coverage and prolonged stability unqualified",
+    "RADV Darwin/AMD Metal/macOS GPU compute and rendering unqualified"
+  ],
+  "private_evidence": "out/native-isolation/"
+}

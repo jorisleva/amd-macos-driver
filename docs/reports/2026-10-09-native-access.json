@@ -1,0 +1,96 @@
+{
+  "status": "bounded-native-access-and-psp-software-path-integrated-not-hardware-qualified",
+  "recorded_utc": "2026-10-09T12:48:41.289476+00:00",
+  "navi48_revision": "696959753070e9a16677be485580dc53b06a7ab5",
+  "sdk_revision": "05094e5e88cec7caedbfb35e8449ed0db94bf95b",
+  "artifact_type": "non-loadable-static-library",
+  "architecture": "x86_64",
+  "upstream_translation_units": 9,
+  "local_translation_units": 3,
+  "embedded_firmwares_verified": 10,
+  "compiler_source_dependencies": 41,
+  "artifacts": {
+    "Navi48FirmwareCore.o": {
+      "sha256": "0e4d37fa8add2924ab05e867cdc5fcfc5b7254ad46d79ced0d21cf7a37dd9fb3",
+      "bytes": 3465932,
+      "identical_between_builds": true
+    },
+    "libNavi48FirmwareCore.a": {
+      "sha256": "305e1f9235dbcc8d671a506e469bb4dce57f1a9c41bbab61379633a2fa763f07",
+      "bytes": 3470848,
+      "identical_between_builds": true
+    }
+  },
+  "warnings_per_build": 0,
+  "kernel_import_count": 13,
+  "kernel_link_qualified": false,
+  "tests": {
+    "real_access_and_psp_code_on_ram": {
+      "checks": 398,
+      "failed": 0,
+      "sanitizers": [
+        "address",
+        "undefined"
+      ],
+      "scope": "same bounded access, mapping binder and PSP code on ordinary RAM",
+      "gpu_executed": false
+    },
+    "existing_policy_logger": {
+      "checks": 1582,
+      "failed": 0,
+      "sanitizers": [
+        "address",
+        "undefined"
+      ],
+      "scope": "local preflight/ownership model and logger, not GPU routines"
+    },
+    "python_tests": 63,
+    "psp_response_simulated": true,
+    "new_access_mutation_campaign_executed": false
+  },
+  "integrated": [
+    "checked BAR0/BAR2/MMIO and IP/MC arithmetic",
+    "sticky access faults and poll error propagation",
+    "preflight-to-declared-mappings binder",
+    "PSP layout, firmware staging and GPCOM submission guards"
+  ],
+  "blocked_by_default": [
+    "unproven preflight claims",
+    "unqualified HDP coherency",
+    "indirect MM_INDEX/SMN/PCIe access"
+  ],
+  "not_implemented": [
+    "actual Tahoe ownership/mapping/evidence adapter",
+    "whole PSP/SMU/bootloader lifecycle error propagation and teardown",
+    "DMA/IOMMU qualification",
+    "native compute transport/PM4",
+    "RADV/Metal integration"
+  ],
+  "safety": {
+    "efi": {
+      "OPENCORE": {
+        "files": 101,
+        "unchanged": true
+      },
+      "PROBE1401": {
+        "files": 104,
+        "unchanged": true
+      }
+    },
+    "current_boot": "OPENCORE reference",
+    "efi_written": false,
+    "kernel_module_loaded": false,
+    "hardware_access_performed": false,
+    "gpu_instructions_executed": false,
+    "firmware_sent_to_gpu": false,
+    "security_changed": false,
+    "reboot_requested": false,
+    "upstream_checkout_modified": false,
+    "nvidia_plugin_modified_this_phase": false
+  },
+  "private_evidence": "out/native-access/",
+  "retained_builds": [
+    "out/native-access/final-a",
+    "out/native-access/final-b"
+  ]
+}

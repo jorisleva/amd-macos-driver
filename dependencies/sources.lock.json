@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "recorded_on": "2026-10-07",
-  "status": "source-pins-complete-input-hashes-verified-build-and-hardware-pending",
+  "status": "navi48-built-statically-checked-radv-build-and-hardware-pending",
   "components": {
     "nvidia_fork": {
       "url": "https://github.com/jorisleva/amd-macos-driver",
@@ -19,7 +19,7 @@
         "minor": 9,
         "user_client_type_hex": "0x4E34384E"
       },
-      "qualification": "source audit only; no build or hardware test"
+      "qualification": "Two clean x86_64 builds on Tahoe 25G241; embedded firmware and ad-hoc signatures verified; 2905 host checks and 160 mutations passed; no installation, loading or GPU qualification (2026-10-09)"
     },
     "mesa_radv": {
       "url": "https://gitlab.freedesktop.org/mesa/mesa.git",
@@ -54,12 +54,12 @@
       "license_file": "LICENSE.txt",
       "license_sha256": "e5881019d8766c1e88a5fe1dbca4ba40c78011d41fcb18f6e9f50df60182685b",
       "license": "APSL-2.0 root notice; preserve individual header/library notices",
-      "qualification": "Pinned RDNA4FB submodule archive retrieved and SHA-256 verified; no Mac build yet"
+      "qualification": "Pinned archive SHA-256 verified and used for two clean Navi48 x86_64 builds; target Tahoe kernel-collection linkage and loading untested (2026-10-09)"
     },
     "linux_firmware": {
       "url": "https://gitlab.com/kernel-firmware/linux-firmware.git",
       "revision": "5ff473283bf11ba0a8b6b04a075ae01676aee10d",
-      "status": "All ten blobs retrieved at one immutable revision and match upstream expected SHA-256; no GPU loading test",
+      "status": "All ten blobs retrieved and SHA-256 verified in inputs, generated C and both linked Navi48 binaries; no GPU loading test",
       "hash_source": "navi48:tools/fetch-firmware.sh",
       "expected_sha256": {
         "gc_12_0_1_imu.bin": "b3b301fb636efc77b63ce4d2ced0f90c851d03c19681852faa45598e6f5773fd",

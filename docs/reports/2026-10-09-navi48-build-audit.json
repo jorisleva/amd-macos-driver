@@ -1,0 +1,305 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-10-09T00:25:35.462052+00:00",
+  "status": "efi-copy-verified-navi48-built-audited-not-load-qualified",
+  "project_baseline": "22030300d89201ba2c2f05e67fa175092845bab1",
+  "system": {
+    "product_version": "26.7.1",
+    "build": "25G241",
+    "darwin": "25.6.0",
+    "arch": "x86_64",
+    "cpu": "Ryzen 5 5600X",
+    "ram_gib": 16,
+    "gpu": {
+      "vendor": "1002",
+      "device": "7550",
+      "subsystem": "1849:5417",
+      "revision": "c0",
+      "pci_resources": [
+        {
+          "pci_register": "0x10",
+          "base": "0x440000000",
+          "bytes": 268435456
+        },
+        {
+          "pci_register": "0x18",
+          "base": "0x450000000",
+          "bytes": 2097152
+        },
+        {
+          "pci_register": "0x20",
+          "base": "0xe000",
+          "bytes": 256
+        },
+        {
+          "pci_register": "0x24",
+          "base": "0xfcb00000",
+          "bytes": 524288
+        },
+        {
+          "pci_register": "0x30",
+          "base": "0xfcb80000",
+          "bytes": 131072
+        }
+      ]
+    },
+    "metal_device_count": 0,
+    "accelerator_service_count": 0,
+    "framebuffer": "IONDRVFramebuffer",
+    "resolution": [
+      1920,
+      1080
+    ],
+    "sip_enabled": true,
+    "authenticated_root_enabled": true,
+    "boot_args": "-v keepsyms=1 debug=0x100 navi48bringup=0 rdna4-off=1 -liludbgall",
+    "repeated_boots_qualified": false
+  },
+  "efi_backup": {
+    "source": "/Volumes/OPENCORE/EFI",
+    "usb_directory": "/Volumes/OPENCORE/PROFILS-TAHOE/avant-navi48-20261008T235644Z",
+    "local_directory": "out/efi-backups/avant-navi48-20261008T235644Z",
+    "files": 98,
+    "total_file_bytes": 7066947,
+    "archive_sha256": "a391f6243750b8cda85e54dd0de0b0698a406fce7a25c98f855f1c9d711f0d9c",
+    "config_sha256": "48c33ed18b3f09518d817c0ac8697c482be6a0c08b664bcebbf93ccaa59d21f7",
+    "source_and_both_copies_reverified": true,
+    "active_efi_modified": false,
+    "restore_tested": false,
+    "contains_private_smbios_data": true,
+    "rejected_first_copy": "avant-navi48-20261008T235509Z"
+  },
+  "builds": [
+    {
+      "status": "built-and-statically-checked-not-load-qualified",
+      "created_utc": "2026-10-09T00:02:15.925640+00:00",
+      "navi48_revision": "696959753070e9a16677be485580dc53b06a7ab5",
+      "sdk_revision": "05094e5e88cec7caedbfb35e8449ed0db94bf95b",
+      "firmware_revision": "5ff473283bf11ba0a8b6b04a075ae01676aee10d",
+      "builder_sha256": "05dfb28294c9c111934adfff48ac739531c5d506b6d5102148697f39b732e04c",
+      "sources_lock_sha256": "015a09cdc59d0789f72bd3bc63c3051d8de2f9e0a9263844bbcf60c87d5b5e8a",
+      "installed": false,
+      "loaded": false,
+      "hardware_qualified": false,
+      "source_archive_sha256": "eba471e6c5e241938f0587a4559eea65e5f8e9e3669d041202db5575ac0a1bef",
+      "artifact": "out/navi48/qualified-build-a/Navi48Bringup.kext",
+      "architecture": "x86_64",
+      "bundle_version": "0.0.620",
+      "executable_sha256": "9b9a3157716fd7168546e17e9498d13eb498359a5cae163cc2b22623880b3ae1",
+      "embedded_firmwares_verified": 10,
+      "undefined_symbol_count": 422,
+      "kernel_collection_link_validated": false
+    },
+    {
+      "status": "built-and-statically-checked-not-load-qualified",
+      "created_utc": "2026-10-09T00:03:30.612012+00:00",
+      "navi48_revision": "696959753070e9a16677be485580dc53b06a7ab5",
+      "sdk_revision": "05094e5e88cec7caedbfb35e8449ed0db94bf95b",
+      "firmware_revision": "5ff473283bf11ba0a8b6b04a075ae01676aee10d",
+      "builder_sha256": "05dfb28294c9c111934adfff48ac739531c5d506b6d5102148697f39b732e04c",
+      "sources_lock_sha256": "015a09cdc59d0789f72bd3bc63c3051d8de2f9e0a9263844bbcf60c87d5b5e8a",
+      "installed": false,
+      "loaded": false,
+      "hardware_qualified": false,
+      "source_archive_sha256": "eba471e6c5e241938f0587a4559eea65e5f8e9e3669d041202db5575ac0a1bef",
+      "artifact": "out/navi48/qualified-build-b/Navi48Bringup.kext",
+      "architecture": "x86_64",
+      "bundle_version": "0.0.620",
+      "executable_sha256": "62e51e8a640c6480c5762beb54cc314eddf1bbf8de771c8af0869cbe4dbe5f48",
+      "embedded_firmwares_verified": 10,
+      "undefined_symbol_count": 422,
+      "kernel_collection_link_validated": false
+    }
+  ],
+  "build_comparison": {
+    "binary_identical": false,
+    "sections_identical": true,
+    "build_a_sha256": "9b9a3157716fd7168546e17e9498d13eb498359a5cae163cc2b22623880b3ae1",
+    "build_b_sha256": "62e51e8a640c6480c5762beb54cc314eddf1bbf8de771c8af0869cbe4dbe5f48",
+    "sections": {
+      "__TEXT,__text": {
+        "bytes": 1103173,
+        "zero_fill": false,
+        "sha256": "5d77dacb8d656ae766b717725b039fbc1f4cd989122e2b70b862e25fde04085c"
+      },
+      "__TEXT,__cstring": {
+        "bytes": 583672,
+        "zero_fill": false,
+        "sha256": "1b0cc1cc410cadff8e63331dd251c1d2cc601e6482267b63a042105ed3df5e47"
+      },
+      "__TEXT,__const": {
+        "bytes": 3412406,
+        "zero_fill": false,
+        "sha256": "2a6e09c874cbe64be5614206f76caa61de316e86cb7f0afcb5c1c1b9b6832e7a"
+      },
+      "__DATA,__got": {
+        "bytes": 136,
+        "zero_fill": false,
+        "sha256": "3f646dcc64535aff70da8b7152e7c309a1ab69ea7752319847e9f244dec05795"
+      },
+      "__DATA,__mod_init_func": {
+        "bytes": 48,
+        "zero_fill": false,
+        "sha256": "48f191a9b87c244aab88e257d5034d345b507414a465cf7d188e8d5624287c89"
+      },
+      "__DATA,__const": {
+        "bytes": 61792,
+        "zero_fill": false,
+        "sha256": "b1fb1d82fcea90abd1695d85c5321bff74b4d6d5522cd9c664899510ea4fdf0f"
+      },
+      "__DATA,__data": {
+        "bytes": 3240,
+        "zero_fill": false,
+        "sha256": "40abe4050f30a6c8b86a5bdf6ba423288776d8205d2c26f8d789691ddfbad99d"
+      },
+      "__DATA,__common": {
+        "bytes": 576,
+        "zero_fill": true,
+        "sha256": null
+      },
+      "__DATA,__bss": {
+        "bytes": 4823696,
+        "zero_fill": true,
+        "sha256": null
+      }
+    },
+    "section_differences": []
+  },
+  "debug_map": {
+    "a": {
+      "debug_object_path_entries": 68,
+      "all_contain_build_directory": true
+    },
+    "b": {
+      "debug_object_path_entries": 68,
+      "all_contain_build_directory": true
+    }
+  },
+  "host_tests": {
+    "gpu_executed": false,
+    "sanitizers": [
+      "address",
+      "undefined"
+    ],
+    "suites": [
+      {
+        "name": "native_s1b",
+        "checks": 378,
+        "failed": 0,
+        "compile_exit": 0,
+        "run_exit": 0
+      },
+      {
+        "name": "native_s1c",
+        "checks": 507,
+        "failed": 0,
+        "compile_exit": 0,
+        "run_exit": 0
+      },
+      {
+        "name": "native_hostimport",
+        "checks": 947,
+        "failed": 0,
+        "compile_exit": 0,
+        "run_exit": 0
+      },
+      {
+        "name": "native_ws_open",
+        "checks": 1073,
+        "failed": 0,
+        "compile_exit": 0,
+        "run_exit": 0
+      }
+    ],
+    "total_checks": 2905,
+    "total_failed": 0
+  },
+  "mutations": {
+    "native_s1c": {
+      "distinct_mutations": 45,
+      "all_detected": true,
+      "alarm_terminated_ids": [],
+      "logs": [
+        "native_s1c-mutations.log"
+      ]
+    },
+    "native_ws_open_hostimport": {
+      "distinct_mutations": 115,
+      "all_detected": true,
+      "alarm_terminated_ids": [
+        45,
+        51
+      ],
+      "logs": [
+        "native_ws_open-mutations.log",
+        "native_ws_open-mutations-52-150.log"
+      ]
+    }
+  },
+  "mutation_execution_note": "Second script timed out globally after ID 51; IDs 52..150 resumed with exit 0. Combined IDs match all plants. Mutants 45 and 51 were caught by the upstream 120-second alarm.",
+  "python_tests": {
+    "passed": 21,
+    "failed": 0
+  },
+  "warnings_per_build": {
+    "total": 38,
+    "ignored_kext_flag_in_c": 29,
+    "shadow": 5,
+    "unused_variable": 1,
+    "signedness": 1,
+    "format": 2
+  },
+  "audit_scope": "Targeted static review, firmware verification and pure software tests; not an exhaustive security audit or hardware qualification.",
+  "audit_findings": [
+    {
+      "id": "A1",
+      "finding": "Survey mode enables PCI memory, writes indirect VRAM index registers and may arm interrupts."
+    },
+    {
+      "id": "A2",
+      "finding": "Apple driver personalities remain in the bundle; HWServices lacks an IOPropertyMatch guard."
+    },
+    {
+      "id": "A3",
+      "finding": "PCI matching admits 7550 and 7551 without our subsystem restriction."
+    },
+    {
+      "id": "A4",
+      "finding": "Unknown console location permits a fallback VRAM region at 64 MiB."
+    },
+    {
+      "id": "A5",
+      "finding": "Native input guards exist, but PM4 contents, DMA/IOMMU assumptions, real concurrency and missing normative ABI documentation remain open."
+    },
+    {
+      "id": "A6",
+      "finding": "No kernel-collection linkage, loading, restoration or hot-reload qualification."
+    },
+    {
+      "id": "A7",
+      "finding": "Confirmed format mismatch at AppleHardwareHook.cpp:34295-34296; upstream not patched."
+    }
+  ],
+  "installed": false,
+  "loaded": false,
+  "hardware_qualified": false,
+  "radv_built": false,
+  "public_report": "docs/reports/2026-10-09-navi48-build-audit.md",
+  "local_evidence_sha256": {
+    "out/diagnostics/navi48-build/python-tests.log": "9d3582b69e59400ecf89ee025c060c49fd45ad457eda8bb32df14f8f5a2d4905",
+    "out/navi48/host-tests/report.json": "8c7c2f48dc929a7ab45a2d4d4d07b74d2f56b54802f7b99969a94f8926ef8cfc",
+    "out/navi48/host-tests/native_s1c-mutations.log": "d9af7d350c8e76803f8cbe46870223bdca9a29e05b66d6f2d760f01314237ccc",
+    "out/navi48/host-tests/native_ws_open-mutations.log": "e124523e14e7d862f2830de764639adaacc489fe613acce538ee8803c87957f8",
+    "out/navi48/host-tests/native_ws_open-mutations-52-150.log": "39ceaaeb4ce6b890d6899d691936a83d18fddc4d1cb3064a6e48d11fe369e906",
+    "out/navi48/qualified-build-a/build-report.json": "b974b6050503fb41661fd11eeb9325507eb870fe87e6d3c99698050cef1883ae",
+    "out/navi48/qualified-build-a/embedded-firmware.json": "1a24deb2fc3580c63b7da28d95314e92fabc05853f1166fd17e9f8b458c4f665",
+    "out/navi48/qualified-build-a/logs/make.log": "1340a7e11b3c90ce6027069fda075ebc176ee756199a7fc7bb304e18978ee908",
+    "out/navi48/qualified-build-a/logs/signature-verify.txt": "65ad3c74e06ba8c41991986bc31ab7239a046ac98b0cdf66c874400d230e971d",
+    "out/navi48/qualified-build-a/logs/undefined-demangled.txt": "d4f541895cd109b732e2e930169dc633cf32777101702417ef0451160ee6d12d",
+    "out/navi48/qualified-build-b/build-report.json": "72b6b17598dc298ecd1930d54af04fe80ea0143d8aa8d9d83da4b155e5e484b8",
+    "out/navi48/qualified-build-b/embedded-firmware.json": "1a24deb2fc3580c63b7da28d95314e92fabc05853f1166fd17e9f8b458c4f665",
+    "out/navi48/qualified-build-b/logs/make.log": "e9d2341dc8d9655d8f040faa02e468f10830edaefa5cf4b63060a5cc29317c45",
+    "out/navi48/qualified-build-b/logs/signature-verify.txt": "9d8016b0a872e0e9a8083a211a876cd06e3f34940536b7a4fb4a3ee367aaf575",
+    "out/navi48/qualified-build-b/logs/undefined-demangled.txt": "d4f541895cd109b732e2e930169dc633cf32777101702417ef0451160ee6d12d"
+  }
+}

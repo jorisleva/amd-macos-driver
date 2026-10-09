@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "product": "Navi48FirmwareCore",
+  "navi48_revision": "696959753070e9a16677be485580dc53b06a7ab5",
+  "kind": "non-loadable-static-library",
+  "patched_psp_sha256": "e8797d986963e07a2267f532012b81f43b4623253b45c3f4c46b8740f976cdeb",
+  "sources": [
+    "ipdiscovery.cpp",
+    "psp.cpp",
+    "amd/amdgpu_discovery.cpp",
+    "amd/amdgpu_ucode_extract.cpp",
+    "amd/fw_loader.cpp",
+    "amd/fw_table.cpp",
+    "amd/psp_v14_0.cpp",
+    "amd/smu_v14_0.cpp",
+    "amd/imu_v12_0.cpp"
+  ],
+  "headers": [
+    "amd/amdgpu_discovery.h",
+    "amd/amdgpu_imu.h",
+    "amd/amdgpu_ip.h",
+    "amd/amdgpu_log.h",
+    "amd/amdgpu_psp.h",
+    "amd/amdgpu_regs.h",
+    "amd/amdgpu_smu.h",
+    "amd/amdgpu_sysmem.h",
+    "amd/amdgpu_ucode_extract.h",
+    "amd/amdgpu_ucode_psp.h",
+    "amd/fw_loader.h",
+    "fw/fw_table.h",
+    "ipdiscovery.hpp",
+    "psp.hpp",
+    "regs.hpp"
+  ],
+  "upstream_sha256": {
+    "amd/amdgpu_discovery.cpp": "05bf4531a759d7a15c42fbc0fccdcfb241124a3426c52a068ef273e3adbf9aa7",
+    "amd/amdgpu_discovery.h": "1cdd7b02e226baedbfc61293d88f54695857e6d8209d4e96bab4ef983a25fc31",
+    "amd/amdgpu_imu.h": "b2eb592de94198de57c1c4a43cb216c0ef7032f4cb09e19fb00812d82b0511b8",
+    "amd/amdgpu_ip.h": "46038d774dac02b6a82f39c4cefa58b94a0fef78c46cf333820ce39630a55cfd",
+    "amd/amdgpu_log.h": "e92e7f45e373858734bd6154f91337cb0a7b4620b3dd2ccd7c54105d82bd2505",
+    "amd/amdgpu_psp.h": "80fb9c06a123908f2ee5a1faafd891666a69e4e0c74bd1796b5970ba32401dd9",
+    "amd/amdgpu_regs.h": "c6d26d963a78da4fc81089b6562352bdba6958397a25cf0e4a85dc63538dc38c",
+    "amd/amdgpu_smu.h": "06a14af215f9024de8d2812ccd0180691da9e31ad97b0a862faec84a788eea9f",
+    "amd/amdgpu_sysmem.h": "53b7855b9a91ca8a3eec000614df31ac48cb25ff1586e632fd99383c8038c379",
+    "amd/amdgpu_ucode_extract.cpp": "3be723e0e27ed4e32505b858c8285b3d7fc3ba6a5222b8fb93c44a97e7631f7b",
+    "amd/amdgpu_ucode_extract.h": "f1483303362b1311c443da9a9284091d6bbce1ccfef32122dc9c86e59699827a",
+    "amd/amdgpu_ucode_psp.h": "cfe3f3f1d6e38c98acb0cf3a34ececddcb556de65212cdd73c7ccd231c431845",
+    "amd/fw_loader.cpp": "5b170fee1fdb71b848e711c8bceb9f083dfdff9bfcda93ca5b2ade3345020bb1",
+    "amd/fw_loader.h": "e97f80c256720fb8b3e1efcf94d8b11b0958e23f205d5e402228edb0a878d30d",
+    "amd/fw_table.cpp": "dd0a7b434b79d9213e3720505e65a78675b2d501621e38855020ff624ada6332",
+    "amd/imu_v12_0.cpp": "c929a5bfd54836ffb3f7ff9f0d3fc88f8d1fcab1b1788f88b40dd44561920a79",
+    "amd/psp_v14_0.cpp": "4ed9331eaa230247a60802e6b918db034dead82a4203904ccda2bc03b742dca2",
+    "amd/smu_v14_0.cpp": "21f9c6743a82fd51b14ca47b1dfe1d1bbf5dd4d8f87692270afec444d6936b21",
+    "fw/fw_table.h": "f236a8010b6d4f79e9cc385d65a41d369c593bcf985a1b9dcb789b78fa5e9e13",
+    "ipdiscovery.cpp": "2ddef41930d48e2b1a53889545635111b9a9ef10a31a01d57c8c7d4c8480b276",
+    "ipdiscovery.hpp": "9f63fcf7bc71e9475911a69db4deaae5b1996d66643873c9ecd694dfd83e419d",
+    "psp.cpp": "fba3a172f1ec6e4d00d64ef2e93aa2e3b3fd31a4390b1780e0075eda6d8f34bd",
+    "psp.hpp": "d9bdd4a42e6bdda1c45d42d0dc2df8cdb3d12c9c50fc2505fc69dbe7254effb7",
+    "regs.hpp": "20c5f01c18e7ecdbde5223b9a04c78b24b6f366121fff55846c807fd43165ab9"
+  },
+  "allowed_kernel_imports": [
+    "_IOLockAlloc", "_IOLockFree", "_IOLockLock", "_IOLockUnlock",
+    "_IOLog", "_IOSleep", "_OSCompareAndSwapPtr", "___bzero", "_bzero",
+    "_current_thread", "_memcpy", "_memset", "_vsnprintf"
+  ],
+  "platform_controller": {
+    "product": "Navi48PlatformController",
+    "kind": "non-loadable-static-library",
+    "sources": ["IOKitController.cpp"],
+    "allowed_kernel_imports": [
+      "_IOLockAlloc", "_IOLockFree", "_IOLockLock", "_IOLockUnlock",
+      "_PE_parse_boot_argn",
+      "__ZN11IOPCIDevice19extendedConfigRead8Ey",
+      "__ZN11IOPCIDevice20extendedConfigRead16Ey",
+      "__ZN11IOPCIDevice20extendedConfigRead32Ey",
+      "__ZN11IOPCIDevice9metaClassE",
+      "__ZN15OSMetaClassBase12safeMetaCastEPKS_PK11OSMetaClass",
+      "__ZN9IOService11getPlatformEv",
+      "__ZNK9IOService10isInactiveEv",
+      "___bzero", "_kernel_task", "_memcpy"
+    ]
+  }
+}

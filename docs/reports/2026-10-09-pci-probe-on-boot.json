@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "status": "first-on-boot-observed-registry-snapshot-matched",
+  "recorded_utc": "2026-10-09T11:22:25.744104+00:00",
+  "boot_utc": "2026-10-09T11:05:25+00:00",
+  "system": {
+    "version": "26.7.1",
+    "build": "25G241",
+    "darwin": "25.6.0"
+  },
+  "user_reports_desktop_reached": true,
+  "boot_args": "-v keepsyms=1 debug=0x100 navi48bringup=0 rdna4-off=1 -liludbgall navi48-pci-probe=1",
+  "kernel_module": {
+    "identifier": "com.amd-macos-driver.Navi48PciProbe",
+    "version": "0.1.0",
+    "loaded": true,
+    "uuid": "B4232B58-A8D2-3D83-9CBB-5E077EE0627E"
+  },
+  "opencore_injection_success": true,
+  "opencore_relevant_lines": [
+    "65:158 00:100 OC: Prelinked injection Navi48PciProbe.kext (PCI registry observer 0.1.0 - no GPU initialization) - Success",
+    "65:243 00:085 OC: Prelinked injection Navi48PciProbe.kext v0.1.0"
+  ],
+  "probe_nodes": 1,
+  "probe_under_target_provider": true,
+  "ioaccelerator_nodes": 0,
+  "provider_properties_hex": {
+    "vendor-id": "02100000",
+    "device-id": "50750000",
+    "subsystem-vendor-id": "49180000",
+    "subsystem-id": "17540000",
+    "revision-id": "c0000000",
+    "class-code": "00000300",
+    "assigned-addresses": "100007c204000000000000400000000000000010180007c204000000000000500000000000002000200007810000000000e00000000000000001000024000782000000000000b0fc000000000000080030000782000000000000b8fc0000000000000200"
+  },
+  "snapshot_xml_values": {
+    "BAR0": {
+      "Base": 18253611008,
+      "ConfigRegister": 16,
+      "Length": 268435456,
+      "RegistryFlags": -1039728624
+    },
+    "BAR2": {
+      "Base": 18522046464,
+      "ConfigRegister": 24,
+      "Length": 2097152,
+      "RegistryFlags": -1039728616
+    },
+    "BAR4": {
+      "Base": 57344,
+      "ConfigRegister": 32,
+      "Length": 256,
+      "RegistryFlags": -2130247648
+    },
+    "BAR5": {
+      "Base": 4239392768,
+      "ConfigRegister": 36,
+      "Length": 524288,
+      "RegistryFlags": -2113470428
+    },
+    "PCIBDF": 458752,
+    "ROM": {
+      "Base": 4239917056,
+      "ConfigRegister": 48,
+      "Length": 131072,
+      "RegistryFlags": -2113470416
+    },
+    "ResourceCount": 5,
+    "SchemaVersion": 1,
+    "class-code": 196608,
+    "device-id": 30032,
+    "revision-id": 192,
+    "subsystem-id": 21527,
+    "subsystem-vendor-id": 6217,
+    "vendor-id": 4098
+  },
+  "comparison": {
+    "matched": true,
+    "normalized_snapshot": {
+      "SchemaVersion": 1,
+      "vendor-id": 4098,
+      "device-id": 30032,
+      "subsystem-vendor-id": 6217,
+      "subsystem-id": 21527,
+      "revision-id": 192,
+      "class-code": 196608,
+      "BAR0": {
+        "ConfigRegister": 16,
+        "RegistryFlags": 3255238672,
+        "Base": 18253611008,
+        "Length": 268435456
+      },
+      "BAR2": {
+        "ConfigRegister": 24,
+        "RegistryFlags": 3255238680,
+        "Base": 18522046464,
+        "Length": 2097152
+      },
+      "BAR4": {
+        "ConfigRegister": 32,
+        "RegistryFlags": 2164719648,
+        "Base": 57344,
+        "Length": 256
+      },
+      "BAR5": {
+        "ConfigRegister": 36,
+        "RegistryFlags": 2181496868,
+        "Base": 4239392768,
+        "Length": 524288
+      },
+      "ROM": {
+        "ConfigRegister": 48,
+        "RegistryFlags": 2181496880,
+        "Base": 4239917056,
+        "Length": 131072
+      },
+      "ResourceCount": 5,
+      "PCIBDF": 458752
+    },
+    "signed_xml_fields_normalized": [
+      "BAR0.RegistryFlags",
+      "BAR2.RegistryFlags",
+      "BAR4.RegistryFlags",
+      "BAR5.RegistryFlags",
+      "ROM.RegistryFlags"
+    ],
+    "scope": "IORegistry metadata equality only; no PCI/MMIO/VRAM/DMA access validation"
+  },
+  "kernelmanager_notifications": [
+    "2026-10-09 13:05:31.582 Df kernelmanagerd[124:50e] Received kext load notification: com.amd-macos-driver.Navi48PciProbe",
+    "2026-10-09 13:05:31.582 E  kernelmanager_helper[336:823] Could not process load notification in helper: Could not find: Did not find identifier (com.amd-macos-driver.Navi48PciProbe) in helper to process load notification"
+  ],
+  "helper_notification_error_observed": true,
+  "helper_error_cause_established": false,
+  "start_iolog_line_in_collected_unified_log": false,
+  "efi_checks": {
+    "probe_files": 104,
+    "probe_matches_on_profile": true,
+    "opencore_files": 101,
+    "opencore_unchanged": true,
+    "on_config_sha256": "8c62c5f6a5e0cc58c873f4028437b8b2cced410865478064f62c3839078e059b",
+    "executable_sha256": "8146414908a073e9fe504ca89b285d3ee076f2e327eb606cecaf023d0cd1ca94"
+  },
+  "sip": "System Integrity Protection status: enabled.",
+  "authenticated_root": "Authenticated Root status: enabled",
+  "python_tests": {
+    "passed": 52,
+    "failed": 0,
+    "new_snapshot_tests": 8
+  },
+  "efi_written_by_this_observation": false,
+  "driver_source_or_binary_changed": false,
+  "hot_load_or_unload_performed": false,
+  "registry_observer_on_path_observed": true,
+  "direct_pci_mmio_access_tested": false,
+  "vram_dma_firmware_gpu_execution_qualified": false,
+  "prolonged_stability_qualified": false,
+  "return_to_baseline_after_on_tested": false,
+  "local_evidence_sha256": {
+    "out/efi-pci/on-boot-20261009T110525Z/accelerator-registry.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/on-boot-20261009T110525Z/accelerator-registry.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/on-boot-20261009T110525Z/authenticated-root.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/on-boot-20261009T110525Z/authenticated-root.stdout": "77ae019616ac852bb605a35ca82c25246862cc856f0fbec7b5815a9929f75bcb",
+    "out/efi-pci/on-boot-20261009T110525Z/boot-args.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/on-boot-20261009T110525Z/boot-args.stdout": "5e8de817c8349beb7da893f40129acbc238efe26f947f4b4a05d603a5eb6659b",
+    "out/efi-pci/on-boot-20261009T110525Z/boot-time.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/on-boot-20261009T110525Z/boot-time.stdout": "c2ca8aef92cce5b0b6a5bdfa89e84c33b2d51c0688cedbfa7163539f6c5f3e8e",
+    "out/efi-pci/on-boot-20261009T110525Z/darwin.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/on-boot-20261009T110525Z/darwin.stdout": "db55fd0d3ddc3fe8db9542ff3bbb54a263149bcc0fdeecc523e881277481818e",
+    "out/efi-pci/on-boot-20261009T110525Z/kernel-probe-log.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/on-boot-20261009T110525Z/kernel-probe-log.txt": "6f5ecc640357d4978d10dd5a34e50a7d4712bbfd0a1928cbd3902a32d83c3c6b",
+    "out/efi-pci/on-boot-20261009T110525Z/loaded.stderr": "060367c79e74c046faa789655d564236101c67f510579647685ce3529756eb12",
+    "out/efi-pci/on-boot-20261009T110525Z/loaded.stdout": "891fddd95a94f6ab9d2279d4e124eb7468e8a5a4a257ca53a7d0029951cc0d88",
+    "out/efi-pci/on-boot-20261009T110525Z/opencore-2026-10-09-110415.txt": "fd079c91f144770ae8e51f2706ef55916de01336dd3467b6887cb725762af713",
+    "out/efi-pci/on-boot-20261009T110525Z/opencore-relevant.txt": "b15e04e9a74b16ac70d0f7d450f96268d1a547dbe1b67819990540360d219ed2",
+    "out/efi-pci/on-boot-20261009T110525Z/probe-registry.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/on-boot-20261009T110525Z/probe-registry.stdout": "a69f495e3052b9db240cf6e56023907fbd69f0fa4768e060b27bb4ebddfd2df8",
+    "out/efi-pci/on-boot-20261009T110525Z/probe-text.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/on-boot-20261009T110525Z/probe-text.stdout": "2d2f5164e8df186359df90a8c39f1dba0bea94a83b1a2f59c6ec3a56918b39bd",
+    "out/efi-pci/on-boot-20261009T110525Z/provider-attachment.json": "6fd2c2dd2003aee1574789e049ea5e99ed3802c914fc6d6317736abad9dedf22",
+    "out/efi-pci/on-boot-20261009T110525Z/provider-properties.json": "2cfeacad54c27af314be818815ce019333a7c82baf78c48355ef6b62b52d5f49",
+    "out/efi-pci/on-boot-20261009T110525Z/python-tests.log": "b6e69b34d4cda73a85d6c2d41dfb53315ccb16de4f830f369425c36e464f34cc",
+    "out/efi-pci/on-boot-20261009T110525Z/sip.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/on-boot-20261009T110525Z/sip.stdout": "83fb612043aa785d573f4d9ad5bae8ed63dc175f4c39f984d66c367f996f0d36",
+    "out/efi-pci/on-boot-20261009T110525Z/snapshot-comparison.json": "41abef14b1cf85bf57713454a3ff39d062078385bf27abc1620c093a68a695f0",
+    "out/efi-pci/on-boot-20261009T110525Z/snapshot.json": "736c0e3392c539ef3f18c82079f8117a4af246cfa3e9730a323ad4da942b41cd",
+    "out/efi-pci/on-boot-20261009T110525Z/system.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/on-boot-20261009T110525Z/system.stdout": "0b74dee9f2004e79e0ebb6e94909916c30d37db5dfb5c1f733b7ca7f723a701d"
+  },
+  "comparator_sha256": "00783d5c89ab1e4aa92dfbb5e9a3244dda7d28962b43aa2d504bcc934dfc86aa"
+}

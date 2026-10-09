@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "status": "first-off-boot-observed-loaded-without-attachment",
+  "recorded_utc": "2026-10-09T10:05:23.349235+00:00",
+  "boot_utc": "2026-10-09T09:53:12+00:00",
+  "system": {
+    "version": "26.7.1",
+    "build": "25G241",
+    "darwin": "25.6.0"
+  },
+  "user_reports_desktop_reached": true,
+  "boot_args": "-v keepsyms=1 debug=0x100 navi48bringup=0 rdna4-off=1 -liludbgall navi48-pci-probe=0",
+  "opencore_injection_success": true,
+  "opencore_relevant_lines": [
+    "54:602 00:072 OC: Prelinked injection Navi48PciProbe.kext (PCI registry observer 0.1.0 - no GPU initialization) - Success",
+    "54:674 00:072 OC: Prelinked injection Navi48PciProbe.kext v0.1.0"
+  ],
+  "kernel_module": {
+    "identifier": "com.amd-macos-driver.Navi48PciProbe",
+    "version": "0.1.0",
+    "loaded": true,
+    "uuid": "B4232B58-A8D2-3D83-9CBB-5E077EE0627E",
+    "uuid_matches_usb_executable": true,
+    "linked_against": [
+      "com.apple.iokit.IOPCIFamily",
+      "com.apple.kpi.unsupported",
+      "com.apple.kpi.libkern",
+      "com.apple.kpi.iokit"
+    ]
+  },
+  "probe_nodes": 0,
+  "ioaccelerator_nodes": 0,
+  "efi_checks": {
+    "probe_files": 104,
+    "probe_matches_off_profile": true,
+    "opencore_files": 101,
+    "opencore_unchanged": true,
+    "off_config_sha256": "ecb7bf5ed55c9876daf1fe794abe8df5cab76c01eb3fb3a13b5bbfc76ff37aae",
+    "executable_sha256": "8146414908a073e9fe504ca89b285d3ee076f2e327eb606cecaf023d0cd1ca94"
+  },
+  "kernelmanager_notifications": [
+    "2026-10-09 11:53:20.500 Df kernelmanagerd[122:4f3] Received kext load notification: com.amd-macos-driver.Navi48PciProbe",
+    "2026-10-09 11:53:20.500 E  kernelmanager_helper[332:815] Could not process load notification in helper: Could not find: Did not find identifier (com.amd-macos-driver.Navi48PciProbe) in helper to process load notification"
+  ],
+  "helper_notification_error_observed": true,
+  "helper_error_cause_established": false,
+  "sip": "System Integrity Protection status: enabled.",
+  "authenticated_root": "Authenticated Root status: enabled",
+  "efi_written_by_this_observation": false,
+  "on_profile_deployed": false,
+  "hot_load_or_unload_performed": false,
+  "probe_call_trace_available": false,
+  "on_path_qualified": false,
+  "native_gpu_qualified": false,
+  "prolonged_stability_qualified": false,
+  "recovery_boot_tested": false,
+  "local_evidence_sha256": {
+    "out/efi-pci/off-boot-20261009T095312Z/accelerator-registry.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/off-boot-20261009T095312Z/accelerator-registry.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/off-boot-20261009T095312Z/authenticated-root.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/off-boot-20261009T095312Z/authenticated-root.stdout": "77ae019616ac852bb605a35ca82c25246862cc856f0fbec7b5815a9929f75bcb",
+    "out/efi-pci/off-boot-20261009T095312Z/boot-args.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/off-boot-20261009T095312Z/boot-args.stdout": "ed7ad01ca17860aaf4661dfeeda5b3ce92ac4405c56b45a4678f4d799e1c7946",
+    "out/efi-pci/off-boot-20261009T095312Z/boot-time.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/off-boot-20261009T095312Z/boot-time.stdout": "2d21758eef0a1485cf61fd7baa34543439cc669fd711ec89da29e766e9efcc6a",
+    "out/efi-pci/off-boot-20261009T095312Z/darwin.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/off-boot-20261009T095312Z/darwin.stdout": "db55fd0d3ddc3fe8db9542ff3bbb54a263149bcc0fdeecc523e881277481818e",
+    "out/efi-pci/off-boot-20261009T095312Z/executable-uuid.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/off-boot-20261009T095312Z/executable-uuid.stdout": "14faa0e76be0b758ccb6079a3c257546d435db3cb44fd2d6c5edc135fe743d2c",
+    "out/efi-pci/off-boot-20261009T095312Z/kernel-probe-log.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/off-boot-20261009T095312Z/kernel-probe-log.txt": "ed52ac0f754a88d4e859e79f20ed3fbbc8076ed3f6353bd211ceba4b6dc58d56",
+    "out/efi-pci/off-boot-20261009T095312Z/loaded.stderr": "060367c79e74c046faa789655d564236101c67f510579647685ce3529756eb12",
+    "out/efi-pci/off-boot-20261009T095312Z/loaded.stdout": "882b11f67cc4b61eab3966edb92b88ad845cbf1ac043430aacaca52d2f205494",
+    "out/efi-pci/off-boot-20261009T095312Z/opencore-2026-10-09-095215.txt": "8110936525da2651f4cae3a7843053cc085d239f1936a86ba467a111b15a0d05",
+    "out/efi-pci/off-boot-20261009T095312Z/opencore-relevant.txt": "35346fa422d7245ee5a5e0931c5a08391c4beb976da02b6d6330143526660ece",
+    "out/efi-pci/off-boot-20261009T095312Z/probe-registry.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/off-boot-20261009T095312Z/probe-registry.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/off-boot-20261009T095312Z/sip.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/off-boot-20261009T095312Z/sip.stdout": "83fb612043aa785d573f4d9ad5bae8ed63dc175f4c39f984d66c367f996f0d36",
+    "out/efi-pci/off-boot-20261009T095312Z/system.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "out/efi-pci/off-boot-20261009T095312Z/system.stdout": "0b74dee9f2004e79e0ebb6e94909916c30d37db5dfb5c1f733b7ca7f723a701d"
+  }
+}

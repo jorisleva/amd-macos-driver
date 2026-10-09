@@ -2,8 +2,11 @@
 
 Le manifeste [`sources.lock.json`](../dependencies/sources.lock.json) fixe
 désormais **MacKernelSDK et linux-firmware**. Le SDK et les dix firmwares ont
-été récupérés sous Windows et vérifiés. Cette préparation ne construit ni
-n'installe le kext ; aucune qualification GPU macOS n'en est déduite.
+été récupérés et vérifiés sous Windows, puis utilisés le 9 octobre pour
+**deux builds Navi48 x86_64 sur le Hackintosh Tahoe**. Le préparateur seul
+ne construit ni n'installe le kext ; l'outil de build ci-dessous n'installe
+rien non plus. Aucune qualification GPU macOS n'en est déduite.
+Voir le [rapport de compilation et d'audit](reports/2026-10-09-navi48-build-audit.md).
 
 ## Versions retrouvées
 
@@ -18,8 +21,8 @@ Les [instructions Navi48](https://github.com/Almosst-DEV/Navi48-MacOS/blob/69695
 désignent MacKernelSDK dans RDNA4FB sans donner de commit SDK. Le gitlink de
 [RDNA4FB](https://github.com/somestupidgirl/RDNA4FB/tree/5ff69aade9a7feb18bb665040661de33ccfe68ba)
 permet de fixer une provenance reproductible. Ce choix reste à qualifier
-par compilation sur notre Mac ; il ne prouve pas le SDK utilisé par l'auteur
-pour chacun de ses résultats historiques.
+pour le chargement sur notre Tahoe ; les deux compilations réussies ne
+prouvent pas le SDK utilisé par l'auteur pour ses résultats historiques.
 
 La dernière révision linux-firmware examinée, `24247053afda2bab6b4ace42402dbf9f3b1305d6`,
 ne correspond qu'à **3 des 10 empreintes**. La recherche dans l'historique a
@@ -54,11 +57,62 @@ une reproduction sans réseau ; choisir un nouveau `--output` sous `out/`
 pour préserver une préparation existante. Aucune sortie sur une partition
 système/EFI ou une clé USB n'est acceptée.
 
-## Étape suivante sur le Mac, après le travail AIR en cours
+## Première bibliothèque native isolée — non chargeable
 
-Depuis une copie du dépôt AMD séparée, vérifier et détacher le checkout sur
-`696959753070e9a16677be485580dc53b06a7ab5`. Ne pas modifier la copie en cours
-d'utilisation pour le travail de shaders. Dans cette copie propre :
+Le module [Navi48FirmwareCore](../native/Navi48FirmwareCore/) utilise ces mêmes
+entrées épinglées, mais seulement neuf unités amont sélectionnées et auditées.
+Il produit un objet et une archive statique, **pas un kext**. Deux builds
+identiques et les tests du modèle local sont consignés dans le
+[rapport d'isolation native](reports/2026-10-09-native-isolation.md).
+
+```sh
+python3 -B tools/build-native-firmware-core.py --output out/native-isolation/nouveau-build
+```
+
+Le cache existant est obligatoire ; pas de téléchargement ni installation.
+Aucune fonction GPU n'est exécutée. Les préconditions testées ne sont pas
+encore raccordées à un contrôleur matériel : ne pas tenter de charger l'archive.
+
+## Observateur PCI indépendant
+
+Le nouveau [Navi48PciProbe](../kexts/Navi48PciProbe/) se construit avec
+`python3 -B tools/build-pci-probe.py --output out/pci-probe/new-build`.
+Il utilise seulement l'archive MacKernelSDK en cache : aucun checkout Navi48,
+firmware ou composant graphique. Le builder teste le même code avec un faux
+IOKit, puis produit le kext sans installation. Résultats et limites :
+[rapport d'isolation](reports/2026-10-09-pci-probe-isolation.md).
+
+## Construire Navi48 sans l'installer
+
+Python **3.9+** et Command Line Tools suffisent pour ce kext. Depuis la racine
+du fork, préparer les entrées puis un checkout AMD séparé et détaché :
+
+```sh
+git clone --no-checkout --filter=blob:none \
+  https://github.com/Almosst-DEV/Navi48-MacOS.git out/dependencies/Navi48-MacOS
+git -C out/dependencies/Navi48-MacOS checkout --detach \
+  696959753070e9a16677be485580dc53b06a7ab5
+python3 -B tools/prepare-amd-dependencies.py
+python3 -B tools/build-navi48.py --output out/navi48/new-build --jobs 2
+python3 -B tools/test-navi48-host.py --output out/navi48/new-host-tests
+```
+
+Ne pas recloner sur le checkout existant ; choisir de nouvelles sorties.
+Le builder exporte le commit propre, réextrait l'archive SDK vérifiée et
+contrôle les firmwares jusque dans le Mach-O signé. Il conserve les rapports,
+empreintes, sources et notices. Les cinq blobs Apple optionnels doivent être
+vides. `make install`, `kmutil load` et les modifications EFI sont exclus.
+
+Deux builds indépendants passent ; leurs sections de code/données sont
+identiques, mais les binaires complets diffèrent par les métadonnées de debug
+et signature. Les suites natives totalisent 2 905 contrôles ASan/UBSan,
+sans commande GPU. L'audit exige une isolation du bundle avant un essai.
+
+### Détail manuel et suite RADV
+
+Le builder automatise les points 1–3 et la reconstruction Navi48 du point 5.
+Le travail Mesa n'a pas encore été exécuté. Dans une copie propre au commit
+`696959753070e9a16677be485580dc53b06a7ab5` :
 
 1. Rejouer le préparateur du fork pour obtenir le SDK et les firmwares épinglés.
 2. Copier les dix blobs vérifiés dans `src/navi48-bringup/firmware/` du dépôt
@@ -85,7 +139,9 @@ pas les contrats privés requis plus tard pour WindowServer.
 - `notes/design/NATIVE-S1C-ABI.md`, déclaré normatif dans le header N48N,
   reste absent à la révision publique épinglée (HTTP 404). L'ABI n'est donc
   pas qualifiée par le seul pinning du SDK et des blobs.
-- Aucun build du kext AMD ni de Mesa Darwin n'a été effectué sur Windows.
+- Navi48 compile sous Tahoe ; aucun chargement ni essai GPU macOS. Les
+  imports noyau ne sont pas qualifiés contre les collections de Tahoe.
+- Mesa Darwin n'est pas encore construit.
 - Le chargement des firmwares et les chemins mémoire/commandes seront
   testés seulement après qualification du [démarrage Tahoe de référence](OPENCORE-TAHOE.md).
 

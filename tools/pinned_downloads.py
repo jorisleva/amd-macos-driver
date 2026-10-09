@@ -6,8 +6,12 @@ import zipfile
 
 
 def digest(path):
+    # Apple's Command Line Tools still ship Python 3.9 (file_digest needs 3.11).
+    sha256 = hashlib.sha256()
     with Path(path).open('rb') as stream:
-        return hashlib.file_digest(stream, 'sha256').hexdigest()
+        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+            sha256.update(chunk)
+    return sha256.hexdigest()
 
 
 def fetch(item, cache, offline=False):

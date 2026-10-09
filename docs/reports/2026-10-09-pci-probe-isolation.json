@@ -1,0 +1,364 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-10-09T00:59:41.919528+00:00",
+  "status": "isolated-built-host-tested-not-load-qualified",
+  "product": "Navi48PciProbe",
+  "version": "0.1.0",
+  "system": {
+    "macos": "26.7.1",
+    "build": "25G241",
+    "architecture": "x86_64"
+  },
+  "target": {
+    "vendor": "1002",
+    "device": "7550",
+    "subsystem_vendor": "1849",
+    "subsystem_device": "5417",
+    "revision": "c0",
+    "class_code": "030000"
+  },
+  "build_a": {
+    "status": "built-and-host-tested-not-load-qualified",
+    "created_utc": "2026-10-09T00:48:50.999585+00:00",
+    "product": "Navi48PciProbe",
+    "version": "0.1.0",
+    "sdk_revision": "05094e5e88cec7caedbfb35e8449ed0db94bf95b",
+    "sdk_archive_sha256": "b6abad54ab347028d7c5495a105cdd59736bcecf12ab6bbb44df7041715994bd",
+    "installed": false,
+    "loaded": false,
+    "hardware_qualified": false,
+    "default_enabled": false,
+    "activation_boot_arg": "navi48-pci-probe=1",
+    "input_model": "IORegistry properties only; no direct PCI/MMIO reads or writes",
+    "source_sha256": {
+      "Info.plist": "0c666a331411ad5b72bc806abc593e6ecfe94875f79c585055c50af22a6a2393",
+      "Navi48PciProbe.cpp": "e0f23165e301653e3b34ed119279da416bf5878e8c28cff5aa3b30c251ab0776",
+      "Navi48PciProbe.hpp": "a0cbfcaa4ae6e3b977d0f8bca962698dbc97beb1524bdd6980649a93e86c4426",
+      "ProbePolicy.hpp": "d6ed7fee26cf0ca057adbbb2b106d595514c7d8c9554a5ac70798bb196463760",
+      "kmod_info.c": "bdd84222bcabeea689def706d858b14dee2db243fe728473a8d5fa3df6bd4fef"
+    },
+    "test_sha256": {
+      "probe_test.cpp": "7d30ce6dec0ede93d89110be158ae2be093d512682888e5d1fe0360ffefbe8a0",
+      "stubs/FakeIOKit.hpp": "e2076b6994efd91359cc1767574f79d42085024a3bb030de31dedc7f5fda4ee3",
+      "stubs/IOKit/IOLib.h": "1fe415902080f82d8f13de3ea208eff5c896f32bc3d6d5d1ae08084cb52f282e",
+      "stubs/IOKit/IOService.h": "1fe415902080f82d8f13de3ea208eff5c896f32bc3d6d5d1ae08084cb52f282e",
+      "stubs/IOKit/pci/IOPCIDevice.h": "1fe415902080f82d8f13de3ea208eff5c896f32bc3d6d5d1ae08084cb52f282e",
+      "stubs/libkern/c++/OSData.h": "1fe415902080f82d8f13de3ea208eff5c896f32bc3d6d5d1ae08084cb52f282e",
+      "stubs/libkern/c++/OSDictionary.h": "1fe415902080f82d8f13de3ea208eff5c896f32bc3d6d5d1ae08084cb52f282e",
+      "stubs/libkern/c++/OSNumber.h": "1fe415902080f82d8f13de3ea208eff5c896f32bc3d6d5d1ae08084cb52f282e",
+      "stubs/pexpert/pexpert.h": "1fe415902080f82d8f13de3ea208eff5c896f32bc3d6d5d1ae08084cb52f282e",
+      "target-registry.json": "55fdeac3273fb4e50fe9d428c95735546e0b8ac4b0715065222110294467af88"
+    },
+    "tool_sha256": {
+      "build-pci-probe.py.snapshot": "306f43240815436f0114b78dc552d0a28863cbc42ec1386637415fc280f0dfc5",
+      "navi48_binary.py.snapshot": "0f251b0d70daba2d215b269eddf9d0bbcfef6d74857d436563e91a4a5f8dcbc0",
+      "pci_probe_audit.py.snapshot": "8ec7a40793e06c1a1c5c9eeb8aa60ede79182930cb1eec64310508d7670775e4",
+      "pinned_downloads.py.snapshot": "9040b62139ab853b04d6c608519589854849de178e6def1bf76bc1e551d27d76"
+    },
+    "surface_audit": {
+      "personality_count": 1,
+      "provider_operations": [
+        "copyProperty"
+      ],
+      "member_call_names": [
+        "copyProperty",
+        "getBytesNoCopy",
+        "getLength",
+        "release",
+        "setObject"
+      ],
+      "kernel_sources": [
+        "Navi48PciProbe.cpp",
+        "Navi48PciProbe.hpp",
+        "ProbePolicy.hpp",
+        "kmod_info.c"
+      ],
+      "hardware_api_scan": "passed-not-a-formal-proof"
+    },
+    "macos_sdk": "26.5",
+    "host_tests": {
+      "checks": 1048,
+      "failed": 0,
+      "sanitizers": [
+        "address",
+        "undefined"
+      ],
+      "kernel_executed": false
+    },
+    "live_registry_replay": {
+      "passed": true,
+      "kernel_executed": false,
+      "properties_sha256": "2cfeacad54c27af314be818815ce019333a7c82baf78c48355ef6b62b52d5f49"
+    },
+    "import_audit": {
+      "undefined_symbols": 294,
+      "direct_pci_imports": [
+        "IOPCIDevice::metaClass"
+      ],
+      "kernel_collection_link_validated": false,
+      "note": "Inherited IOService vtable symbols are not evidence of direct hardware calls."
+    },
+    "architecture": "x86_64",
+    "artifact": "out/pci-probe/release-a/Navi48PciProbe.kext",
+    "executable_sha256": "8146414908a073e9fe504ca89b285d3ee076f2e327eb606cecaf023d0cd1ca94"
+  },
+  "build_b": {
+    "artifact": "out/pci-probe/release-b/Navi48PciProbe.kext",
+    "executable_sha256": "8146414908a073e9fe504ca89b285d3ee076f2e327eb606cecaf023d0cd1ca94"
+  },
+  "bundle_files_identical": true,
+  "bundle_file_sha256": {
+    "Contents/Info.plist": "0c666a331411ad5b72bc806abc593e6ecfe94875f79c585055c50af22a6a2393",
+    "Contents/MacOS/Navi48PciProbe": "8146414908a073e9fe504ca89b285d3ee076f2e327eb606cecaf023d0cd1ca94",
+    "Contents/_CodeSignature/CodeResources": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+  },
+  "mutations": {
+    "build_report_sha256": "5564512a40b229145208fe75051d660bb3e23804ca79badfef493d4bd9639dbf",
+    "runner_sha256": "ee2ad317f247d3b988c6f2c9cdc221e3daea5d33cc28a5a9b5a8144565f11a34",
+    "kernel_executed": false,
+    "mutations": [
+      {
+        "name": "absent-argument-admitted",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "non-one-argument-admitted",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "identity-field-0-ignored",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "identity-field-1-ignored",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "identity-field-2-ignored",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "identity-field-3-ignored",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "identity-field-4-ignored",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "identity-field-5-ignored",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "oversized-identity-admitted",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "resource-count-bound-lost",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "high-address-bits-lost",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "overflow-admitted",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "duplicate-register-admitted",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "mixed-bdf-admitted",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "overlap-admitted",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "missing-required-bar-admitted",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "plain-service-admitted",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "adapter-ignores-opt-in",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "start-ignores-revalidation",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "publishes-on-provider",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "failed-report-leaks",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "failed-start-not-balanced",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "stop-keeps-stale-snapshot",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "user-client-admitted",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      },
+      {
+        "name": "retained-identity-leaks",
+        "compile_exit": 0,
+        "run_exit": 1,
+        "status": "test-rejected"
+      }
+    ],
+    "baseline": {
+      "name": "baseline",
+      "compile_exit": 0,
+      "run_exit": 0,
+      "status": "passed"
+    },
+    "detected": 25,
+    "escaped": 0
+  },
+  "mutation_inputs_match_final_builds": true,
+  "python_tests": {
+    "passed": 31,
+    "failed": 0
+  },
+  "live_registry_properties_hex": {
+    "vendor-id": "02100000",
+    "device-id": "50750000",
+    "subsystem-vendor-id": "49180000",
+    "subsystem-id": "17540000",
+    "revision-id": "c0000000",
+    "class-code": "00000300",
+    "assigned-addresses": "100007c204000000000000400000000000000010180007c204000000000000500000000000002000200007810000000000e00000000000000001000024000782000000000000b0fc000000000000080030000782000000000000b8fc0000000000000200"
+  },
+  "live_registry_replay_is_host_only": true,
+  "final_state": {
+    "efi_changed_since_backup": true,
+    "efi_written_by_build_tools": false,
+    "boot_args": "-v keepsyms=1 debug=0x100 navi48bringup=0 rdna4-off=1 -liludbgall",
+    "sip": "System Integrity Protection status: enabled.",
+    "probe_loaded": false,
+    "navi48_loaded": false,
+    "probe_installed_in_library_extensions": false,
+    "backup_restore_tested": false,
+    "backup_restore_test_deferred_by_user": true
+  },
+  "efi_drift": {
+    "observed_utc": "2026-10-09T00:56:41.514871+00:00",
+    "baseline_sha256": "48c33ed18b3f09518d817c0ac8697c482be6a0c08b664bcebbf93ccaa59d21f7",
+    "current_sha256": "e88ce3555003f97fee228e647114b92ae52a4f40038da14c983d97fed2c27487",
+    "old_config_sha256": "48c33ed18b3f09518d817c0ac8697c482be6a0c08b664bcebbf93ccaa59d21f7",
+    "current_mtime_utc": "2026-10-09T00:33:26+00:00",
+    "changed_paths": [
+      {
+        "path": "/Kernel/Add/0/Comment",
+        "change": "value"
+      },
+      {
+        "path": "/Kernel/Add/1/Comment",
+        "change": "value"
+      },
+      {
+        "path": "/Kernel/Add/2/Comment",
+        "change": "value"
+      },
+      {
+        "path": "/Kernel/Add/3/Comment",
+        "change": "value"
+      },
+      {
+        "path": "/Kernel/Add/4/Comment",
+        "change": "value"
+      },
+      {
+        "path": "/Misc/Serial/Custom",
+        "change": "added"
+      },
+      {
+        "path": "/NVRAM/Add/7C436110-AB2A-4BBB-A880-FE41995C9F82/prev-lang:kbd",
+        "change": "removed"
+      }
+    ],
+    "changed_by_this_work": false,
+    "changes_reverted": false
+  },
+  "original_efi_backups_reverified": true,
+  "original_efi_backup_files": 98,
+  "public_report": "docs/reports/2026-10-09-pci-probe-isolation.md",
+  "local_evidence_sha256": {
+    "out/pci-probe-python-tests.log": "6de31178d10e72cc16d53eb653879fe207fc30d9bdaf791ae824116e9c17177d",
+    "out/pci-probe/mutations/report.json": "3923cb8714ec25f0a195aceef2f8e0562aa6f2adfa0be914e6b0dfb80ae94299",
+    "out/pci-probe/efi-drift.json": "7be5163f22f23d78e79faf675ab0fa953cd35f4ca86fef23bf5e1842c4e26e83",
+    "out/pci-probe/final-state.json": "33d89b276a20f506c9921d07eabdb5ee464fdfc54cc3f959766842dadec87bbb",
+    "out/pci-probe/release-a/build-report.json": "936c11b68a27b627c3f7f88577b719fd978c7e0a41bea60a5224e44056c1d7e8",
+    "out/pci-probe/release-a/SHA256SUMS.json": "a12e3994f87354e6b66fa9769f29195408562dd84d973decdf2dbaa971510db3",
+    "out/pci-probe/release-a/logs/host-test.log": "0fdd2fec16bfa1beceeaa63d83ae10ba916c7b0f2dea635605f2dde8d00c4557",
+    "out/pci-probe/release-a/logs/signature-verify.log": "58ba38258b0d1ebc0e47eeedb650ac0d372c98e83af4e57268ae37f8a99aab9b",
+    "out/pci-probe/release-a/logs/undefined-demangled.txt": "1a7dc6f950968968fb68576bca567eecf97c2277a376ba7c930e23ca539f2f99",
+    "out/pci-probe/release-b/build-report.json": "071f10630a69ace60447518bca376c468fc999b364a36e2b68c874224ad6b18a",
+    "out/pci-probe/release-b/SHA256SUMS.json": "a12e3994f87354e6b66fa9769f29195408562dd84d973decdf2dbaa971510db3",
+    "out/pci-probe/release-b/logs/host-test.log": "2b9fe5c3e38cd7a33f2d71551bdf2a94cd0a418f3b8bae2fc38ea82332699d8a",
+    "out/pci-probe/release-b/logs/signature-verify.log": "1d176f7a27178d1de5d33818a370a5f11caa56a9fb4dda0f042f830df6fd3231",
+    "out/pci-probe/release-b/logs/undefined-demangled.txt": "1a7dc6f950968968fb68576bca567eecf97c2277a376ba7c930e23ca539f2f99"
+  }
+}

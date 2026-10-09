@@ -1,0 +1,72 @@
+{
+  "status": "kext-built-signed-not-load-qualified",
+  "version": "0.1.1",
+  "artifact": "out/native-kext/dma-integration/Navi48Native.kext",
+  "executable_sha256": "5ee0258dd60e035c77125b82964589e01ef5a34e82339371580e820f2048922c",
+  "package_sha256": "5a5f78c92badf24193ca8c8c350d327e93c806ee618b6a1f8a917e1625c368ba",
+  "warning_count": 0,
+  "dma_allocator_linked": true,
+  "dma_allocator_invoked_by_service": false,
+  "gpu_dma_validated": false,
+  "step1_complete": false,
+  "step2_complete": false,
+  "installed": false,
+  "loaded": false,
+  "hardware_qualified": false,
+  "gpu_initialized": false,
+  "firmware_sent": false,
+  "targeted_smoke": {
+    "checks": 109,
+    "failed": 0,
+    "sanitizers": [
+      "address",
+      "undefined"
+    ],
+    "scope": "same service/controller with IOKit doubles, not a loaded kext"
+  },
+  "dma_smoke": {
+    "checks": 162,
+    "failed": 0,
+    "sanitizers": [
+      "address",
+      "undefined"
+    ],
+    "scope": "actual DMA adapter with IOKit doubles; no actual DMA/GPU"
+  },
+  "firmwares_verified_in_kext": 10,
+  "schema_version": 1,
+  "kernel_symbol_names": {
+    "imports_found": 312,
+    "missing": [],
+    "symbol_owners": [
+      "com.apple.iokit.IOPCIFamily",
+      "com.apple.kernel"
+    ],
+    "kernel_link_validated": false,
+    "abi_compatibility_validated": false,
+    "scope": "Defined symbol names only, not relocation/vtable/load qualification"
+  },
+  "efi_verification": {
+    "OPENCORE": {
+      "files": 101,
+      "unchanged": true
+    },
+    "PROBE1401": {
+      "files": 104,
+      "unchanged": true
+    }
+  },
+  "dma_reachability_proven": false,
+  "gpu_commands_implemented_in_service": false,
+  "upstream_sysmem_replaced": false,
+  "observer_campaign": false,
+  "security_changed": false,
+  "reboot_performed": false,
+  "required_next_implementation": [
+    "VRAM reservation/origin/MC base and console protection",
+    "qualified hardware access/lifecycle",
+    "PSP/SMU orchestration",
+    "GMC/GART using the DMA page list",
+    "RLC/CP/MES and a real compute submission/readback"
+  ]
+}
