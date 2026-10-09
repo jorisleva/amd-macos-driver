@@ -1,5 +1,10 @@
 # EFI d'essai du module PCI — mode d'emploi
 
+**Historique de l'observateur :** PROBE1401 a depuis été remplacé par l'essai
+`Navi48Native` 0.1.2, avec sauvegarde de cette ancienne EFI. Pour le prochain
+boot utiliser la [procédure native actuelle](NATIVE-KEXT-ESSAI.md), pas les
+profils/arguments de l'observateur décrits ci-dessous. OPENCORE reste intact.
+
 **Déploiement effectué le 9 octobre :** la clé USB **PROBE1401** de 15,6 Go
 est formatée en MBR/FAT32, sans sauvegarde à la demande de l'utilisateur.
 Le profil **01-disabled** a d'abord été copié à sa racine et vérifié après remontage.

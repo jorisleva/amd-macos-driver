@@ -7,8 +7,10 @@ Il ne fournit ni accélération, ni interface N48N, ni autorisation d'initialise
 la carte. L'observateur `Navi48PciProbe` reste un module distinct et inchangé.
 
 Depuis l'étape suivante, le [vrai bundle Navi48Native.kext](../../kexts/Navi48Native/)
-lie ces objets dans un IOService de développement. Ce bundle est compilé/signé,
-mais non installé/non chargé et sans initialisation GPU autorisée. Les `.a`
+lie ces objets dans un IOService de développement. Ce bundle est compilé/signé ;
+sa version 0.1.2 raccorde DMA et est déployée sur PROBE1401 pour le prochain
+[essai noyau](../../docs/NATIVE-KEXT-ESSAI.md), référence OPENCORE intacte.
+Pas encore chargé dans le noyau courant, sans initialisation GPU autorisée. Les `.a`
 restent des produits distincts ; leur présence ne constitue pas une qualification
 matérielle. [Livrable de l'étape 1](../../docs/reports/2026-10-09-native-kext.md).
 

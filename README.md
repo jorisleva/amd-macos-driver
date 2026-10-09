@@ -85,8 +85,18 @@ L'étape 1 et le bureau accéléré ne sont pas déclarés réussis.
 
 **Suite 0.1.1 : adaptateur de mémoire DMA codé et lié.** Les adresses IOVM
 proviennent d'IODMACommand, sans hypothèse CPU physique = adresse GPU.
-**Pas encore appelé par le service, pas de transfert Radeon ni commande GPU** :
+**À cette phase, pas encore appelé par le service, pas de transfert Radeon ni commande GPU** :
 les étapes matérielles 1 et 2 restent ouvertes. [État précis](docs/reports/2026-10-09-native-dma.md).
+
+**Suite 0.1.2 : DMA raccordée et EFI native déployée sur PROBE1401.** `start()`
+prépare 64 Kio de RAM via IODMACommand hors gate, gère l'annulation et revalide
+le provider ; nettoyage DMA avant fermeture PCI. 234 contrôles service/DMA,
+2 271 contrôleur et 76 tests Python passent ; bundle final sans avertissement,
+signé, dix firmwares vérifiés. La clé injectera le kext au prochain démarrage :
+112 fichiers conformes, ancienne EFI sauvegardée, 101 fichiers OPENCORE intacts.
+**Pas encore chargé dans le noyau courant, aucun firmware envoyé ni calcul GPU.**
+[Boot à effectuer et vérification](docs/NATIVE-KEXT-ESSAI.md) ·
+[Rapport](docs/reports/2026-10-09-native-load-preparation.md).
 
 Le [guide du banc Windows](docs/VALIDATION-WINDOWS.md) donne les commandes d'inventaire et de test ; la [procédure Mac](docs/VALIDATION-MACOS.md) décrit la compilation AIR et le transfert. Le [rapport Apple AIR sur Radeon](docs/reports/2026-10-07-apple-air-radeon.md) conserve la nouvelle validation matérielle. Le [rapport Mac/AIR](docs/reports/2026-10-07-apple-air.md), le [corpus Apple](tests/shaders/apple/) et le [rapport Radeon initial](docs/reports/2026-10-07-radeon-windows.md) conservent les artefacts et résultats précédents. L'[audit AMD](docs/AMD-INTEGRATION.md), le [manifeste des sources](dependencies/sources.lock.json) et le [premier rapport](docs/reports/2026-10-07-bootstrap.md) décrivent les dépendances et l'historique de validation.
 

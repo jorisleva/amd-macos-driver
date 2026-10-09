@@ -86,6 +86,18 @@ mais pas encore appelé par le service ni relié à GMC/GART. Les étapes 1
 (initialisation) et 2 (commande réelle/résultat relu) ne sont pas réalisées.
 [État et raccordements restants](reports/2026-10-09-native-dma.md).
 
+**Suite 0.1.2 : allocation DMA raccordée au service et essai natif déployé.**
+Acquisition sous gate, préparation de 64 Kio via IODMACommand hors gate,
+annulation/revalidation/finalisation, nettoyage DMA avant fermeture PCI.
+234 contrôles service/DMA, 2 271 contrôleur et 76 tests Python passent.
+`PROBE1401/EFI` contient le kext activé ; ses 112 fichiers et sa signature sont
+vérifiés, l'ancienne EFI est sauvegardée et les 101 fichiers OPENCORE intacts.
+**Démarrage restant : F12 → PROBE1401 UEFI → Tahoe installé**, puis observer
+module 0.1.2 et ressources PCI/DMA réelles. Pas de chargement dans la session
+courante, pas de firmware/commande/calcul Radeon ; initialisation et soumission
+restent à implémenter. [Procédure](NATIVE-KEXT-ESSAI.md) ·
+[Rapport](reports/2026-10-09-native-load-preparation.md).
+
 ## Historique des validations et du démarrage
 
 État du 7 octobre 2026. Le traducteur Rust et le banc Vulkan compilent sur
@@ -163,8 +175,10 @@ Réglages, sauvegarde et commandes Git pour le Mac :
    pour rejouer les instructions historiques ci-dessus.
 4. **Étape 1 : faire initialiser la Radeon par `Navi48Native.kext`.** Le vrai
    bundle est maintenant créé ; aucun essai noyau ou firmware réel n'est encore
-   effectué. Préparer/autoriser séparément son essai de boot, sans écraser la
-   référence OPENCORE. Établir console/réservations/géométrie VRAM/base MC,
+   effectué. L'essai natif 0.1.2 est désormais déployé sur PROBE1401, DMA
+   raccordée ; redémarrer via F12 sur cette clé puis observer chargement et
+   ressources réelles. Référence OPENCORE intacte. Établir ensuite
+   console/réservations/géométrie VRAM/base MC,
    propriété GPU exclusive, HDP, DMA applicable et puissance/arrêt/restauration,
    puis raccorder ces conditions à l'orchestration PSP/SMU/bootloader. Le service
    d'acquisition démarré ne signifie pas GPU initialisé. Cible suivante : étape 2,

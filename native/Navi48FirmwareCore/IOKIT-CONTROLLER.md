@@ -90,7 +90,11 @@ son blocage et n'autorise aucun accès à leur contenu.
 ## Durée de vie et sérialisation
 
 `acquire`, `revalidate`, `snapshot` et le retrait des ressources sont sérialisés
-par `IOLock`. `snapshot` ne fait aucun nouvel appel matériel : il renvoie des
+par `IOLock`. La variante `revalidateHeld()` (service 0.1.2) effectue les mêmes
+contrôles mais, en cas de divergence, rend les observations terminales/invalides
+**sans fermer immédiatement le bail**. Le service retire ainsi DMA hors de son
+gate avant `release()`/fermeture PCI ; les mappings retenus ne donnent aucune
+permission d'accès. Pas de retry après cet échec. `snapshot` ne fait aucun nouvel appel matériel : il renvoie des
 valeurs copiées et les blocages. `observationsValid` signifie que le dernier
 contrôle a réussi et que le contrôleur conserve le bail, **pas** que le système
 entier est verrouillé ou que ces observations seront vraies indéfiniment.
