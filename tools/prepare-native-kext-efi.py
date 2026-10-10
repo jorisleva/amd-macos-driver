@@ -97,6 +97,7 @@ PREVIOUS_COMPUTE_TRIALS = {
     '0.2.4': ('0.2.5', '9fe464d7cffac6c0cdd2b7dcf77244cad96d05d1c726b2059f8fc0fead2bef9e'),
     '0.2.5': ('0.2.6', 'c1e6c4bb565380bb4a7585a212de6b4e90dca4320c532bebb467716ec403ddd0'),
     '0.2.6': ('0.2.7', 'efcf2e8f823c3be7485a536f6819bfe10cf686d243b207bcacb8c7a361da67c0'),
+    '0.2.7': ('0.2.8', '2409a00710dd276ff8c19848e568fca04f0793326294ef9da70af8a6f116ec37'),
 }
 def validate_previous_compute_trial(baseline, profile, current, reviewed, expected_version):
     """Only an already deployed, hashed 64+64 MiB compute trial may be replaced."""
@@ -121,6 +122,7 @@ RETIRED_BOOT_MODULES = {
     '0.2.4': ('0.2.4', '4F894D5F-FDC9-384C-8688-C6B4BAA68674'),
     '0.2.5': ('0.2.5', '160033C1-04F7-3DE5-A795-A511A749F8F5'),
     '0.2.6': ('0.2.6', 'BAD9777A-7C72-338A-A6B8-01FA4A3D28C3'),
+    '0.2.7': ('0.2.7', '84064BBD-DD39-3B69-9F7E-22863BCFFEAE'),
 }
 def validate_boot_session(baseline, boot_args, loaded, allow_retired=False,
                           native_service='', native_instances=None, retired_source=None):
@@ -207,11 +209,12 @@ def main():
     replacements.add_argument('--replace-native-0.2.4', dest='replace_native_0_2_4', action='store_true', help='Replace ONLY the reviewed declared-adoption 0.2.4 EFI with accelerator-preflight 0.2.5; permits offline copy from its exact retired boot')
     replacements.add_argument('--replace-native-0.2.5', dest='replace_native_0_2_5', action='store_true', help='Replace ONLY the reviewed accelerator-preflight 0.2.5 EFI with RW-diagnostics 0.2.6; permits offline copy from its exact retired boot')
     replacements.add_argument('--replace-native-0.2.6', dest='replace_native_0_2_6', action='store_true', help='Replace ONLY the reviewed RW-diagnostics 0.2.6 EFI with RW-adoption 0.2.7; permits offline copy from its exact retired boot')
+    replacements.add_argument('--replace-native-0.2.7', dest='replace_native_0_2_7', action='store_true', help='Replace ONLY the reviewed RW-adoption 0.2.7 EFI with stage-16-detail 0.2.8; permits offline copy from its exact retired boot')
     args = parser.parse_args()
     require(sys.platform == 'darwin', 'macOS is required')
     require(not (args.replace_native_0_1_2 or args.replace_native_0_2_0 or args.replace_native_0_2_1 or
                  args.replace_native_0_2_2 or args.replace_native_0_2_3 or args.replace_native_0_2_4 or
-                 args.replace_native_0_2_5 or args.replace_native_0_2_6) or
+                 args.replace_native_0_2_5 or args.replace_native_0_2_6 or args.replace_native_0_2_7) or
             (args.deploy_probe1401 and args.experimental_compute),
             'Replacing a native trial requires explicit compute deployment')
     if args.replace_native_0_2_0:
@@ -235,6 +238,9 @@ def main():
     if args.replace_native_0_2_6:
         require(VERSION == '0.2.7' and args.candidate_offset == 0x4000000 and args.candidate_bytes == 0x4000000,
                 'The reviewed 0.2.6 replacement is restricted to RW-adoption 0.2.7 with unchanged 64+64 MiB scratch')
+    if args.replace_native_0_2_7:
+        require(VERSION == '0.2.8' and args.candidate_offset == 0x4000000 and args.candidate_bytes == 0x4000000,
+                'The reviewed 0.2.7 replacement is restricted to stage-16-detail 0.2.8 with unchanged 64+64 MiB scratch')
     destination, build = local_output(ROOT, args.output), local_output(ROOT, args.build)
     require(not destination.exists(), 'Choose a fresh output directory')
     require(subprocess.check_output(['uname', '-m'], text=True).strip() == 'x86_64' and
@@ -252,7 +258,8 @@ def main():
                       '0.2.2' if args.replace_native_0_2_2 else
                       '0.2.3' if args.replace_native_0_2_3 else
                       '0.2.4' if args.replace_native_0_2_4 else
-                      '0.2.5' if args.replace_native_0_2_5 else ('0.2.6' if args.replace_native_0_2_6 else None))
+                      '0.2.5' if args.replace_native_0_2_5 else
+                      '0.2.6' if args.replace_native_0_2_6 else ('0.2.7' if args.replace_native_0_2_7 else None))
     if retired_source is not None:
         native_service = subprocess.check_output(['ioreg', '-r', '-c', PRODUCT, '-l', '-w', '0'], text=True)
         diagnostics = plistlib.loads(subprocess.check_output(['ioreg', '-l', '-d', '1', '-a']))
@@ -281,20 +288,22 @@ def main():
                     'ce1f4e39a2795bdabd3789fb8d632fdac3ed3209deab851f30429ca418696e23',
                     'Native 0.1.2 EFI differs from the previously reviewed deployment')
             expected_kexts = helpers.BASE_KEXTS | {'Navi48Native.kext'}
-        elif args.replace_native_0_2_0 or args.replace_native_0_2_1 or args.replace_native_0_2_2 or args.replace_native_0_2_3 or args.replace_native_0_2_4 or args.replace_native_0_2_5 or args.replace_native_0_2_6:
+        elif args.replace_native_0_2_0 or args.replace_native_0_2_1 or args.replace_native_0_2_2 or args.replace_native_0_2_3 or args.replace_native_0_2_4 or args.replace_native_0_2_5 or args.replace_native_0_2_6 or args.replace_native_0_2_7:
             retired = ('0.2.0' if args.replace_native_0_2_0 else
                        '0.2.1' if args.replace_native_0_2_1 else
                        '0.2.2' if args.replace_native_0_2_2 else
                        '0.2.3' if args.replace_native_0_2_3 else
                        '0.2.4' if args.replace_native_0_2_4 else
-                       '0.2.5' if args.replace_native_0_2_5 else '0.2.6')
+                       '0.2.5' if args.replace_native_0_2_5 else
+                       '0.2.6' if args.replace_native_0_2_6 else '0.2.7')
             previous = ROOT / {'0.2.0': 'out/efi-native/native-0.2.0-compute-trial',
                                '0.2.1': 'out/efi-native/native-0.2.1-diagnostics-trial',
                                '0.2.2': 'out/efi-native/native-0.2.2-mapping-trial',
                                '0.2.3': 'out/efi-native/native-0.2.3-descriptor-trial',
                                '0.2.4': 'out/efi-native/native-0.2.4-adoption-trial',
                                '0.2.5': 'out/efi-native/native-0.2.5-preflight-trial',
-                               '0.2.6': 'out/efi-native/native-0.2.6-rw-trial'}[retired]
+                               '0.2.6': 'out/efi-native/native-0.2.6-rw-trial',
+                               '0.2.7': 'out/efi-native/native-0.2.7-rw-adoption-trial'}[retired]
             require(initial == json.loads((previous / 'reference-hashes.json').read_text()),
                     'Reference differs from the reviewed ' + retired + ' deployment')
             validate_previous_compute_trial(baseline, trial_config, current,
@@ -315,7 +324,7 @@ def main():
         require(report['experimental_compute']['called_by_service'] is True and
                 report['experimental_compute']['io_vm_per_page'] is True and
                 report['compute_shaders_verified_in_kext'] == 2, 'Missing native compute path/shaders')
-    if args.replace_native_0_2_0 or args.replace_native_0_2_1 or args.replace_native_0_2_2 or args.replace_native_0_2_3 or args.replace_native_0_2_4 or args.replace_native_0_2_5 or args.replace_native_0_2_6:
+    if args.replace_native_0_2_0 or args.replace_native_0_2_1 or args.replace_native_0_2_2 or args.replace_native_0_2_3 or args.replace_native_0_2_4 or args.replace_native_0_2_5 or args.replace_native_0_2_6 or args.replace_native_0_2_7:
         require(report.get('boot_diagnostics', {}).get('resource') == 'Navi48Native,BootDiagnostics' and
                 report.get('symbol_audit', {}).get('boot_diagnostic_publisher_linked') is True,
                 'Missing reviewed persistent diagnostic publisher')
@@ -381,6 +390,7 @@ def main():
               'native_0_2_4_replacement_acknowledged': args.replace_native_0_2_4,
               'native_0_2_5_replacement_acknowledged': args.replace_native_0_2_5,
               'native_0_2_6_replacement_acknowledged': args.replace_native_0_2_6,
+              'native_0_2_7_replacement_acknowledged': args.replace_native_0_2_7,
               'prepared_from_reviewed_retired_boot': retired_boot,
               'retired_source_version': retired_source if retired_boot else None,
               'running_native_version_during_update': retired_source if retired_boot else None,
