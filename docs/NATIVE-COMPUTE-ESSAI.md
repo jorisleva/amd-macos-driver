@@ -1,14 +1,12 @@
 # Essai natif 0.2.8 : initialisation, calcul Radeon et détail stage 16
 
-> **PROBE1401 contient désormais 0.2.8**, vérifié/signé/ocvalidate conforme,
-> ancienne EFI 0.2.7 sauvegardée (déployé depuis le secours actuel).
-> **Prochaine action : F12 → PROBE1401 → Tahoe, puis relever version,
-> `Stage16Step` et preuve ring-test.** [Déploiement](reports/2026-10-10-native-stage16-deployment.md).
-> Boot précédent 0.2.7 : premier hardware, firmware chargé, stage 16 timeout,
-> service conservé.
-> [Boot 0.2.7](reports/2026-10-10-native-0.2.7-boot.md).
-> **0.2.8 non encore chargé/boot testé** : sous-étape et résultats matériels
-> à observer, pas présumés. Aucun retry/reload dans le noyau courant.
+> **Boot 0.2.8 effectué le 10 octobre à 19:06:44 UTC.** Module/UUID/arguments
+> conformes, service conservé (1 instance). **Sous-étape exacte : `RingTest`
+> (step 5), `RingTestValue=0xFFFFFFFF` = SCRATCH_REG0 illisible.** Le CP ne
+> fetche pas ; chemin mémoire EOP exclu.
+> [Boot 0.2.8](reports/2026-10-10-native-0.2.8-boot.md).
+> Prochaine action : instrumenter base GC/horloges/power en lecture seule,
+> sans unload/reload/veille dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -115,14 +113,14 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.8 / SHA ci-dessus**, les cinq arguments natifs.
+Vérifier module **0.2.8 / UUID DBD6962B-7594-3B64-9B1A-BAAEAFC07D03**, les cinq arguments natifs.
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Si stage 16 échoue, relever **`Stage16Step`** (1 GfxConstants, 2 MqdInit,
-3 MapKgqMes, 4 GfxStart, 5 RingTest, 6 EopTest, 7 Done), `RingTestPassed`,
-`FetchProven` et `RingTestValue` avant toute hypothèse. Si la publication
+Le stage 16 échoue au `RingTest` (step 5) : `RingTestValue=0xFFFFFFFF`
+(SCRATCH illisible), `FetchProven=0`. Le CP ne fetche pas ; EOP exclu.
+Instrumenter base GC/horloges/power en lecture seule. Si la publication
 best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.

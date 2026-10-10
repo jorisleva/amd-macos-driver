@@ -1,6 +1,6 @@
 # Travail restant — Hackintosh Tahoe
 
-## Dernier état : 0.2.8 déployé (détail stage 16), secours actuel
+## Dernier état : boot 0.2.8, SCRATCH GC illisible, CP ne fetche pas
 
 **10 octobre : le bon kext est réellement chargé**, UUID et cinq arguments
 conformes. Aucun nœud/instance `Navi48Native`, aucun rapport Resources/Compute ;
@@ -8,13 +8,13 @@ deux fermetures du bail PCI par le client natif pendant le boot. Initialisation,
 fences et résultats GPU non validés. Capture `sudo dmesg` lue dans ce même
 boot : buffer de 128 Kio écrasé, aucune ligne native, refus exact inconnu.
 Correctif **0.2.1** : diagnostic IOResources destiné à survivre au retrait,
-**0.2.7 booté le 10 octobre à 15:32:47 UTC** : premier hardware, firmware
-chargé, stage 16 timeout, service conservé. **0.2.8 déployé/vérifié depuis
-le secours actuel**, ancienne EFI sauvegardée, non encore chargé :
-`Stage16Step` + preuve ring-test. Prochaine action : F12 → PROBE1401 →
-Tahoe, relever sous-étape et preuve, sans retry/reload.
+**0.2.8 booté le 10 octobre à 19:06:44 UTC** : service conservé (1 instance),
+`Stage16Step=5` (`RingTest`), `RingTestValue=0xFFFFFFFF` (SCRATCH illisible),
+`FetchProven=0`. Le CP ne fetche pas ; EOP exclu. Prochaine action :
+instrumenter base GC/horloges/power en lecture seule avant le ring-test,
+sans unload/reload/veille dans le noyau courant.
+[Boot 0.2.8](reports/2026-10-10-native-0.2.8-boot.md) ·
 [Boot 0.2.7](reports/2026-10-10-native-0.2.7-boot.md) ·
-[déploiement 0.2.8](reports/2026-10-10-native-stage16-deployment.md) ·
 [Boot 0.2.0](reports/2026-10-10-native-compute-boot.md) ·
 [correctif](reports/2026-10-10-native-boot-diagnostics.md) ·
 [déploiement 0.2.1](reports/2026-10-10-native-diagnostics-deployment.md).

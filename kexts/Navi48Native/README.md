@@ -5,11 +5,11 @@ personnalité PCI, service IOKit et points kmod. Le service appelle maintenant
 un chemin expérimental complet jusqu'à deux calculs gfx1201 internes, avec
 fences et comparaison des 64 résultats. Aucun accélérateur annoncé, aucun hook
 Apple/NVIDIA, aucun `UserClient` autorisé.
-**Boot précédent 0.2.7** (10 octobre, 15:32:47 UTC) : premier hardware, firmware
-chargé, stage 16 timeout, service conservé. **0.2.8 ajoute `Stage16Step` +
-preuve ring-test**, sans changer appels ni attentes.
-[Boot 0.2.7](../../docs/reports/2026-10-10-native-0.2.7-boot.md) ·
-[déploiement 0.2.8](../../docs/reports/2026-10-10-native-stage16-deployment.md).
+**Boot 0.2.8** (10 octobre, 19:06:44 UTC) : service conservé (1 instance).
+**Sous-étape exacte `RingTest` (step 5), `RingTestValue=0xFFFFFFFF`** =
+SCRATCH_REG0 illisible. Le CP ne fetche pas ; chemin mémoire EOP exclu.
+Prochaine étape : instrumenter base GC/horloges/power en lecture seule.
+[Boot 0.2.8](../../docs/reports/2026-10-10-native-0.2.8-boot.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
