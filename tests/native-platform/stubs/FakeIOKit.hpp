@@ -28,11 +28,14 @@ constexpr IOOptionBits kIOMapReadOnly = 0x1000, kIOMapUnique = 0x4000000, kIOMem
 inline int kernelTaskTag;
 inline task_t kernel_task = &kernelTaskTag;
 class IOPlatformExpert;
+class IOService;
+class IOPCIDevice;
 namespace fake {
 inline unsigned liveObjects = 0, liveLocks = 0, mapsMade = 0, mapsFreed = 0, bootReads = 0;
 inline bool bootPresent = true, lockFails = false;
 inline uint32_t bootValue = 1;
 inline IOPlatformExpert *platform = nullptr;
+inline IOPCIDevice *substitutionProvider = nullptr;
 // Event >= 0: map released (bar index); 10: provider closed; 20+index:
 // descriptor freed. Borrowed descriptor ownership is checked via refcounts too.
 inline std::vector<unsigned> events;
@@ -108,13 +111,8 @@ public:
         if (offset || options != kIOMemoryMapperNone) return 0;
         *length = contiguous; return physical;
     }
-    virtual IOMemoryMap *map(IOOptionBits options = 0) {
-        ++mapCalls; lastMapOptions = options;
-        if (recipe.fail) return nullptr;
-        lastMap = new IOMemoryMap(this, index, recipe);
-        if (afterMap) afterMap(this);
-        return lastMap;
-    }
+    virtual IOMemoryMap *map(IOOptionBits options = 0);
+    static void noteMappingPhase();
 };
 using IODeviceMemory = IOMemoryDescriptor;
 inline IOMemoryMap::IOMemoryMap(IOMemoryDescriptor *descriptor, unsigned index, MapRecipe input)
@@ -185,15 +183,36 @@ public:
     virtual uint8_t getBusNumber() { return bus; }
     virtual uint8_t getDeviceNumber() { return device; }
     virtual uint8_t getFunctionNumber() { return function; }
+    // Phase-gated substitution: during acquire()'s descriptor check the
+    // provider returns the retained object (as on hardware, where that check
+    // passed). Only once mapping begins does it substitute another object,
+    // which the map then declares. Read-only: no state change besides the
+    // phase flip that models the hardware substitution timing.
+    bool mappingPhase = false;
+    IODeviceMemory *substitute[3]{};
     virtual IODeviceMemory *getDeviceMemoryWithRegister(uint8_t reg) {
         ++descriptorReads;
-        if (reg == 0x10) return descriptors[0];
-        if (reg == 0x18) return descriptors[1];
-        if (reg == 0x24) return descriptors[2];
-        return nullptr;
+        unsigned index = reg == 0x10 ? 0 : (reg == 0x18 ? 1 : (reg == 0x24 ? 2 : 3));
+        if (index > 2) return nullptr;
+        if (mappingPhase && substitute[index]) return substitute[index];
+        return descriptors[index];
     }
     // No writes, seize, interrupts, DMA, registration or power-management API.
 };
+inline IOMemoryMap *IOMemoryDescriptor::map(IOOptionBits options) {
+    ++mapCalls; lastMapOptions = options;
+    if (recipe.fail) return nullptr;
+    lastMap = new IOMemoryMap(this, index, recipe);
+    noteMappingPhase();
+    if (afterMap) afterMap(this);
+    return lastMap;
+}
+inline void IOMemoryDescriptor::noteMappingPhase() {
+    // Defined after IOPCIDevice: from here on the provider substitutes.
+    // Models hardware where the retained descriptor passed checkDescriptors()
+    // but the mapping and later lookups observe another object.
+    if (fake::substitutionProvider) fake::substitutionProvider->mappingPhase = true;
+}
 inline bool PE_parse_boot_argn(const char *key, void *out, int bytes) {
     ++fake::bootReads;
     if (std::strcmp(key, "navi48-native-platform") || bytes != 4 || !fake::bootPresent) return false;

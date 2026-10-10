@@ -211,13 +211,8 @@ public:
         if (offset || options != kIOMemoryMapperNone) return 0;
         *length = contiguous; return physical;
     }
-    virtual IOMemoryMap *map(IOOptionBits options = 0) {
-        ++mapCalls; lastMapOptions = options;
-        if (recipe.fail) return nullptr;
-        lastMap = new IOMemoryMap(this, index, recipe);
-        if (afterMap) afterMap(this);
-        return lastMap;
-    }
+    virtual IOMemoryMap *map(IOOptionBits options = 0);
+    static void noteMappingPhase();
 };
 using IODeviceMemory = IOMemoryDescriptor;
 inline IOMemoryMap::IOMemoryMap(IOMemoryDescriptor *descriptor, unsigned index, MapRecipe input)
@@ -288,15 +283,31 @@ public:
     virtual uint8_t getBusNumber() { return bus; }
     virtual uint8_t getDeviceNumber() { return device; }
     virtual uint8_t getFunctionNumber() { return function; }
+    // Phase-gated substitution, mirroring the controller doubles: the
+    // retained descriptor passes checkDescriptors(); later lookups observe
+    // the substituted object once mapping begins.
+    bool mappingPhase = false;
+    IODeviceMemory *substitute[3]{};
     virtual IODeviceMemory *getDeviceMemoryWithRegister(uint8_t reg) {
         ++descriptorReads;
-        if (reg == 0x10) return descriptors[0];
-        if (reg == 0x18) return descriptors[1];
-        if (reg == 0x24) return descriptors[2];
-        return nullptr;
+        unsigned index = reg == 0x10 ? 0 : (reg == 0x18 ? 1 : (reg == 0x24 ? 2 : 3));
+        if (index > 2) return nullptr;
+        if (mappingPhase && substitute[index]) return substitute[index];
+        return descriptors[index];
     }
     // No writes, seize, interrupts, DMA, registration or power-management API.
 };
+// The provider slot is flipped by the test fixture's afterMap hook (see the
+// descriptor-identity matrix in service_smoke.cpp), not by the descriptor:
+// map() itself must not reach for a provider it does not own.
+inline IOMemoryMap *IOMemoryDescriptor::map(IOOptionBits options) {
+    ++mapCalls; lastMapOptions = options;
+    if (recipe.fail) return nullptr;
+    lastMap = new IOMemoryMap(this, index, recipe);
+    if (afterMap) afterMap(this);
+    return lastMap;
+}
+inline void IOMemoryDescriptor::noteMappingPhase() {}
 inline bool PE_parse_boot_argn(const char *key, void *out, int bytes) {
     ++fake::bootReads;
     if (!std::strcmp(key, "navi48-native-platform") && bytes == 4 && fake::bootPresent) {

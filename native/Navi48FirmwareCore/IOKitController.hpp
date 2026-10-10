@@ -50,6 +50,11 @@ struct BarObservation {
     IOOptionBits observedMapOptions{0};
     uint64_t observedLength{0}, observedContiguous{0}, observedPhysical{0};
     bool observedDescriptorMatch{false}, observedTaskMatch{false};
+    // Object-identity comparison, values only (no pointer retained/published).
+    // Reread is a fresh provider lookup at checkMaps() time: distinguishes a
+    // provider substitution (declared==reread!=retained) from a shared mapping
+    // declaring another object (reread==retained!=declared).
+    bool observedRereadPresent{false}, observedRereadMatch{false}, observedDeclaredIsReread{false};
 };
 struct ConsoleObservation {
     ConsoleResult result{ConsoleResult::Unavailable};

@@ -173,10 +173,18 @@ PlatformResult IOKitController::checkMaps() {
         const uint64_t length = w.map->getLength();
         const bool descriptorMatch = w.map->getMemoryDescriptor() == w.descriptor;
         const bool taskMatch = w.map->getAddressTask() == kernel_task;
+        // Fresh provider lookup at check time. Read-only: no retain, no map,
+        // no state change; the returned object is only compared, never stored.
+        auto *reread = pci_->getDeviceMemoryWithRegister(kRegisters[i]);
+        const bool rereadPresent = reread != nullptr;
+        const bool rereadMatch = rereadPresent && reread == w.descriptor;
+        const bool declaredIsReread = rereadPresent && w.map->getMemoryDescriptor() == reread;
         // Values only: addresses/options are never dereferenced, only compared.
         bar.observedAddress = address; bar.observedMapOptions = options;
         bar.observedLength = length; bar.observedContiguous = contiguous; bar.observedPhysical = physical;
         bar.observedDescriptorMatch = descriptorMatch; bar.observedTaskMatch = taskMatch;
+        bar.observedRereadPresent = rereadPresent; bar.observedRereadMatch = rereadMatch;
+        bar.observedDeclaredIsReread = declaredIsReread;
         // Identical checks to before, now attributed field by field. The first
         // divergence wins, exactly as the previous single boolean expression.
         if (!descriptorMatch) { bar.mapCheck = MapCheck::DescriptorMismatch; return PlatformResult::InvalidMap; }

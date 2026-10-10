@@ -129,7 +129,7 @@ int main() {
         f.pci.afterClose = [](IOPCIDevice *) { callbackDriver->stop(callbackProvider); };
         f.driver.stop(&f.pci); f.closed(); CHECK(f.driver.stops == 1);
         auto *diagnostic = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
-        CHECK(value(diagnostic, "Checkpoint") == 14 && value(diagnostic, "DriverVersion") == 0x202);
+        CHECK(value(diagnostic, "Checkpoint") == 14 && value(diagnostic, "DriverVersion") == 0x203);
         CHECK(value(diagnostic, "StartReturn") == 0 && value(diagnostic, "DMAObserved") == 1);
         CHECK(value(diagnostic, "ComputeObserved") == 0);
         CHECK(!f.driver.start(&f.pci)); // no hot restart/rearm
@@ -276,6 +276,45 @@ int main() {
         Fixture f; fake::allocationBudget = budget;
         CHECK(!f.driver.init()); f.closed(); fake::allocationBudget = -1;
     }
+    // Descriptor-identity matrix through the REAL service path. Same guard
+    // ordering as the controller suite: a persistent substitution surfaces as
+    // ConfigurationChanged; only a shared map declaring another object
+    // reaches checkMaps() with reread==retained. The afterMap hook flips the
+    // provider phase exactly when mapping begins, after checkDescriptors().
+    for (unsigned scenario = 0; scenario < 2; ++scenario) {
+        Fixture f; f.init();
+        auto *other = new IODeviceMemory; other->index = 9;
+        f.descriptors[0]->recipe.backing = scenario == 0 ? f.descriptors[1] : other;
+        // afterMap is a plain function pointer (no captures): route through
+        // the live fixture pointer, cleared in the fixture destructor path.
+        // start() runs synchronously inside this iteration, so the pointer
+        // cannot dangle past f.closed().
+        if (scenario == 0) {
+            f.pci.substitute[0] = f.descriptors[1];
+            callbackProvider = &f.pci;
+            f.descriptors[0]->afterMap = [](IOMemoryDescriptor *) {
+                callbackProvider->mappingPhase = true;
+            };
+        }
+        CHECK(!f.driver.start(&f.pci));
+        f.closed();
+        auto *diagnostic = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
+        CHECK(value(diagnostic, "Checkpoint") == 10 && value(diagnostic, "FailedBar") == 0x10);
+        if (scenario == 0) {
+            // Persistent substitution trips the earlier descriptor guard.
+            CHECK(value(diagnostic, "PlatformResult") == static_cast<uint32_t>(n48native::PlatformResult::ConfigurationChanged));
+            CHECK(value(diagnostic, "PlatformDecision") == static_cast<uint32_t>(n48native::PlatformResult::ConfigurationChanged));
+        } else {
+            // Shared map declaring another object: checkMaps() names it.
+            auto *rejected = dynamic_cast<OSDictionary *>(diagnostic->getObject("BAR0Map"));
+            CHECK(value(diagnostic, "PlatformResult") == static_cast<uint32_t>(n48native::PlatformResult::InvalidMap));
+            CHECK(value(rejected, "MapCheck") == static_cast<uint32_t>(n48native::MapCheck::DescriptorMismatch));
+            CHECK(value(rejected, "DescriptorMatch") == 0);
+            CHECK(value(rejected, "RereadPresent") == 1 && value(rejected, "RereadMatch") == 1);
+            CHECK(value(rejected, "DeclaredIsReread") == 0);
+        }
+        other->release();
+    }
     // Each rejected BAR mapping field keeps its decoded ID in the persistent
     // diagnostic. Uses the exact InvalidMap recipe coverage from the controller
     // suite, so the next boot names the BAR0 property instead of a bare code.
@@ -294,6 +333,9 @@ int main() {
             if (which == 9) recipe.options &= ~kIOMapUnique;
             if (which == 10) recipe.task = nullptr;
             if (which == 11) recipe.backing = f.descriptors[(bar + 1) % 3];
+            // The mappingPhase stub from the identity matrix above must not
+            // leak into this loop: each fixture starts unsubstituted.
+            CHECK(!f.pci.mappingPhase);
             CHECK(!f.driver.start(&f.pci)); f.closed();
             auto *diagnostic = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
             CHECK(value(diagnostic, "Checkpoint") == 10 && value(diagnostic, "FailedBar") == reg[bar]);
@@ -301,6 +343,11 @@ int main() {
             auto *rejected = dynamic_cast<OSDictionary *>(diagnostic->getObject(names[bar]));
             CHECK(value(rejected, "MapCheck") == static_cast<uint32_t>(expected(bar, which)));
             CHECK(value(rejected, "ObservedAddress") == recipe.address || which == 11);
+            CHECK(value(rejected, "RereadPresent") == 1 && value(rejected, "RereadMatch") == 1);
+            // which==11 declares another object while the provider still
+            // returns the retained one: DeclaredIsReread==0, the shared-map
+            // scenario. All other mutations keep declared==reread.
+            CHECK(value(rejected, "DeclaredIsReread") == (which == 11 ? 0 : 1));
             // Bars before the failure are Ok; bars after it were never reached.
             // BAR0 fails first, so BAR2/BAR5 stay NotChecked; BAR5 fails last,
             // so BAR0/BAR2 are already Ok.

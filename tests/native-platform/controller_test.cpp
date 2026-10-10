@@ -23,6 +23,7 @@ struct Fixture {
     PlatformRequest request{{64 * MiB, 24 * MiB}, 24 * MiB};
     Fixture() {
         active = this; fake::platform = &platform; fake::events.clear();
+        fake::substitutionProvider = &pci;
         fake::bootPresent = true; fake::bootValue = 1; fake::lockFails = false;
         owner.provider = &pci;
         pci.set16(0x00, 0x1002); pci.set16(0x02, 0x7550);
@@ -41,7 +42,7 @@ struct Fixture {
     }
     ~Fixture() {
         for (auto *d : descriptors) d->release();
-        fake::platform = nullptr; active = nullptr;
+        fake::platform = nullptr; fake::substitutionProvider = nullptr; active = nullptr;
     }
     void setBase(unsigned i, uint64_t base) {
         pci.set32(registers[i], static_cast<uint32_t>(base) | (i < 2 ? 0xc : 0));
@@ -76,6 +77,8 @@ struct Fixture {
             CHECK(s.bars[i].observedMapOptions == options && s.bars[i].observedLength == lengths[i]);
             CHECK(s.bars[i].observedContiguous == lengths[i] && s.bars[i].observedPhysical == bases[i]);
             CHECK(s.bars[i].observedDescriptorMatch && s.bars[i].observedTaskMatch);
+            CHECK(s.bars[i].observedRereadPresent && s.bars[i].observedRereadMatch);
+            CHECK(s.bars[i].observedDeclaredIsReread);
         }
         CHECK(s.command == 7 && s.bdf == 0x70000);
         CHECK(owner.references() == 2 && pci.references() == 2);
@@ -255,6 +258,53 @@ static void mapsAndLifetime() {
           const auto detail = c.snapshot();
           CHECK(detail.failedBar == registers[bar] && detail.bars[bar].mapCheck == MapCheck::AddressChanged);
           f.closed(); }
+        // Descriptor-identity matrix. Order of the real guards matters:
+        // revalidateLocked() re-runs checkDescriptors() AFTER the maps exist.
+        // A persistent provider substitution is therefore observed as
+        // ConfigurationChanged (provider no longer returns the retained
+        // object), not InvalidMap. checkMaps()'s reread comparison only names
+        // scenarios that survive that earlier guard: shared map declaring
+        // another object (reread==retained!=declared), or a lookup that
+        // vanishes exactly at checkMaps() time.
+        { // shared map declaring another object: InvalidMap + reread==retained
+            Fixture f; IOKitController c;
+            auto *other = new IODeviceMemory; other->index = 9;
+            f.descriptors[bar]->recipe.backing = other;
+            f.refused(c, PlatformResult::InvalidMap);
+            const auto detail = c.snapshot();
+            CHECK(detail.failedBar == registers[bar] && detail.bars[bar].mapCheck == MapCheck::DescriptorMismatch);
+            CHECK(!detail.bars[bar].observedDescriptorMatch);
+            CHECK(detail.bars[bar].observedRereadPresent && detail.bars[bar].observedRereadMatch);
+            CHECK(!detail.bars[bar].observedDeclaredIsReread);
+            other->release();
+        }
+        { // persistent provider substitution: ConfigurationChanged before checkMaps()
+            Fixture f; IOKitController c;
+            auto *other = new IODeviceMemory; other->index = 9;
+            f.descriptors[bar]->recipe.backing = other;
+            f.pci.substitute[bar] = other; // applies from the first map() call
+            f.refused(c, PlatformResult::ConfigurationChanged);
+            CHECK(c.snapshot().failedBar == registers[bar]);
+            other->release();
+        }
+        { // lookup vanishing at checkMaps() time only: InvalidMap + no reread
+            Fixture f; IOKitController c;
+            auto *other = new IODeviceMemory; other->index = 9;
+            f.descriptors[bar]->recipe.backing = other;
+            f.descriptors[bar]->afterMap = [](IOMemoryDescriptor *) {
+                // checkDescriptors() already passed; clear only for the reread.
+                // Restored by the fixture destructor path via closed().
+                if (fake::substitutionProvider) {
+                    for (unsigned i = 0; i < 3; ++i) fake::substitutionProvider->descriptors[i] = nullptr;
+                }
+            };
+            // NOTE: this also trips checkDescriptors()'s reread inside
+            // revalidateLocked() -> ConfigurationChanged, same ordering reason.
+            // The vanishing-reread InvalidMap path is covered by the service
+            // test below with a phase-gated stub instead.
+            f.refused(c, PlatformResult::ConfigurationChanged);
+            other->release();
+        }
     }
     {
         Fixture f; IOKitController c;
