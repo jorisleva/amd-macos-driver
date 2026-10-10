@@ -1,12 +1,14 @@
-# Essai natif 0.2.7 : initialisation, calcul Radeon et adoption RW
+# Essai natif 0.2.8 : initialisation, calcul Radeon et détail stage 16
 
-> **Boot 0.2.7 effectué le 10 octobre à 15:32:47 UTC.** Module/UUID/arguments
-> conformes. **Adoption RW réussie (`Origin=1`), firmware chargé
-> (`FirmwareLoaded=1`), stage 16 timeout (`0xE00002D6`)**, service conservé
-> (1 instance), ressources retenues jusqu'au reboot.
+> **PROBE1401 contient désormais 0.2.8**, vérifié/signé/ocvalidate conforme,
+> ancienne EFI 0.2.7 sauvegardée (déployé depuis le secours actuel).
+> **Prochaine action : F12 → PROBE1401 → Tahoe, puis relever version,
+> `Stage16Step` et preuve ring-test.** [Déploiement](reports/2026-10-10-native-stage16-deployment.md).
+> Boot précédent 0.2.7 : premier hardware, firmware chargé, stage 16 timeout,
+> service conservé.
 > [Boot 0.2.7](reports/2026-10-10-native-0.2.7-boot.md).
-> Prochaine action : diagnostiquer le timeout GFX/CP/fences, sans
-> unload/reload/veille dans le noyau courant.
+> **0.2.8 non encore chargé/boot testé** : sous-étape et résultats matériels
+> à observer, pas présumés. Aucun retry/reload dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -62,15 +64,16 @@ ne bloque pas la veille forcée : **ne pas mettre cette session en veille**.
 
 ## Bundle déployé pour le prochain boot
 
-- Produit : `out/native-kext/rw-adoption-0.2.7/Navi48Native.kext`, x86_64.
+- Produit : `out/native-kext/stage16-detail-0.2.8/Navi48Native.kext`, x86_64.
 - Exécutable SHA-256 :
-  `2409a00710dd276ff8c19848e568fca04f0793326294ef9da70af8a6f116ec37`.
+  `8871d7f167de34ce98d14780c62d3608d9d7530f3a7bc7eaa59bc468e4f8c0bd`.
 - Dix firmwares et deux shaders vérifiés dans le Mach-O ; signature ad hoc
   stricte ; zéro avertissement. **Cela ne valide pas la liaison/ABI/charge noyau.**
 - 3 207 contrôles contrôleur, 1 323 service/lifecycle, 162 adaptateur DMA,
   29 pool IOVM et 39 accès bornés, sur RAM/doubles IOKit avec ASan/UBSan ;
   pas une simulation réussie de shader Radeon. 86 tests Python sur
-  outils/profils/remplacements, sans accès GPU.
+  outils/profils/remplacements, sans accès GPU. Le détail stage 16 est
+  purement observationnel (mêmes appels, mêmes attentes).
 
 Le profil conserve SMBIOS, patches Ryzen, sécurité et les cinq kexts de
 référence ; seuls `Kernel/Add` et les arguments natifs changent. Le double
@@ -112,14 +115,15 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.7 / UUID 84064BBD-DD39-3B69-9F7E-22863BCFFEAE**, les cinq arguments natifs.
+Vérifier module **0.2.8 / SHA ci-dessus**, les cinq arguments natifs.
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-L'adoption RW a réussi (`Origin=1`), le firmware est chargé, le stage 16
-timeout (`0xE00002D6`). Relever `Stage`/`FailedStage`/`Result` avant toute
-hypothèse. Si la publication best effort manque,
+Si stage 16 échoue, relever **`Stage16Step`** (1 GfxConstants, 2 MqdInit,
+3 MapKgqMes, 4 GfxStart, 5 RingTest, 6 EopTest, 7 Done), `RingTestPassed`,
+`FetchProven` et `RingTestValue` avant toute hypothèse. Si la publication
+best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.
 
@@ -175,17 +179,16 @@ python3 -B tools/prepare-native-kext-efi.py \
   --experimental-compute
 ```
 
-Les sources produisent **0.2.3**, maintenant déployé ; ces commandes ne chargent
+Les sources produisent **0.2.8**, maintenant déployé ; ces commandes ne chargent
 pas le pilote. La préparation EFI locale seule exige un boot de référence.
 
 Le remplacement déjà effectué a utilisé `--deploy-probe1401
---experimental-compute --replace-native-0.2.6` : profil/hashes 0.2.6 exacts,
-64+64 Mio, build 0.2.7 vérifié. Une exception de **copie hors ligne seulement**
-autorise le boot retiré/version/UUID/arguments exacts avec zéro instance native,
-pas une reprise GPU. Les anciennes options restent limitées à leurs sources
-respectives (`0.2.0 → … → 0.2.7`).
-**La clé est désormais en 0.2.7 : ne pas rejouer ces options de remplacement**,
+--experimental-compute --replace-native-0.2.7` **depuis le secours** :
+profil/hashes 0.2.7 exacts, 64+64 Mio, build 0.2.8 vérifié, zéro instance
+native. Les anciennes options restent limitées à leurs sources respectives
+(`0.2.0 → … → 0.2.8`).
+**La clé est désormais en 0.2.8 : ne pas rejouer ces options de remplacement**,
 qui refuseront cet état sans nouvelle revue. OPENCORE et backups préservés.
-[Déploiement actuel](reports/2026-10-10-native-rw-adoption-deployment.md) ·
-[Déploiement 0.2.6](reports/2026-10-10-native-rw-deployment.md) ·
+[Déploiement actuel](reports/2026-10-10-native-stage16-deployment.md) ·
+[Déploiement 0.2.7](reports/2026-10-10-native-rw-adoption-deployment.md) ·
 [Préparation historique 0.2.0](reports/2026-10-09-native-compute.md).

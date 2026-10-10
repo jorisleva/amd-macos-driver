@@ -1,15 +1,15 @@
 # Navi48Native.kext — service PCI/DMA et essai init/compute
 
-**Sources et bundle x86_64 0.2.7 déployé sur PROBE1401**, personnalité PCI, service IOKit et points
-kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
-calculs gfx1201 internes, avec fences et comparaison des 64 résultats. Aucun
-accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
-**0.2.7 est booté le 10 octobre à 15:32:47 UTC**, module/UUID/arguments
-conformes, **service conservé (1 instance)**. **Adoption RW réussie
-(`Origin=1`), firmware chargé (`FirmwareLoaded=1`), stage 16 timeout
-(`0xE00002D6`)**, ressources retenues jusqu'au reboot. Aucun calcul validé
-pour l'instant.
-[Boot 0.2.7](../../docs/reports/2026-10-10-native-0.2.7-boot.md).
+**Sources et bundle x86_64 0.2.8 déployé sur PROBE1401** (depuis le secours),
+personnalité PCI, service IOKit et points kmod. Le service appelle maintenant
+un chemin expérimental complet jusqu'à deux calculs gfx1201 internes, avec
+fences et comparaison des 64 résultats. Aucun accélérateur annoncé, aucun hook
+Apple/NVIDIA, aucun `UserClient` autorisé.
+**Boot précédent 0.2.7** (10 octobre, 15:32:47 UTC) : premier hardware, firmware
+chargé, stage 16 timeout, service conservé. **0.2.8 ajoute `Stage16Step` +
+preuve ring-test**, sans changer appels ni attentes.
+[Boot 0.2.7](../../docs/reports/2026-10-10-native-0.2.7-boot.md) ·
+[déploiement 0.2.8](../../docs/reports/2026-10-10-native-stage16-deployment.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
@@ -108,7 +108,7 @@ python3 -B tools/build-native-kext.py \
 python3 -B -m unittest discover -s tests/tools -v
 ```
 
-Bundle déployé : `out/native-kext/rw-adoption-0.2.7/Navi48Native.kext`.
+Bundle déployé : `out/native-kext/stage16-detail-0.2.8/Navi48Native.kext`.
 Anciens builds conservés dans les backups EFI de chaque remplacement.
 Le builder vérifie core/controller/source/SDK, exporte la révision Navi48
 épinglée et applique la correction PSP fail-closed déjà auditée. Les moteurs

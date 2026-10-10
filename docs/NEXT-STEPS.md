@@ -1,6 +1,6 @@
 # Travail restant — Hackintosh Tahoe
 
-## Dernier état : boot 0.2.7, PREMIER HARDWARE, stage 16 timeout
+## Dernier état : 0.2.8 déployé (détail stage 16), secours actuel
 
 **10 octobre : le bon kext est réellement chargé**, UUID et cinq arguments
 conformes. Aucun nœud/instance `Navi48Native`, aucun rapport Resources/Compute ;
@@ -8,13 +8,13 @@ deux fermetures du bail PCI par le client natif pendant le boot. Initialisation,
 fences et résultats GPU non validés. Capture `sudo dmesg` lue dans ce même
 boot : buffer de 128 Kio écrasé, aucune ligne native, refus exact inconnu.
 Correctif **0.2.1** : diagnostic IOResources destiné à survivre au retrait,
-**0.2.7 booté le 10 octobre à 15:32:47 UTC** : adoption RW réussie
-(`Origin=1`), **firmware chargé (`FirmwareLoaded=1`), stage 16 timeout
-(`0xE00002D6`)**, service conservé (1 instance), ressources retenues.
-Prochaine action : diagnostiquer le timeout GFX/CP/fences, sans
-unload/reload/veille dans le noyau courant.
+**0.2.7 booté le 10 octobre à 15:32:47 UTC** : premier hardware, firmware
+chargé, stage 16 timeout, service conservé. **0.2.8 déployé/vérifié depuis
+le secours actuel**, ancienne EFI sauvegardée, non encore chargé :
+`Stage16Step` + preuve ring-test. Prochaine action : F12 → PROBE1401 →
+Tahoe, relever sous-étape et preuve, sans retry/reload.
 [Boot 0.2.7](reports/2026-10-10-native-0.2.7-boot.md) ·
-[Boot 0.2.6](reports/2026-10-10-native-0.2.6-boot.md) ·
+[déploiement 0.2.8](reports/2026-10-10-native-stage16-deployment.md) ·
 [Boot 0.2.0](reports/2026-10-10-native-compute-boot.md) ·
 [correctif](reports/2026-10-10-native-boot-diagnostics.md) ·
 [déploiement 0.2.1](reports/2026-10-10-native-diagnostics-deployment.md).
