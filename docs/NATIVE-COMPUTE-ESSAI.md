@@ -1,13 +1,12 @@
 # Essai natif 0.2.1 : initialisation, calcul Radeon et diagnostic de refus
 
-> **PROBE1401 contient désormais 0.2.1**, vérifié/signé/ocvalidate conforme,
-> ancienne EFI 0.2.0 sauvegardée. **Prochaine action : F12 → PROBE1401 → Tahoe,
-> puis relever UUID et BootDiagnostics.** [Déploiement](reports/2026-10-10-native-diagnostics-deployment.md).
-> Le noyau courant reste en **0.2.0**, service retiré, sans résultat Radeon ;
-> son buffer de boot est écrasé et son refus exact inconnu.
-> [Premier boot](reports/2026-10-10-native-compute-boot.md).
-> **0.2.1 non encore chargé/boot testé** : persistance IOResources et résultats
-> matériels à observer, pas présumés. Aucun retry/reload dans le noyau courant.
+> **Boot 0.2.1 effectué le 10 octobre à 12:31:43 UTC.** Module/UUID/arguments
+> conformes. **BootDiagnostics réellement lu : Checkpoint 10, `InvalidMap`,
+> BAR0 `0x10`, DMA/compute non observés, aucun hardware.**
+> [Boot 0.2.1](reports/2026-10-10-native-0.2.1-boot.md).
+> Prochaine action : isoler le champ exact du mapping BAR0 rejeté, corriger
+> sans masquer la divergence, puis remplacement revu avant un nouveau boot.
+> Aucun retry/reload dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change

@@ -4,13 +4,15 @@
 kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
 calculs gfx1201 internes, avec fences et comparaison des 64 résultats. Aucun
 accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
-**Le noyau courant reste en 0.2.0**, premier boot le 10 octobre, service
-retiré, aucun calcul Radeon validé. Buffer privilégié lu mais messages du boot
-écrasés. **0.2.1 ajoute le diagnostic IOResources : déployé/signé/vérifié,
-ancienne EFI sauvegardée, non encore chargé/boot testé.**
+**0.2.1 est booté le 10 octobre à 12:31:43 UTC**, module/UUID/arguments
+conformes, service retiré, aucun calcul Radeon validé. **Diagnostic IOResources
+réellement lu : Checkpoint 10, `InvalidMap`, BAR0 `0x10`, DMA/compute non
+observés, `HardwareTouched=0`.** Le refus du boot 0.2.0 reste inconnu, son buffer
+étant écrasé.
 [Boot](../../docs/reports/2026-10-10-native-compute-boot.md) ·
 [correctif diagnostic](../../docs/reports/2026-10-10-native-boot-diagnostics.md) ·
-[déploiement](../../docs/reports/2026-10-10-native-diagnostics-deployment.md).
+[déploiement](../../docs/reports/2026-10-10-native-diagnostics-deployment.md) ·
+[boot 0.2.1](../../docs/reports/2026-10-10-native-0.2.1-boot.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
