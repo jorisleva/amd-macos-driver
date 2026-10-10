@@ -1,15 +1,17 @@
 # Navi48Native.kext — service PCI/DMA et essai init/compute
 
-**Sources et bundle x86_64 0.2.8 déployé sur PROBE1401** (depuis le secours),
+**Sources et bundle x86_64 0.2.9 déployé sur PROBE1401** (copie forcée explicite),
 personnalité PCI, service IOKit et points kmod. Le service appelle maintenant
 un chemin expérimental complet jusqu'à deux calculs gfx1201 internes, avec
 fences et comparaison des 64 résultats. Aucun accélérateur annoncé, aucun hook
 Apple/NVIDIA, aucun `UserClient` autorisé.
-**Boot 0.2.8** (10 octobre, 19:06:44 UTC) : service conservé (1 instance).
-**Sous-étape exacte `RingTest` (step 5), `RingTestValue=0xFFFFFFFF`** =
-SCRATCH_REG0 illisible. Le CP ne fetche pas ; chemin mémoire EOP exclu.
-Prochaine étape : instrumenter base GC/horloges/power en lecture seule.
-[Boot 0.2.8](../../docs/reports/2026-10-10-native-0.2.8-boot.md).
+**Boot 0.2.8 toujours en mémoire** (10 octobre, 19:06:44 UTC) : service
+conservé (1 instance). **Sous-étape `RingTest` (step 5),
+`RingTestValue=0xFFFFFFFF`** = SCRATCH illisible. **0.2.9 déployé par copie
+forcée explicite, ancienne EFI sauvegardée, non encore chargé** : relevé GC
+en lecture seule (bases, SCRATCH avant/après, RPTR, halts).
+[Boot 0.2.8](../../docs/reports/2026-10-10-native-0.2.8-boot.md) ·
+[déploiement 0.2.9](../../docs/reports/2026-10-10-native-gc-deployment.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
@@ -108,7 +110,7 @@ python3 -B tools/build-native-kext.py \
 python3 -B -m unittest discover -s tests/tools -v
 ```
 
-Bundle déployé : `out/native-kext/stage16-detail-0.2.8/Navi48Native.kext`.
+Bundle déployé : `out/native-kext/gc-survey-0.2.9/Navi48Native.kext`.
 Anciens builds conservés dans les backups EFI de chaque remplacement.
 Le builder vérifie core/controller/source/SDK, exporte la révision Navi48
 épinglée et applique la correction PSP fail-closed déjà auditée. Les moteurs

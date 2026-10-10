@@ -1,12 +1,13 @@
-# Essai natif 0.2.8 : initialisation, calcul Radeon et détail stage 16
+# Essai natif 0.2.9 : initialisation, calcul Radeon et relevé GC
 
-> **Boot 0.2.8 effectué le 10 octobre à 19:06:44 UTC.** Module/UUID/arguments
-> conformes, service conservé (1 instance). **Sous-étape exacte : `RingTest`
-> (step 5), `RingTestValue=0xFFFFFFFF` = SCRATCH_REG0 illisible.** Le CP ne
-> fetche pas ; chemin mémoire EOP exclu.
+> **PROBE1401 contient désormais 0.2.9** (copie forcée explicite depuis le
+> boot 0.2.8 conservé, fichiers seuls, tout vérifié). **Prochaine action :
+> F12 → PROBE1401 → Tahoe, puis relever version, bases GC et halts.**
+> [Déploiement](reports/2026-10-10-native-gc-deployment.md).
+> Boot 0.2.8 toujours en mémoire : `RingTest` step 5, SCRATCH illisible.
 > [Boot 0.2.8](reports/2026-10-10-native-0.2.8-boot.md).
-> Prochaine action : instrumenter base GC/horloges/power en lecture seule,
-> sans unload/reload/veille dans le noyau courant.
+> **0.2.9 non encore chargé/boot testé** : relevé GC et résultats matériels
+> à observer, pas présumés. Aucun retry/reload dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -62,9 +63,9 @@ ne bloque pas la veille forcée : **ne pas mettre cette session en veille**.
 
 ## Bundle déployé pour le prochain boot
 
-- Produit : `out/native-kext/stage16-detail-0.2.8/Navi48Native.kext`, x86_64.
+- Produit : `out/native-kext/gc-survey-0.2.9/Navi48Native.kext`, x86_64.
 - Exécutable SHA-256 :
-  `8871d7f167de34ce98d14780c62d3608d9d7530f3a7bc7eaa59bc468e4f8c0bd`.
+  `0bada18712b5bd2e31424ac40ea3996a4d70e277020d4e906a9bad1b4be09d07`.
 - Dix firmwares et deux shaders vérifiés dans le Mach-O ; signature ad hoc
   stricte ; zéro avertissement. **Cela ne valide pas la liaison/ABI/charge noyau.**
 - 3 207 contrôles contrôleur, 1 323 service/lifecycle, 162 adaptateur DMA,
@@ -113,15 +114,14 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.8 / UUID DBD6962B-7594-3B64-9B1A-BAAEAFC07D03**, les cinq arguments natifs.
+Vérifier module **0.2.9 / SHA ci-dessus**, les cinq arguments natifs.
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Le stage 16 échoue au `RingTest` (step 5) : `RingTestValue=0xFFFFFFFF`
-(SCRATCH illisible), `FetchProven=0`. Le CP ne fetche pas ; EOP exclu.
-Instrumenter base GC/horloges/power en lecture seule. Si la publication
-best effort manque,
+Si stage 16 : relever `GCBase0`/`GCBase1`/`GCScratchBefore`/`GCScratchAfterWrite`/
+`GCRb0Rptr`/`GCCpMeCntl`/`GCCpMecCntl`. Tout GC illisible = base fausse ;
+seul SCRATCH mort = power-gate/horloges. Si la publication best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.
 
@@ -181,12 +181,12 @@ Les sources produisent **0.2.8**, maintenant déployé ; ces commandes ne charge
 pas le pilote. La préparation EFI locale seule exige un boot de référence.
 
 Le remplacement déjà effectué a utilisé `--deploy-probe1401
---experimental-compute --replace-native-0.2.7` **depuis le secours** :
-profil/hashes 0.2.7 exacts, 64+64 Mio, build 0.2.8 vérifié, zéro instance
-native. Les anciennes options restent limitées à leurs sources respectives
-(`0.2.0 → … → 0.2.8`).
-**La clé est désormais en 0.2.8 : ne pas rejouer ces options de remplacement**,
+--experimental-compute --replace-native-0.2.8` **par copie forcée explicite
+depuis le boot 0.2.8 conservé** (1 instance, fichiers seuls, tout vérifié) :
+profil/hashes 0.2.8 exacts, 64+64 Mio, build 0.2.9 vérifié. Les anciennes
+options restent limitées à leurs sources respectives (`0.2.0 → … → 0.2.9`).
+**La clé est désormais en 0.2.9 : ne pas rejouer ces options de remplacement**,
 qui refuseront cet état sans nouvelle revue. OPENCORE et backups préservés.
-[Déploiement actuel](reports/2026-10-10-native-stage16-deployment.md) ·
-[Déploiement 0.2.7](reports/2026-10-10-native-rw-adoption-deployment.md) ·
+[Déploiement actuel](reports/2026-10-10-native-gc-deployment.md) ·
+[Déploiement 0.2.8](reports/2026-10-10-native-stage16-deployment.md) ·
 [Préparation historique 0.2.0](reports/2026-10-09-native-compute.md).
