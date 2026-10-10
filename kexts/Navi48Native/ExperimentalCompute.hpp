@@ -48,11 +48,20 @@ public:
     enum class RingPhase : uint32_t {
         NotReached = 0, WriteRead = 1, Kicked = 2, Polled = 3
     };
+    // Doorbell programming survey (read-only snapshot of what cp_gfx_start
+    // and cp_kick_doorbell programmed). Names whether the kick went to the
+    // programmed queue: index, BAR2 byte offset, wptr at kick time, and the
+    // doorbell-range registers read back from the CP window.
     struct Snapshot {
         uint32_t stage{0}, failedStage{0}, preflightCheck{0}, result{static_cast<uint32_t>(kIOReturnNotReady)};
         bool hardwareTouched{false}, firmwareLoaded{false}, initialized{false}, computePassed{false}, idleSleepPrevented{false};
         bool acceleratorIteratorNull{false}; // true when getMatchingServices() returned null (empty set presumed)
         RwBarObservation rwBars[3]{};
+        uint32_t doorbellIndex{0}; // cp.doorbell_index programmed by cp_init_full
+        uint64_t doorbellBar2Offset{0}; // doorbell_index * stride (bytes into BAR2)
+        uint32_t doorbellWptrAtKick{0}; // wptr staged when the ring-test kicked
+        uint32_t doorbellRangeLower{0}, doorbellRangeUpper{0}; // CP window readback
+        uint32_t doorbellReadback{0}; // RDOORBELL32 right after the kick
         Stage16Step stage16Step{Stage16Step::NotReached};
         bool ringTestPassed{false}, fetchProven{false}; // CP fetch proof (ring_test scratch)
         uint32_t ringTestValue{0}; // SCRATCH_REG0 readback at timeout/success

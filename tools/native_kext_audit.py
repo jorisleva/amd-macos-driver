@@ -4,7 +4,7 @@ import re
 
 PRODUCT = 'Navi48Native'
 BUNDLE_ID = 'com.amd-macos-driver.' + PRODUCT
-VERSION = '0.2.10'
+VERSION = '0.2.11'
 SOURCE_FILES = ('Navi48Native.cpp', 'Navi48Native.hpp', 'Navi48Shell.cpp', 'Navi48Shell.hpp', 'DmaBuffer.cpp', 'DmaBuffer.hpp', 'kmod_info.c', 'Info.plist',
                 'ExperimentalCompute.cpp', 'ExperimentalCompute.hpp', 'ComputeAccess.hpp', 'ComputeSysMem.cpp', 'ComputeSysMem.hpp', 'ComputeLog.cpp')
 # AcceleratorPreflight.hpp lives in the firmware-core module (single owner)

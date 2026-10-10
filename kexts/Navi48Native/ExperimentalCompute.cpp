@@ -414,6 +414,13 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
     // only observe the kick transition by re-running the full test after
     // proving the write path. The AfterKick survey below captures the state
     // right after our own kick of an identical NOP packet.)
+    // Doorbell programming survey first: index, BAR2 offset, wptr, and the
+    // doorbell-range window as the CP sees it. Read-only, no state change.
+    facts_.doorbellIndex = r.cp.doorbell_index;
+    facts_.doorbellBar2Offset = uint64_t{r.cp.doorbell_index} * 4u; // kCPDoorbellStride
+    facts_.doorbellWptrAtKick = r.cp.wptr;
+    facts_.doorbellRangeLower = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, CPRegs::CP_RB_DOORBELL_RANGE_LOWER));
+    facts_.doorbellRangeUpper = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, CPRegs::CP_RB_DOORBELL_RANGE_UPPER));
     facts_.ringPhase = RingPhase::Kicked;
     {
         uint32_t nop[3];
@@ -425,6 +432,7 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
         kr = cp_kick_doorbell(r.dev, r.cp);
         if (kr) return fail(16, kr);
         facts_.ringAfterKick = RREG32(r.dev, scratchDword);
+        facts_.doorbellReadback = RDOORBELL32(r.dev, facts_.doorbellBar2Offset);
     }
     // Phase 3: the standard test (same write/poll) for the authoritative
     // pass/fail + fetch proof. Its internal WREG32 rewrites CAFEDEAD, so our

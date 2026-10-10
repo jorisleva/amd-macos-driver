@@ -10,7 +10,7 @@ from native_kext_audit import VERSION, audit_defined, audit_sources
 
 class NativeKextAuditTests(unittest.TestCase):
     def test_current_diagnostic_version_identity(self):
-        self.assertEqual(VERSION, '0.2.10')
+        self.assertEqual(VERSION, '0.2.11')
         facts = audit_sources(ROOT / 'kexts/Navi48Native')
         self.assertTrue(facts['read_only_shell_gated'])
         self.assertTrue(facts['shell_writes_forbidden'])
