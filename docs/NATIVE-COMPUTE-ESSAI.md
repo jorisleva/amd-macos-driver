@@ -1,13 +1,12 @@
 # Essai natif 0.2.4 : initialisation, calcul Radeon et adoption déclarée
 
-> **PROBE1401 contient désormais 0.2.4**, vérifié/signé/ocvalidate conforme,
-> ancienne EFI 0.2.3 sauvegardée. **Prochaine action : F12 → PROBE1401 → Tahoe,
-> puis relever version, `DescriptorOrigin` et rapports.** [Déploiement](reports/2026-10-10-native-adoption-deployment.md).
-> Le noyau courant reste en **0.2.3**, service retiré, sans résultat Radeon ;
-> son scénario est le mapping partagé déclarant un autre objet.
-> [Boot 0.2.3](reports/2026-10-10-native-0.2.3-boot.md).
-> **0.2.4 non encore chargé/boot testé** : adoption et résultats matériels à
-> observer, pas présumés. Aucun retry/reload dans le noyau courant.
+> **Boot 0.2.4 effectué le 10 octobre à 14:30:29 UTC.** Module/UUID/arguments
+> conformes. **Adoption des 3 BAR (`DescriptorOrigin=1`) + DMA préparée**,
+> puis refus logiciel au préflight accélérateur (`FailedStage=1`,
+> `PreflightCheck=7`), aucun hardware.
+> [Boot 0.2.4](reports/2026-10-10-native-0.2.4-boot.md).
+> Prochaine action : corriger le préflight (itérateur null = cas nominal),
+> sans autoriser un concurrent. Aucun retry/reload dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -113,7 +112,7 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.4 / SHA ci-dessus**, les cinq arguments natifs.
+Vérifier module **0.2.4 / UUID 4F894D5F-FDC9-384C-8688-C6B4BAA68674**, les cinq arguments natifs.
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
