@@ -6,18 +6,17 @@ L'objectif est de réutiliser la couche Metal du fork NVIDIA de NullMoth, puis d
 
 **Statut : calcul et rendu Apple AIR validés sur la RX 9070 XT sous Windows.** Les quatre shaders graphiques compilés sur Mac et traduits en SPIR-V passent les 48 cas du banc Radeon : 330 984 pixels RGBA exactement conformes, aucun écart de gardes/entrées et aucune erreur Vulkan/synchronisation. Leurs 96 fichiers RGBA sont identiques à ceux du contrôle GLSL rejoué. Le calcul Apple et le contrôle GLSL passent 36 cas chacun ; les trois rejets attendus, 15 tests Rust ciblés, 13 CTest et huit tests Python passent sous Windows. Preuves : [rapport Metal/Radeon](docs/reports/2026-10-07-metal-graphics-radeon.md). Tahoe installé démarre maintenant sur ce PC, sans accélération. Navi48Bringup est construit deux fois pour x86_64 et contrôlé statiquement ; son chargement, RADV Darwin et le rendu via Metal sous macOS restent à qualifier. Ce dossier ne fournit pas encore de pilote installable ; le fork contient toujours le pilote NVIDIA.
 
-**Dernier état natif : `Navi48Native.kext` 0.2.7 sur PROBE1401, prêt pour le prochain boot.** Le service
+**Dernier état natif : `Navi48Native.kext` 0.2.7 booté — PREMIER HARDWARE.** Le service
 appelle désormais l'initialisation PSP/GMC/SMU/IMU/RLC/CP/MES/GFX puis deux
 shaders gfx1201, fences et comparaison de 64 résultats. **Premier boot observé
 le 10 octobre : module 0.2.0 réellement chargé, UUID/arguments conformes, mais
 service retiré, aucun rapport de calcul ni résultat GPU.** Capture privilégiée
 lue : buffer de boot écrasé, code de refus inconnu. Correctif **0.2.1** avec
-boot 0.2.6 réellement lu : `DescriptorMismatch` RW BAR0, partage confirmé,
-zéro hardware. **0.2.7 déployé/vérifié, ancienne EFI sauvegardée, non encore
-chargé** : voie 1 portée au RW (`Origin`). Aucun calcul Radeon, init ou fence
-validé
-([boot 0.2.6](docs/reports/2026-10-10-native-0.2.6-boot.md) ·
-[déploiement 0.2.7](docs/reports/2026-10-10-native-rw-adoption-deployment.md)).
+module 0.2.7 chargé, **adoption RW réussie, firmware chargé
+(`FirmwareLoaded=1`), orchestration au stage 16 (GFX/CP/fences), timeout
+`0xE00002D6`**. Service conservé (1 instance), ressources retenues jusqu'au
+reboot. Aucun calcul validé pour l'instant
+([boot 0.2.7](docs/reports/2026-10-10-native-0.2.7-boot.md)).
 Étapes matérielles 1/2 non terminées, pas de Metal/WindowServer ni API de calcul libre. Essai
 matériel explicitement risqué, ressources conservées jusqu'au reboot ; OPENCORE
 intact et ancien essai 0.1.2 sauvegardé. **Procédure actuelle :

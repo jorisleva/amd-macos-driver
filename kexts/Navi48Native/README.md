@@ -4,14 +4,12 @@
 kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
 calculs gfx1201 internes, avec fences et comparaison des 64 résultats. Aucun
 accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
-**0.2.6 est booté le 10 octobre à 15:09:46 UTC**, module/UUID/arguments
-conformes, service retiré, aucun calcul Radeon validé. **Champ RW nommé :
-`RWBar0Map/MapCheck=3` (`DescriptorMismatch`)**, même scénario que le RO
-(partage confirmé, provider stable). `HardwareTouched=0`. **0.2.7
-déployé/vérifié, ancienne EFI sauvegardée, non encore chargé** : voie 1 RW
-(`Origin`), sans assouplir les gardes.
-[Boot 0.2.6](../../docs/reports/2026-10-10-native-0.2.6-boot.md) ·
-[déploiement 0.2.7](../../docs/reports/2026-10-10-native-rw-adoption-deployment.md).
+**0.2.7 est booté le 10 octobre à 15:32:47 UTC**, module/UUID/arguments
+conformes, **service conservé (1 instance)**. **Adoption RW réussie
+(`Origin=1`), firmware chargé (`FirmwareLoaded=1`), stage 16 timeout
+(`0xE00002D6`)**, ressources retenues jusqu'au reboot. Aucun calcul validé
+pour l'instant.
+[Boot 0.2.7](../../docs/reports/2026-10-10-native-0.2.7-boot.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·

@@ -1,12 +1,12 @@
 # Essai natif 0.2.7 : initialisation, calcul Radeon et adoption RW
 
-> **PROBE1401 contient désormais 0.2.7**, vérifié/signé/ocvalidate conforme,
-> ancienne EFI 0.2.6 sauvegardée. **Prochaine action : F12 → PROBE1401 → Tahoe,
-> puis relever version, `Origin` et rapports.** [Déploiement](reports/2026-10-10-native-rw-adoption-deployment.md).
-> Le noyau courant reste en **0.2.6**, refus RW nommé, sans résultat Radeon.
-> [Boot 0.2.6](reports/2026-10-10-native-0.2.6-boot.md).
-> **0.2.7 non encore chargé/boot testé** : adoption RW et résultats matériels
-> à observer, pas présumés. Aucun retry/reload dans le noyau courant.
+> **Boot 0.2.7 effectué le 10 octobre à 15:32:47 UTC.** Module/UUID/arguments
+> conformes. **Adoption RW réussie (`Origin=1`), firmware chargé
+> (`FirmwareLoaded=1`), stage 16 timeout (`0xE00002D6`)**, service conservé
+> (1 instance), ressources retenues jusqu'au reboot.
+> [Boot 0.2.7](reports/2026-10-10-native-0.2.7-boot.md).
+> Prochaine action : diagnostiquer le timeout GFX/CP/fences, sans
+> unload/reload/veille dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -112,14 +112,14 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.7 / SHA ci-dessus**, les cinq arguments natifs.
+Vérifier module **0.2.7 / UUID 84064BBD-DD39-3B69-9F7E-22863BCFFEAE**, les cinq arguments natifs.
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Si adoption RW réussie (`Origin=1`), exiger les rapports Resources/Compute
-avec les critères du protocole. Si refus, relever `MapCheck`/`Origin` et les
-valeurs. Si la publication best effort manque,
+L'adoption RW a réussi (`Origin=1`), le firmware est chargé, le stage 16
+timeout (`0xE00002D6`). Relever `Stage`/`FailedStage`/`Result` avant toute
+hypothèse. Si la publication best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.
 
