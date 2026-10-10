@@ -1,13 +1,12 @@
 # Essai natif 0.2.5 : initialisation, calcul Radeon et préflight corrigé
 
-> **PROBE1401 contient désormais 0.2.5**, vérifié/signé/ocvalidate conforme,
-> ancienne EFI 0.2.4 sauvegardée. **Prochaine action : F12 → PROBE1401 → Tahoe,
-> puis relever version, `AcceleratorIteratorNull` et rapports.** [Déploiement](reports/2026-10-10-native-preflight-deployment.md).
-> Le noyau courant reste en **0.2.4**, adoption + DMA OK puis refus préflight,
-> sans résultat Radeon.
-> [Boot 0.2.4](reports/2026-10-10-native-0.2.4-boot.md).
-> **0.2.5 non encore chargé/boot testé** : préflight et résultats matériels à
-> observer, pas présumés. Aucun retry/reload dans le noyau courant.
+> **Boot 0.2.5 effectué le 10 octobre à 14:54:56 UTC.** Module/UUID/arguments
+> conformes. **Préflight accélérateur passé (`AcceleratorIteratorNull=1`)**,
+> puis refus au mapping RW BAR0 du compute (`FailedStage=1`,
+> `PreflightCheck=12`, `BadArgument`), aucun hardware.
+> [Boot 0.2.5](reports/2026-10-10-native-0.2.5-boot.md).
+> Prochaine action : diagnostiquer le mapping RW au champ près, sans
+> assouplir les gardes. Aucun retry/reload dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -113,15 +112,15 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.5 / SHA ci-dessus**, les cinq arguments natifs.
+Vérifier module **0.2.5 / UUID 160033C1-04F7-3DE5-A795-A511A749F8F5**, les cinq arguments natifs.
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Le préflight doit passer (`AcceleratorIteratorNull=1` attendu) ; si refus,
-relever **`FailedStage`/`PreflightCheck`** avant toute hypothèse. Si
-l'orchestration continue, exiger les rapports Resources/Compute avec les
-critères du protocole. Si la publication best effort manque,
+Le préflight accélérateur passe (`AcceleratorIteratorNull=1`) ; le refus
+actuel est au mapping RW BAR0 (`PreflightCheck=12`, `BadArgument`). Relever
+**`FailedStage`/`PreflightCheck`** avant toute hypothèse. Si la publication
+best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.
 

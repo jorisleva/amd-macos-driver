@@ -4,15 +4,12 @@
 kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
 calculs gfx1201 internes, avec fences et comparaison des 64 résultats. Aucun
 accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
-**0.2.4 est booté le 10 octobre à 14:30:29 UTC**, module/UUID/arguments
-conformes, service retiré, aucun calcul Radeon validé. **Adoption des 3 BAR
-(`DescriptorOrigin=1`) + DMA préparée**, puis refus logiciel au préflight
-accélérateur (`FailedStage=1`, `PreflightCheck=7`). `HardwareTouched=0`.
-**0.2.5 déployé/vérifié, ancienne EFI sauvegardée, non encore chargé** :
-itérateur null = vide présumé (`AcceleratorIteratorNull=1`), concurrent =
-refus maintenu.
-[Boot 0.2.4](../../docs/reports/2026-10-10-native-0.2.4-boot.md) ·
-[déploiement 0.2.5](../../docs/reports/2026-10-10-native-preflight-deployment.md).
+**0.2.5 est booté le 10 octobre à 14:54:56 UTC**, module/UUID/arguments
+conformes, service retiré, aucun calcul Radeon validé. **Préflight accélérateur
+passé (`AcceleratorIteratorNull=1`)**, puis refus au mapping RW BAR0 du
+compute (`FailedStage=1`, `PreflightCheck=12`, `BadArgument`).
+`HardwareTouched=0`.
+[Boot 0.2.5](../../docs/reports/2026-10-10-native-0.2.5-boot.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·

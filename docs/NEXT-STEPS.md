@@ -1,6 +1,6 @@
 # Travail restant — Hackintosh Tahoe
 
-## Dernier état : 0.2.5 déployé (préflight corrigé), prochain boot décisif
+## Dernier état : boot 0.2.5, préflight passé, mapping RW BAR0 refuse
 
 **10 octobre : le bon kext est réellement chargé**, UUID et cinq arguments
 conformes. Aucun nœud/instance `Navi48Native`, aucun rapport Resources/Compute ;
@@ -8,14 +8,13 @@ deux fermetures du bail PCI par le client natif pendant le boot. Initialisation,
 fences et résultats GPU non validés. Capture `sudo dmesg` lue dans ce même
 boot : buffer de 128 Kio écrasé, aucune ligne native, refus exact inconnu.
 Correctif **0.2.1** : diagnostic IOResources destiné à survivre au retrait,
-**0.2.4 booté le 10 octobre à 14:30:29 UTC** : adoption + DMA OK, refus
-logiciel au préflight (`PreflightCheck=7`), `HardwareTouched=0`. **0.2.5
-déployé/vérifié**, ancienne EFI sauvegardée, non encore chargé : itérateur
-null = vide présumé (`AcceleratorIteratorNull=1`), concurrent = refus maintenu.
-Prochaine action : F12 → PROBE1401 → Tahoe, relever préflight et rapports,
-sans retry/reload.
+**0.2.5 booté le 10 octobre à 14:54:56 UTC** : acquisition + DMA +
+préflight accélérateur OK (`AcceleratorIteratorNull=1`), puis refus au mapping
+RW BAR0 du compute (`PreflightCheck=12`, `BadArgument`), `HardwareTouched=0`.
+Prochaine action : porter le diagnostic au champ près dans le préflight RW,
+sans assouplir les gardes ni retry/reload.
+[Boot 0.2.5](reports/2026-10-10-native-0.2.5-boot.md) ·
 [Boot 0.2.4](reports/2026-10-10-native-0.2.4-boot.md) ·
-[déploiement 0.2.5](reports/2026-10-10-native-preflight-deployment.md) ·
 [Boot 0.2.0](reports/2026-10-10-native-compute-boot.md) ·
 [correctif](reports/2026-10-10-native-boot-diagnostics.md) ·
 [déploiement 0.2.1](reports/2026-10-10-native-diagnostics-deployment.md).
