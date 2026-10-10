@@ -1,16 +1,15 @@
 # Navi48Native.kext — service PCI/DMA et essai init/compute
 
-**Sources et bundle x86_64 0.2.10 déployé sur PROBE1401** (copie forcée
+**Sources et bundle x86_64 0.2.11 déployé sur PROBE1401** (copie forcée
 explicite, triple opt-in shell), personnalité PCI, service IOKit et points
 kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
 calculs gfx1201 internes, avec fences et comparaison des 64 résultats, ring-test
-découpé (write/read, kick, poll + relevés), et **shell lecture seule**
-(`Navi48Shell`, 5 sélecteurs, aucune écriture/soumission/horloge).
-**Boot 0.2.10** (10 octobre, 20:33:55 UTC) : service conservé (1 instance).
-**Écriture CPU OK, kick tue l'accès (2/2).** Shell : canal prouvé (open +
-routage OK), bug plumbing identifié (fix 1 ligne en 0.2.11). Aucune
-écriture/commande envoyée.
-[Boot 0.2.10](../../docs/reports/2026-10-10-native-0.2.10-boot.md).
+découpé (write/read, kick, poll + relevés), diagnostic doorbell
+(index/offset/wptr/range/readback), et **shell lecture seule RÉPARÉ**
+(`request.result` propagé, 5 sélecteurs, aucune écriture/soumission/horloge).
+**Boot 0.2.10 toujours en mémoire** : kick coupable (2/2), canal prouvé.
+[Boot 0.2.10](../../docs/reports/2026-10-10-native-0.2.10-boot.md) ·
+[déploiement 0.2.11](../../docs/reports/2026-10-10-native-shellfix-deployment.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
@@ -109,7 +108,7 @@ python3 -B tools/build-native-kext.py \
 python3 -B -m unittest discover -s tests/tools -v
 ```
 
-Bundle déployé : `out/native-kext/shell-0.2.10/Navi48Native.kext`.
+Bundle déployé : `out/native-kext/shellfix-doorbell-0.2.11/Navi48Native.kext`.
 Anciens builds conservés dans les backups EFI de chaque remplacement.
 Le builder vérifie core/controller/source/SDK, exporte la révision Navi48
 épinglée et applique la correction PSP fail-closed déjà auditée. Les moteurs

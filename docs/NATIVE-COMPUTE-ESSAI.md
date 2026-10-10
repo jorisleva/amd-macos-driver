@@ -1,12 +1,13 @@
-# Essai natif 0.2.10 : ring-test découpé et shell lecture seule
+# Essai natif 0.2.11 : shell réparé et diagnostic doorbell
 
-> **Boot 0.2.10 effectué le 10 octobre à 20:33:55 UTC.** Module/UUID/six
-> arguments conformes, service conservé (1 instance). **Écriture CPU OK,
-kick tue l'accès (2/2).** Shell : canal prouvé, bug plumbing identifié
-> (fix 1 ligne en 0.2.11).
+> **PROBE1401 contient désormais 0.2.11** (copie forcée explicite, fichiers
+> seuls, tout vérifié). **Prochaine action : F12 → PROBE1401 → Tahoe, puis
+> tester le shell (`/tmp/n48-shell-cli snapshot survey`) et relever la
+> programmation doorbell.** [Déploiement](reports/2026-10-10-native-shellfix-deployment.md).
+> Boot 0.2.10 toujours en mémoire : kick coupable, canal prouvé avec bug.
 > [Boot 0.2.10](reports/2026-10-10-native-0.2.10-boot.md).
-> Prochaine action : 0.2.11 (fix shell + diagnostic doorbell), sans
-> unload/reload/veille dans le noyau courant.
+> **0.2.11 non encore chargé/boot testé** : shell et doorbell à observer, pas
+> présumés. Aucun retry/reload dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -62,9 +63,9 @@ ne bloque pas la veille forcée : **ne pas mettre cette session en veille**.
 
 ## Bundle déployé pour le prochain boot
 
-- Produit : `out/native-kext/shell-0.2.10/Navi48Native.kext`, x86_64.
+- Produit : `out/native-kext/shellfix-doorbell-0.2.11/Navi48Native.kext`, x86_64.
 - Exécutable SHA-256 :
-  `1ab98748fec072e3420aae1c7384d177900807588d1a53f7edd08d716ca43502`.
+  `7a322a24560656215b5ff5327f4a229677c858780ad1e0e2d73336da30ddd477`.
 - Dix firmwares et deux shaders vérifiés dans le Mach-O ; signature ad hoc
   stricte ; zéro avertissement. **Cela ne valide pas la liaison/ABI/charge noyau.**
 - 3 207 contrôles contrôleur, 1 323 service/lifecycle, 162 adaptateur DMA,
@@ -113,15 +114,15 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.10 / UUID C9F3A729-7910-351B-9F27-22996B70461B**, les **six** arguments natifs (dont `navi48-native-shell=1`).
+Vérifier module **0.2.11 / SHA ci-dessus**, les **six** arguments natifs (dont `navi48-native-shell=1`).
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Le découpage tranche : écriture CPU OK (`0xCAFEDEAD` relu), kick tue l'accès
-(`0xFFFFFFFF` après, 2/2). Le shell s'ouvre (routage OK) mais son résultat
-n'est pas propagé (bug `request.result`, fix 1 ligne en 0.2.11). Aucune
-écriture/commande envoyée via le shell. Si la publication best effort manque,
+Le shell doit désormais répondre (`/tmp/n48-shell-cli snapshot survey`).
+Si stage 16 : relever programmation doorbell (index/offset/wptr/range/
+readback) avant toute hypothèse. Aucune écriture/commande via le shell.
+Si la publication best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.
 
@@ -181,13 +182,13 @@ Les sources produisent **0.2.8**, maintenant déployé ; ces commandes ne charge
 pas le pilote. La préparation EFI locale seule exige un boot de référence.
 
 Le remplacement déjà effectué a utilisé `--deploy-probe1401
---experimental-compute --read-only-shell --replace-native-0.2.9` **par copie
-forcée explicite depuis le boot 0.2.9 conservé** (1 instance, fichiers seuls,
-tout vérifié, incident sans-shell rattrapé par rollback) : profil/hashes 0.2.9
-exacts, 64+64 Mio + shell, build 0.2.10 vérifié. Les anciennes options restent
-limitées à leurs sources respectives (`0.2.0 → … → 0.2.10`).
-**La clé est désormais en 0.2.10 : ne pas rejouer ces options de remplacement**,
+--experimental-compute --read-only-shell --replace-native-0.2.10` **par copie
+forcée explicite depuis le boot 0.2.10 conservé** (1 instance, fichiers seuls,
+tout vérifié) : profil/hashes 0.2.10 exacts, 64+64 Mio + shell, build 0.2.11
+vérifié. Les anciennes options restent limitées à leurs sources respectives
+(`0.2.0 → … → 0.2.11`).
+**La clé est désormais en 0.2.11 : ne pas rejouer ces options de remplacement**,
 qui refuseront cet état sans nouvelle revue. OPENCORE et backups préservés.
-[Déploiement actuel](reports/2026-10-10-native-shell-deployment.md) ·
-[Déploiement 0.2.9](reports/2026-10-10-native-gc-deployment.md) ·
+[Déploiement actuel](reports/2026-10-10-native-shellfix-deployment.md) ·
+[Déploiement 0.2.10](reports/2026-10-10-native-shell-deployment.md) ·
 [Préparation historique 0.2.0](reports/2026-10-09-native-compute.md).

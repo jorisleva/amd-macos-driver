@@ -6,17 +6,17 @@ L'objectif est de réutiliser la couche Metal du fork NVIDIA de NullMoth, puis d
 
 **Statut : calcul et rendu Apple AIR validés sur la RX 9070 XT sous Windows.** Les quatre shaders graphiques compilés sur Mac et traduits en SPIR-V passent les 48 cas du banc Radeon : 330 984 pixels RGBA exactement conformes, aucun écart de gardes/entrées et aucune erreur Vulkan/synchronisation. Leurs 96 fichiers RGBA sont identiques à ceux du contrôle GLSL rejoué. Le calcul Apple et le contrôle GLSL passent 36 cas chacun ; les trois rejets attendus, 15 tests Rust ciblés, 13 CTest et huit tests Python passent sous Windows. Preuves : [rapport Metal/Radeon](docs/reports/2026-10-07-metal-graphics-radeon.md). Tahoe installé démarre maintenant sur ce PC, sans accélération. Navi48Bringup est construit deux fois pour x86_64 et contrôlé statiquement ; son chargement, RADV Darwin et le rendu via Metal sous macOS restent à qualifier. Ce dossier ne fournit pas encore de pilote installable ; le fork contient toujours le pilote NVIDIA.
 
-**Dernier état natif : `Navi48Native.kext` 0.2.10 booté — le kick tue l'accès, shell prouvé.** Le service
+**Dernier état natif : `Navi48Native.kext` 0.2.11 sur PROBE1401 (shell réparé + doorbell).** Le service
 appelle désormais l'initialisation PSP/GMC/SMU/IMU/RLC/CP/MES/GFX puis deux
 shaders gfx1201, fences et comparaison de 64 résultats. **Premier boot observé
 le 10 octobre : module 0.2.0 réellement chargé, UUID/arguments conformes, mais
 service retiré, aucun rapport de calcul ni résultat GPU.** Capture privilégiée
 lue : buffer de boot écrasé, code de refus inconnu. Correctif **0.2.1** avec
-module 0.2.10 chargé, service conservé (1 instance), **écriture CPU OK
-(`0xCAFEDEAD` relu) mais kick doorbell tue l'accès (2/2)**. Shell : canal
-prouvé (open + routage OK), bug plumbing identifié (fix 1 ligne en 0.2.11).
-Aucun calcul validé
-([boot 0.2.10](docs/reports/2026-10-10-native-0.2.10-boot.md)).
+boot 0.2.10 conservé en mémoire (service + GPU tenus). **0.2.11 déployé par
+copie forcée explicite** : fix shell (`request.result`) + diagnostic doorbell
+(file/adresse/index/readback), non encore chargé. Aucun calcul validé
+([boot 0.2.10](docs/reports/2026-10-10-native-0.2.10-boot.md) ·
+[déploiement 0.2.11](docs/reports/2026-10-10-native-shellfix-deployment.md)).
 Étapes matérielles 1/2 non terminées, pas de Metal/WindowServer ni API de calcul libre. Essai
 matériel explicitement risqué, ressources conservées jusqu'au reboot ; OPENCORE
 intact et ancien essai 0.1.2 sauvegardé. **Procédure actuelle :
