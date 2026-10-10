@@ -129,7 +129,7 @@ int main() {
         f.pci.afterClose = [](IOPCIDevice *) { callbackDriver->stop(callbackProvider); };
         f.driver.stop(&f.pci); f.closed(); CHECK(f.driver.stops == 1);
         auto *diagnostic = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
-        CHECK(value(diagnostic, "Checkpoint") == 14 && value(diagnostic, "DriverVersion") == 0x205);
+        CHECK(value(diagnostic, "Checkpoint") == 14 && value(diagnostic, "DriverVersion") == 0x206);
         CHECK(value(diagnostic, "StartReturn") == 0 && value(diagnostic, "DMAObserved") == 1);
         CHECK(value(diagnostic, "ComputeObserved") == 0);
         CHECK(!f.driver.start(&f.pci)); // no hot restart/rearm
@@ -166,6 +166,10 @@ int main() {
         CHECK(value(diagnostic, "Checkpoint") == 13 && value(diagnostic, "ComputeObserved") == 1);
         CHECK(value(diagnostic, "FailedStage") == 1 && value(diagnostic, "PreflightCheck") == 3);
         CHECK(value(diagnostic, "HardwareTouched") == 0 && value(diagnostic, "ComputePassed") == 0);
+        // The lifecycle double fails before RW mappings: all RW bars stay NotChecked.
+        auto *rwBar0 = dynamic_cast<OSDictionary *>(diagnostic->getObject("RWBar0Map"));
+        CHECK(value(rwBar0, "MapCheck") == static_cast<uint32_t>(n48native::ExperimentalCompute::RwMapCheck::NotChecked));
+        CHECK(value(rwBar0, "ObservedAddress") == 0);
         CHECK(value(report, "HardwareQualificationComplete") == 0 && value(report, "MetalAcceleration") == 0);
         f.closed(); CHECK(f.driver.stops == 1);
         fakecompute::onRun = nullptr;

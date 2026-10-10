@@ -170,7 +170,7 @@ IOReturn Navi48Native::finishGated(Action &action) {
         return kIOReturnSuccess;
     }
     stage_ = Stage::MappedFirmwareBlocked; action.checkpoint = Checkpoint::PreparedOnly;
-    IOLog("Navi48Native: started 0.2.5 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
+    IOLog("Navi48Native: started 0.2.6 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
           snapshot.bdf, static_cast<unsigned long long>(action.dmaFacts.bytes), action.dmaFacts.pages,
           action.dmaFacts.deviceMapper ? 1u : 0u, snapshot.blockers);
     // Actual RAM allocation + IOVM generation, NOT GPU DMA qualification.
@@ -185,7 +185,7 @@ IOReturn Navi48Native::computeFinishAction(OSObject *owner, void *argument, void
 IOReturn Navi48Native::computeFinishGated(Action &action) {
     action.checkpoint = Checkpoint::ComputeFinished;
     const auto &f = action.computeFacts;
-    auto *report = OSDictionary::withCapacity(24);
+    auto *report = OSDictionary::withCapacity(28);
     bool ok = report && number(report, "SchemaVersion", 1, 32) && number(report, "Stage", f.stage, 32) &&
         number(report, "FailedStage", f.failedStage, 32) && number(report, "PreflightCheck", f.preflightCheck, 32) && number(report, "Result", f.result, 32) &&
         number(report, "HardwareTouched", f.hardwareTouched, 32) && number(report, "FirmwareLoaded", f.firmwareLoaded, 32) &&
@@ -194,7 +194,9 @@ IOReturn Navi48Native::computeFinishGated(Action &action) {
         number(report, "DMABuffers", f.dmaBuffers, 32) && number(report, "LanesChecked", f.lanesChecked, 32) &&
         number(report, "LanesWrong", f.lanesWrong, 32) && number(report, "ResourcesRetainedUntilReboot", f.hardwareTouched, 32) &&
         number(report, "IdleSleepAssertion", f.idleSleepPrevented, 32) && number(report, "DemandSleepSupported", 0, 32) &&
-        number(report, "HardwareQualificationComplete", 0, 32) && number(report, "MetalAcceleration", 0, 32);
+        number(report, "AcceleratorIteratorNull", f.acceleratorIteratorNull, 32) &&
+        number(report, "HardwareQualificationComplete", 0, 32) && number(report, "MetalAcceleration", 0, 32) &&
+        recordRwBars(report, f);
     for (unsigned variant = 0; ok && variant < 2; ++variant) {
         auto *values = OSDictionary::withCapacity(11);
         if (!values) { ok = false; break; }
@@ -222,10 +224,10 @@ void Navi48Native::recordBootDiagnostic(const Action &a, IOReturn result) {
     // Survives detach/free and a wrapped dmesg buffer. Best effort on OOM;
     // NEVER changes the result, authorizes accesses or retries hardware.
     if (a.checkpoint == Checkpoint::StartState) return; // reject rearm without overwriting original result
-    auto *report = OSDictionary::withCapacity(72);
+    auto *report = OSDictionary::withCapacity(80);
     if (!report) { IOLog("Navi48Native: boot diagnostic allocation failed\n"); return; }
     const auto &p = a.platformFacts; const auto &c = a.computeFacts;
-    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x000205, 32) &&
+    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x000206, 32) &&
         number(report, "Checkpoint", static_cast<uint32_t>(a.checkpoint), 32) &&
         number(report, "StartReturn", static_cast<uint32_t>(result), 32) &&
         number(report, "ComputeRequested", a.computeRequested, 32) &&
@@ -251,7 +253,7 @@ void Navi48Native::recordBootDiagnostic(const Action &a, IOReturn result) {
         number(report, "ComputePassed", c.computePassed, 32) && number(report, "LanesChecked", c.lanesChecked, 32) &&
         number(report, "LanesWrong", c.lanesWrong, 32) &&
         number(report, "AcceleratorIteratorNull", c.acceleratorIteratorNull, 32) &&
-        recordBars(report, a.platformFacts);
+        recordBars(report, a.platformFacts) && recordRwBars(report, c);
     if (ok) IOService::publishResource("Navi48Native,BootDiagnostics", report); // outside gate, after cleanup
     else IOLog("Navi48Native: boot diagnostic serialization failed\n");
     report->release();
@@ -267,6 +269,31 @@ bool Navi48Native::recordBars(OSDictionary *report, const n48native::PlatformSna
         const auto &observation = snapshot.bars[i];
         const bool ok = number(bar, "MapCheck", static_cast<uint32_t>(observation.mapCheck), 32) &&
             number(bar, "DescriptorOrigin", static_cast<uint32_t>(observation.descriptorOrigin), 32) &&
+            number(bar, "ObservedAddress", observation.observedAddress) &&
+            number(bar, "ObservedMapOptions", observation.observedMapOptions, 32) &&
+            number(bar, "ObservedLength", observation.observedLength) &&
+            number(bar, "ObservedContiguous", observation.observedContiguous) &&
+            number(bar, "ObservedPhysical", observation.observedPhysical) &&
+            number(bar, "DescriptorMatch", observation.observedDescriptorMatch, 32) &&
+            number(bar, "TaskMatch", observation.observedTaskMatch, 32) &&
+            number(bar, "RereadPresent", observation.observedRereadPresent, 32) &&
+            number(bar, "RereadMatch", observation.observedRereadMatch, 32) &&
+            number(bar, "DeclaredIsReread", observation.observedDeclaredIsReread, 32) &&
+            report->setObject(names[i], bar);
+        bar->release();
+        if (!ok) return false;
+    }
+    return true;
+}
+bool Navi48Native::recordRwBars(OSDictionary *report, const n48native::ExperimentalCompute::Snapshot &facts) {
+    // RW preflight observations from the compute path. Values only: no owner/
+    // provider/map retained. NotChecked for a BAR the RW loop never reached.
+    constexpr const char *names[3] = {"RWBar0Map", "RWBar2Map", "RWBar5Map"};
+    for (unsigned i = 0; i < 3; ++i) {
+        auto *bar = OSDictionary::withCapacity(12);
+        if (!bar) return false;
+        const auto &observation = facts.rwBars[i];
+        const bool ok = number(bar, "MapCheck", static_cast<uint32_t>(observation.check), 32) &&
             number(bar, "ObservedAddress", observation.observedAddress) &&
             number(bar, "ObservedMapOptions", observation.observedMapOptions, 32) &&
             number(bar, "ObservedLength", observation.observedLength) &&

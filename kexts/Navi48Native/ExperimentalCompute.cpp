@@ -155,17 +155,50 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
     constexpr uint8_t regs[3] = {0x10, 0x18, 0x24};
     constexpr IOOptionBits options = kIOMapAnywhere | kIOMapUnique | kIOMapInhibitCache;
     for (unsigned i = 0; i < 3; ++i) {
+        auto &observation = facts_.rwBars[i];
+        observation.check = RwMapCheck::NullDescriptor; // fail-closed default
         facts_.preflightCheck = 11 + i * 2; // descriptors BAR0/2/5: 11/13/15
         auto *md = pci->getDeviceMemoryWithRegister(regs[i]);
-        if (!md || md->getLength() != input.barBytes[i]) return fail(1, kIOReturnBadArgument);
+        if (!md) return fail(1, kIOReturnBadArgument);
+        if (md->getLength() != input.barBytes[i]) {
+            observation.check = RwMapCheck::DescriptorLengthMismatch;
+            return fail(1, kIOReturnBadArgument);
+        }
         facts_.preflightCheck = 12 + i * 2; // mappings BAR0/2/5: 12/14/16
         md->retain(); r.descriptors[i] = md; r.maps[i] = md->map(options);
         auto *map = r.maps[i]; IOByteCount bytes = 0;
-        if (!map || map->getLength() != input.barBytes[i] || map->getMemoryDescriptor() != md ||
-            map->getAddressTask() != kernel_task || !map->getAddress() || (map->getAddress() & 4095) ||
-            (map->getMapOptions() & kIOMapReadOnly) || (map->getMapOptions() & kIOMapCacheMask) != kIOMapInhibitCache ||
-            map->getPhysicalSegment(0, &bytes, kIOMemoryMapperNone) != input.barPhysical[i] || bytes != input.barBytes[i])
-            return fail(1, kIOReturnBadArgument);
+        // Field-level observation, same order as the previous single boolean
+        // expression: the first divergence wins. Values only, never
+        // dereferenced; no guard relaxed, no state changed on failure.
+        observation.check = RwMapCheck::NullMap;
+        if (!map) return fail(1, kIOReturnBadArgument);
+        const uint64_t physical = map->getPhysicalSegment(0, &bytes, kIOMemoryMapperNone);
+        const IOOptionBits mapOptions = map->getMapOptions();
+        const uint64_t address = map->getAddress();
+        const uint64_t length = map->getLength();
+        const bool descriptorMatch = map->getMemoryDescriptor() == md;
+        const bool taskMatch = map->getAddressTask() == kernel_task;
+        auto *reread = pci->getDeviceMemoryWithRegister(regs[i]);
+        const bool rereadPresent = reread != nullptr;
+        const bool rereadMatch = rereadPresent && reread == md;
+        const bool declaredIsReread = rereadPresent && map->getMemoryDescriptor() == reread;
+        observation.observedAddress = address; observation.observedMapOptions = mapOptions;
+        observation.observedLength = length; observation.observedContiguous = bytes;
+        observation.observedPhysical = physical;
+        observation.observedDescriptorMatch = descriptorMatch; observation.observedTaskMatch = taskMatch;
+        observation.observedRereadPresent = rereadPresent; observation.observedRereadMatch = rereadMatch;
+        observation.observedDeclaredIsReread = declaredIsReread;
+        if (!descriptorMatch) { observation.check = RwMapCheck::DescriptorMismatch; return fail(1, kIOReturnBadArgument); }
+        if (!taskMatch) { observation.check = RwMapCheck::TaskMismatch; return fail(1, kIOReturnBadArgument); }
+        if (length != input.barBytes[i]) { observation.check = RwMapCheck::LengthMismatch; return fail(1, kIOReturnBadArgument); }
+        if (bytes != input.barBytes[i]) { observation.check = RwMapCheck::ContiguousMismatch; return fail(1, kIOReturnBadArgument); }
+        if (physical != input.barPhysical[i]) { observation.check = RwMapCheck::PhysicalMismatch; return fail(1, kIOReturnBadArgument); }
+        if ((mapOptions & kIOMapCacheMask) != kIOMapInhibitCache) { observation.check = RwMapCheck::CacheMismatch; return fail(1, kIOReturnBadArgument); }
+        // RW mapping: ReadOnly must be ABSENT (inverse of the RO check).
+        if (mapOptions & kIOMapReadOnly) { observation.check = RwMapCheck::FlagsMismatch; return fail(1, kIOReturnBadArgument); }
+        if (!address) { observation.check = RwMapCheck::NullAddress; return fail(1, kIOReturnBadArgument); }
+        if (address & 4095) { observation.check = RwMapCheck::UnalignedAddress; return fail(1, kIOReturnBadArgument); }
+        observation.check = RwMapCheck::Ok;
     }
     facts_.preflightCheck = 17;
     constexpr uint8_t configRegs[5] = {0x10, 0x14, 0x18, 0x1c, 0x24};
