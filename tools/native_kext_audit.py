@@ -4,7 +4,7 @@ import re
 
 PRODUCT = 'Navi48Native'
 BUNDLE_ID = 'com.amd-macos-driver.' + PRODUCT
-VERSION = '0.2.0'
+VERSION = '0.2.1'
 SOURCE_FILES = ('Navi48Native.cpp', 'Navi48Native.hpp', 'DmaBuffer.cpp', 'DmaBuffer.hpp', 'kmod_info.c', 'Info.plist',
                 'ExperimentalCompute.cpp', 'ExperimentalCompute.hpp', 'ComputeAccess.hpp', 'ComputeSysMem.cpp', 'ComputeSysMem.hpp', 'ComputeLog.cpp')
 CORE_HEADERS = ('IOKitController.hpp', 'AmdGpuAccess.hpp', 'Preflight.hpp', 'NativeLog.hpp', 'amd/amdgpu_ip.h')
@@ -65,6 +65,7 @@ def audit_imports(demangled):
 def audit_defined(symbols):
     required = {'__start', '__stop', '_kmod_info', '__realmain', '__antimain',
                 '__ZN12Navi48Native5startEP9IOService',
+                '__ZN12Navi48Native20recordBootDiagnosticERKNS_6ActionEi',
                 '__ZN9n48native15IOKitController7acquireEP9IOServiceS2_RKNS_15PlatformRequestE',
                 '__ZN6amdgpu8psp_initERNS_13DeviceContextERNS_10PSPContextE',
                 '__ZN10n48compute8psp_initERNS_13DeviceContextERNS_10PSPContextE'}
@@ -77,4 +78,5 @@ def audit_defined(symbols):
         raise ValueError('Legacy graphics hook/client included in native kext')
     return {'kmod_entry_points': True, 'native_ioservice': True,
             'platform_controller_linked': True, 'psp_core_linked': True,
-            'dma_allocator_linked': True, 'native_compute_engines_linked': True, 'legacy_hooks': False}
+            'dma_allocator_linked': True, 'native_compute_engines_linked': True,
+            'boot_diagnostic_publisher_linked': True, 'legacy_hooks': False}

@@ -80,6 +80,7 @@ void ExperimentalCompute::cancel() { __atomic_store_n(&cancelled_, 1, __ATOMIC_R
 bool ExperimentalCompute::hardwareTouched() const { return facts_.hardwareTouched; }
 ExperimentalCompute::Snapshot ExperimentalCompute::snapshot() const { return facts_; }
 IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop *loop, const Input &input) {
+    facts_.preflightCheck = 1; // owner/provider/workloop
     if (resources_ || !owner || !pci || !loop || loop->inGate() || owner->getProvider() != pci || !pci->isOpen(owner)) {
         facts_.failedStage = 1; facts_.result = static_cast<uint32_t>(kIOReturnBadArgument);
         return kIOReturnBadArgument;
@@ -95,40 +96,51 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
         return result;
     };
     // Explicit scratch must include fixed firmware/table layout + allocation arena.
+    facts_.preflightCheck = 2;
     if ((input.offset & 0xfffff) || input.bytes < 32 * 1024 * 1024 ||
         !span(input.barBytes[0], input.offset, input.bytes)) return fail(1, kIOReturnBadArgument);
     // x86 PE_Video: bit 0 marks a physical base; lower two bits are flags.
     // No translation/guess for a virtual or unaligned address. Whole allocation,
     // including v_offset/v_length, is protected, not only visible pixels.
+    facts_.preflightCheck = 3; // console geometry/physical base
     uint64_t base = input.consoleBase;
     if (base & 1) base &= ~uint64_t{3};
     if (!base || (base & 4095) || !input.rowBytes || !input.width || !input.height ||
         !input.depth || input.depth > 64 || (input.depth & 7) || input.width > UINT64_MAX / (input.depth / 8) ||
         input.width * (input.depth / 8) > input.rowBytes || input.height > UINT64_MAX / input.rowBytes)
         return fail(1, kIOReturnBadArgument);
+    facts_.preflightCheck = 4; // whole console allocation in BAR0
     const uint64_t visible = input.rowBytes * input.height;
     const uint64_t consoleBytes = input.consoleLength ? input.consoleLength : visible;
     if (!span(consoleBytes, input.consoleOffset, visible) || base < input.barPhysical[0] ||
         !span(input.barBytes[0], base - input.barPhysical[0], consoleBytes)) return fail(1, kIOReturnBadArgument);
+    facts_.preflightCheck = 5; // overlap
     const uint64_t consoleOffset = base - input.barPhysical[0];
     if (input.offset < consoleOffset + consoleBytes && consoleOffset < input.offset + input.bytes)
         return fail(1, kIOReturnNotPermitted);
+    facts_.preflightCheck = 6;
     auto *matching = IOService::serviceMatching("IOAccelerator");
     if (!matching) return fail(1, kIOReturnNoMemory);
+    facts_.preflightCheck = 7;
     auto *accelerators = IOService::getMatchingServices(matching); matching->release();
     if (!accelerators) return fail(1, kIOReturnNotReady);
+    facts_.preflightCheck = 8;
     const bool anotherGpu = accelerators->getNextObject() != nullptr; accelerators->release();
     if (anotherGpu) return fail(1, kIOReturnExclusiveAccess);
+    facts_.preflightCheck = 9;
     resources_ = new Resources;
     if (!resources_) return fail(1, kIOReturnNoMemory);
     auto &r = *resources_; r.parent = this; r.owner = owner; r.pci = pci; r.loop = loop;
     owner->retain(); pci->retain(); loop->retain();
+    facts_.preflightCheck = 10;
     r.dev.indirectLock = IOLockAlloc(); if (!r.dev.indirectLock) return fail(1, kIOReturnNoMemory);
     constexpr uint8_t regs[3] = {0x10, 0x18, 0x24};
     constexpr IOOptionBits options = kIOMapAnywhere | kIOMapUnique | kIOMapInhibitCache;
     for (unsigned i = 0; i < 3; ++i) {
+        facts_.preflightCheck = 11 + i * 2; // descriptors BAR0/2/5: 11/13/15
         auto *md = pci->getDeviceMemoryWithRegister(regs[i]);
         if (!md || md->getLength() != input.barBytes[i]) return fail(1, kIOReturnBadArgument);
+        facts_.preflightCheck = 12 + i * 2; // mappings BAR0/2/5: 12/14/16
         md->retain(); r.descriptors[i] = md; r.maps[i] = md->map(options);
         auto *map = r.maps[i]; IOByteCount bytes = 0;
         if (!map || map->getLength() != input.barBytes[i] || map->getMemoryDescriptor() != md ||
@@ -137,6 +149,7 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
             map->getPhysicalSegment(0, &bytes, kIOMemoryMapperNone) != input.barPhysical[i] || bytes != input.barBytes[i])
             return fail(1, kIOReturnBadArgument);
     }
+    facts_.preflightCheck = 17;
     constexpr uint8_t configRegs[5] = {0x10, 0x14, 0x18, 0x1c, 0x24};
     for (unsigned i = 0; i < 5; ++i) r.barConfig[i] = pci->extendedConfigRead32(configRegs[i]);
     if (((uint64_t{r.barConfig[1]} << 32) | (r.barConfig[0] & 0xfffffff0u)) != input.barPhysical[0] ||
@@ -147,16 +160,20 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
     r.dev.bar2 = reinterpret_cast<volatile uint8_t *>(r.maps[1]->getAddress()); r.dev.bar2Size = input.barBytes[1]; r.dev.bar2Phys = input.barPhysical[1];
     r.dev.vramBase = input.offset; r.dev.vramLimit = input.offset + input.bytes;
     r.dev.lease = &r; r.dev.leaseAlive = Resources::liveCallback; r.dev.trialEnabled = true;
+    facts_.preflightCheck = 18;
     r.powerRoot = IOService::getPMRootDomain();
     if (!r.powerRoot) return fail(1, kIOReturnNotReady);
     r.powerRoot->retain();
+    facts_.preflightCheck = 19;
     r.sleepAssertion = r.powerRoot->createPMAssertion(kIOPMDriverAssertionPreventSystemIdleSleepBit | kIOPMDriverAssertionPreventDisplaySleepBit,
         kIOPMDriverAssertionLevelOn, owner, "Navi48 native compute experiment, reboot-only teardown");
     if (r.sleepAssertion == kIOPMUndefinedDriverAssertionID) return fail(1, kIOReturnNotReady);
     facts_.idleSleepPrevented = true; // DOES NOT block demand/forced sleep
+    facts_.preflightCheck = 20;
     if (!r.live() || !OSCompareAndSwapPtr(nullptr, &r, &terminalSession)) return fail(1, kIOReturnNotReady);
     // Before FIRST indirect write: keep this owner (and its PCI controller) alive
     // for the rest of the boot. The trial never pretends teardown is qualified.
+    facts_.preflightCheck = 0; // all checks passed; NOT a reservation/qualification
     facts_.hardwareTouched = true;
     IOLog("Navi48Native: experimental GPU init/compute begins; scratch=0x%llx+0x%llx; no VRAM reservation/restore qualification\n",
           static_cast<unsigned long long>(input.offset), static_cast<unsigned long long>(input.bytes));

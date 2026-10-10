@@ -16,7 +16,9 @@ struct Fixture {
     IOPlatformExpert platform;
     Navi48Native driver;
     IODeviceMemory *descriptors[3]{};
+    bool keepDiagnostic{false};
     Fixture() {
+        fake::clearBootDiagnostic();
         fake::bootPresent = true; fake::bootValue = 1; fake::offsetPresent = true; fake::bytesPresent = true;
         fake::scratchOffset = 64 * MiB; fake::scratchBytes = 24 * MiB;
         fake::computePresent = fake::riskPresent = false; fake::computeValue = fake::riskValue = 0;
@@ -44,6 +46,7 @@ struct Fixture {
     ~Fixture() {
         fake::callback = nullptr; fake::afterGenerate = nullptr;
         driver.free();
+        if (!keepDiagnostic) fake::clearBootDiagnostic();
         for (auto *d : descriptors) d->release();
         fake::platform = nullptr;
     }
@@ -101,7 +104,12 @@ int main() {
         callbackDriver = &f.driver; callbackProvider = &f.pci;
         f.pci.afterClose = [](IOPCIDevice *) { callbackDriver->stop(callbackProvider); };
         f.driver.stop(&f.pci); f.closed(); CHECK(f.driver.stops == 1);
+        auto *diagnostic = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
+        CHECK(value(diagnostic, "Checkpoint") == 14 && value(diagnostic, "DriverVersion") == 0x201);
+        CHECK(value(diagnostic, "StartReturn") == 0 && value(diagnostic, "DMAObserved") == 1);
+        CHECK(value(diagnostic, "ComputeObserved") == 0);
         CHECK(!f.driver.start(&f.pci)); // no hot restart/rearm
+        CHECK(fake::bootDiagnostic == diagnostic); // original result not overwritten by rejected rearm
     }
     // Hardware trial requires BOTH explicit args. No call with partial/invalid opt-in.
     for (unsigned invalid = 0; invalid < 4; ++invalid) {
@@ -130,6 +138,10 @@ int main() {
         auto *report = dynamic_cast<OSDictionary *>(f.driver.getProperty("Navi48Native,Compute"));
         CHECK(value(report, "HardwareTouched") == 0 && value(report, "ComputePassed") == 0);
         CHECK(value(report, "FailedStage") == 1);
+        auto *diagnostic = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
+        CHECK(value(diagnostic, "Checkpoint") == 13 && value(diagnostic, "ComputeObserved") == 1);
+        CHECK(value(diagnostic, "FailedStage") == 1 && value(diagnostic, "PreflightCheck") == 3);
+        CHECK(value(diagnostic, "HardwareTouched") == 0 && value(diagnostic, "ComputePassed") == 0);
         CHECK(value(report, "HardwareQualificationComplete") == 0 && value(report, "MetalAcceleration") == 0);
         f.closed(); CHECK(f.driver.stops == 1);
         fakecompute::onRun = nullptr;
@@ -140,6 +152,11 @@ int main() {
         if (wrongCard) f.pci.set16(0x02, 0x7551);
         else f.descriptors[1]->recipe.fail = true;
         CHECK(!f.driver.start(&f.pci)); f.closed(); CHECK(f.driver.starts == 1 && f.driver.stops == 1);
+        auto *diagnostic = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
+        CHECK(value(diagnostic, "Checkpoint") == 10 && value(diagnostic, "PlatformObserved") == 1);
+        CHECK(value(diagnostic, "PlatformResult") == static_cast<uint32_t>(wrongCard ? n48native::PlatformResult::WrongCard : n48native::PlatformResult::MapFailed));
+        CHECK(value(diagnostic, "FailedBar") == (wrongCard ? 0 : 0x18));
+        CHECK(value(diagnostic, "DMAObserved") == 0 && value(diagnostic, "ComputeObserved") == 0);
     }
     // Stop delivered recursively while acquiring cancels, rather than deleting
     // the controller while its own lock is held.
@@ -179,6 +196,9 @@ int main() {
             CHECK(callbackProvider->client == callbackDriver);
         };
         CHECK(!f.driver.start(&f.pci)); f.closed(); CHECK(f.driver.stops == 1);
+        auto *diagnostic = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
+        CHECK(value(diagnostic, "Checkpoint") == 11 && value(diagnostic, "DMAObserved") == 1);
+        CHECK(value(diagnostic, "DMAResult") != 0 && value(diagnostic, "ComputeObserved") == 0);
     }
     // Configuration/console can change while the gate is released. Revalidation
     // invalidates the controller but holds its lease until DMA cleanup finishes.
@@ -230,6 +250,19 @@ int main() {
         CHECK(!f.driver.init()); f.closed(); fake::allocationBudget = -1;
     }
     CHECK(fake::liveObjects == 0 && fake::liveLocks == 0 && fake::mapsMade == fake::mapsFreed);
+    CHECK(!fake::resourcePublishedInGate); // publication after gate and cleanup
+    // Dictionary survives real service destruction, WITHOUT keeping its owner
+    // or PCI lease alive. No fabricated GPU success in this lifecycle model.
+    {
+        { Fixture f; f.keepDiagnostic = true; f.init(); f.pci.set16(0x02, 0x7551);
+          CHECK(!f.driver.start(&f.pci)); f.closed(); }
+        auto *held = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
+        CHECK(value(held, "Checkpoint") == 10 && value(held, "StartReturn") != 0);
+        CHECK(value(held, "PlatformResult") == static_cast<uint32_t>(n48native::PlatformResult::WrongCard));
+        CHECK(value(held, "ComputeObserved") == 0);
+        fake::clearBootDiagnostic();
+    }
+    CHECK(fake::liveObjects == 0);
     // GPU-visible lifetime MODEL: even a failed trial or failed publication must
     // retain PCI/mappings/DMA and module owner, outside all stop callbacks.
     for (bool publicationFails : {false, true}) {

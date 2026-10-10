@@ -74,6 +74,12 @@ public:
     OSObject(const OSObject &) = delete;
     OSObject &operator=(const OSObject &) = delete;
 };
+namespace fake {
+inline OSObject *bootDiagnostic = nullptr;
+inline unsigned resourcePublications = 0;
+inline bool resourcePublishedInGate = false;
+inline void clearBootDiagnostic() { if (bootDiagnostic) bootDiagnostic->release(); bootDiagnostic = nullptr; }
+}
 struct IOLock { std::mutex mutex; };
 inline IOLock *IOLockAlloc() {
     if (fake::lockFails) return nullptr;
@@ -131,6 +137,13 @@ public:
     OSObject *getProperty(const char *key) const { return properties_.getObject(key); }
     bool isInactive() const { return inactive; }
     virtual IOService *getProvider() const { return provider; }
+    static void publishResource(const char *key, OSObject *value = nullptr) {
+        if (std::strcmp(key, "Navi48Native,BootDiagnostics")) return;
+        if (value) value->retain();
+        fake::clearBootDiagnostic(); fake::bootDiagnostic = value;
+        ++fake::resourcePublications;
+        if (fake::gateDepth) fake::resourcePublishedInGate = true;
+    }
     static IOPlatformExpert *getPlatform() { return fake::platform; }
 };
 class IOCommandGate : public OSObject {

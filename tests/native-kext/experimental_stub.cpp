@@ -17,6 +17,7 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
     facts_.hardwareTouched = fakecompute::simulatePublication; // lifetime model ONLY
     if (facts_.hardwareTouched) { owner->retain(); pci->retain(); loop->retain(); } // boot-long model, no GPU work
     facts_.failedStage = 1;
+    facts_.preflightCheck = 3; // model-only console geometry refusal
     facts_.result = static_cast<uint32_t>(kIOReturnNotReady);
     return kIOReturnNotReady;
 }

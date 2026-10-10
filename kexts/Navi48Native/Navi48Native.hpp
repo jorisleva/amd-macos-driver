@@ -25,8 +25,17 @@ public:
     IOReturn newUserClient(task_t, void *, UInt32, IOUserClient **) override;
 private:
     enum class Stage : uint32_t { Fresh, Starting, PreparingDma, Computing, TrialFinished, MappedFirmwareBlocked, Retired, Failed };
+    // Stable IDs for the software-only IOResources boot diagnostic.
+    enum class Checkpoint : uint32_t { InitBase = 1, WorkLoop, Gate, GateAdd,
+        ProbeRequest, ProbeProvider, StartPreconditions, StartState, StartBase,
+        PlatformAcquire, DmaFinalization, ComputeAllocation, ComputeFinished, PreparedOnly };
     struct Action {
         IOService *provider{nullptr};
+        Checkpoint checkpoint{Checkpoint::StartPreconditions};
+        n48native::PlatformSnapshot platformFacts{};
+        n48native::PlatformResult platformDecision{n48native::PlatformResult::NotMapped};
+        bool cancelledOrInactive{false};
+        bool platformObserved{false}, dmaObserved{false}, computeObserved{false};
         n48native::PlatformRequest request{};
         bool stopBase{false};
         n48native::IOKitController *retiredController{nullptr};
@@ -55,5 +64,6 @@ private:
     void withdrawGated(Action &, bool stopBase);
     void dispose(Action &); // foreign close/base-stop after leaving the gate
     void invalidate();
+    static void recordBootDiagnostic(const Action &, IOReturn); // OUTSIDE gate, no owner/provider retained
     bool publish(const n48native::PlatformSnapshot &, const n48native::DmaBuffer::Snapshot &);
 };

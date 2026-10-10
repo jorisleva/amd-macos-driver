@@ -41,12 +41,18 @@ bool number(OSDictionary *dictionary, const char *key, uint64_t value, unsigned 
 } // namespace
 
 bool Navi48Native::init(OSDictionary *dictionary) {
-    if (!IOService::init(dictionary)) return false;
+    Action diagnostic{};
+    diagnostic.checkpoint = Checkpoint::InitBase;
+    if (!IOService::init(dictionary)) { recordBootDiagnostic(diagnostic, kIOReturnNotReady); return false; }
     workLoop_ = IOWorkLoop::workLoop();
-    if (!workLoop_) return false;
+    diagnostic.checkpoint = Checkpoint::WorkLoop;
+    if (!workLoop_) { recordBootDiagnostic(diagnostic, kIOReturnNoMemory); return false; }
     gate_ = IOCommandGate::commandGate(this);
-    if (!gate_) return false;
-    if (workLoop_->addEventSource(gate_) != kIOReturnSuccess) return false;
+    diagnostic.checkpoint = Checkpoint::Gate;
+    if (!gate_) { recordBootDiagnostic(diagnostic, kIOReturnNoMemory); return false; }
+    diagnostic.checkpoint = Checkpoint::GateAdd;
+    const IOReturn added = workLoop_->addEventSource(gate_);
+    if (added != kIOReturnSuccess) { recordBootDiagnostic(diagnostic, added); return false; }
     gateAdded_ = true;
     return true;
 }
@@ -64,15 +70,18 @@ void Navi48Native::free() {
     IOService::free();
 }
 IOService *Navi48Native::probe(IOService *provider, SInt32 *score) {
-    n48native::PlatformRequest request{};
-    if (!readRequest(request) || !OSDynamicCast(IOPCIDevice, provider)) return nullptr;
+    Action diagnostic{};
+    diagnostic.checkpoint = Checkpoint::ProbeRequest;
+    if (!readRequest(diagnostic.request)) { recordBootDiagnostic(diagnostic, kIOReturnBadArgument); return nullptr; }
+    diagnostic.checkpoint = Checkpoint::ProbeProvider;
+    if (!OSDynamicCast(IOPCIDevice, provider)) { recordBootDiagnostic(diagnostic, kIOReturnBadArgument); return nullptr; }
     return IOService::probe(provider, score);
 }
 bool Navi48Native::start(IOService *provider) {
     Action action{};
     action.provider = provider;
     if (!gateAdded_ || !readRequest(action.request) || !computeOptIn(action.computeRequested) ||
-        !OSDynamicCast(IOPCIDevice, provider)) return false;
+        !OSDynamicCast(IOPCIDevice, provider)) { recordBootDiagnostic(action, kIOReturnBadArgument); return false; }
     // IODMACommand::prepare/complete can block and call back into this service.
     // Keep the service, provider and workloop alive across the unlocked phase.
     retain(); provider->retain();
@@ -84,14 +93,16 @@ bool Navi48Native::start(IOService *provider) {
         action.dmaResult = action.preparedDma ? action.preparedDma->allocate(this,
             OSDynamicCast(IOPCIDevice, provider), loop, kDmaBytes) : kIOReturnNoMemory;
         if (action.preparedDma) action.dmaFacts = action.preparedDma->snapshot();
+        action.dmaObserved = true;
         result = gate->runAction(finishAction, &action);
         if (result == kIOReturnSuccess && action.runCompute) {
             (void)compute_->run(this, OSDynamicCast(IOPCIDevice, provider), loop, action.computeInput);
-            action.computeFacts = compute_->snapshot();
+            action.computeFacts = compute_->snapshot(); action.computeObserved = true;
             result = gate->runAction(computeFinishAction, &action);
         }
     }
     dispose(action); // DMA first, then BAR mappings/PCI close, ALL outside gate
+    recordBootDiagnostic(action, result); // value-only record survives failed start()/free()
     gate->release(); loop->release(); provider->release(); release();
     return result == kIOReturnSuccess;
 }
@@ -99,8 +110,10 @@ IOReturn Navi48Native::startAction(OSObject *owner, void *argument, void *, void
     return static_cast<Navi48Native *>(owner)->startGated(*static_cast<Action *>(argument));
 }
 IOReturn Navi48Native::startGated(Action &action) {
+    action.checkpoint = Checkpoint::StartState;
     if (attempted_ || stage_ != Stage::Fresh) return kIOReturnNotReady;
     attempted_ = true; stage_ = Stage::Starting; cancelStart_ = false;
+    action.checkpoint = Checkpoint::StartBase;
     if (!IOService::start(action.provider)) { stage_ = Stage::Failed; return kIOReturnNotReady; }
     baseStarted_ = true;
     controller_ = new n48native::IOKitController;
@@ -108,6 +121,9 @@ IOReturn Navi48Native::startGated(Action &action) {
     if (controller_ && !cancelStart_) result = controller_->acquire(this, action.provider, action.request);
     n48native::PlatformSnapshot snapshot{};
     if (controller_) snapshot = controller_->snapshot();
+    action.checkpoint = Checkpoint::PlatformAcquire;
+    action.platformFacts = snapshot; action.platformObserved = controller_ != nullptr;
+    action.platformDecision = result; action.cancelledOrInactive = cancelStart_ || isInactive();
     if (result != n48native::PlatformResult::MappingsHeldUnqualified || cancelStart_ || isInactive()) {
         IOLog("Navi48Native: start refused result=%u bar=0x%x; firmware not executed\n",
               static_cast<unsigned>(result), snapshot.failedBar);
@@ -122,14 +138,17 @@ IOReturn Navi48Native::finishAction(OSObject *owner, void *argument, void *, voi
     return static_cast<Navi48Native *>(owner)->finishGated(*static_cast<Action *>(argument));
 }
 IOReturn Navi48Native::finishGated(Action &action) {
+    action.checkpoint = Checkpoint::DmaFinalization;
     auto result = n48native::PlatformResult::NotMapped;
     if (stage_ == Stage::PreparingDma && controller_ && !cancelStart_ && !isInactive() &&
         action.dmaResult == kIOReturnSuccess && action.dmaFacts.phase == n48native::DmaBuffer::Phase::Prepared)
         result = controller_->revalidateHeld();
     n48native::PlatformSnapshot snapshot{};
     if (controller_) snapshot = controller_->snapshot();
+    action.platformFacts = snapshot; action.platformObserved = controller_ != nullptr; action.platformDecision = result;
     if (result != n48native::PlatformResult::MappingsHeldUnqualified || cancelStart_ || isInactive() ||
         !publish(snapshot, action.dmaFacts) || cancelStart_ || isInactive()) {
+        action.cancelledOrInactive = cancelStart_ || isInactive();
         IOLog("Navi48Native: DMA/final validation refused dma=0x%x platform=%u cancelled=%u; no GPU submission\n",
               action.dmaResult, static_cast<unsigned>(result), cancelStart_ ? 1u : 0u);
         stage_ = Stage::Failed;
@@ -138,6 +157,7 @@ IOReturn Navi48Native::finishGated(Action &action) {
     }
     dma_ = action.preparedDma; action.preparedDma = nullptr;
     if (action.computeRequested) {
+        action.checkpoint = Checkpoint::ComputeAllocation;
         compute_ = new n48native::ExperimentalCompute;
         if (!compute_) { stage_ = Stage::Failed; withdrawGated(action, true); return kIOReturnNoMemory; }
         auto &input = action.computeInput;
@@ -149,8 +169,8 @@ IOReturn Navi48Native::finishGated(Action &action) {
         action.runCompute = true; stage_ = Stage::Computing;
         return kIOReturnSuccess;
     }
-    stage_ = Stage::MappedFirmwareBlocked;
-    IOLog("Navi48Native: started 0.2.0 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
+    stage_ = Stage::MappedFirmwareBlocked; action.checkpoint = Checkpoint::PreparedOnly;
+    IOLog("Navi48Native: started 0.2.1 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
           snapshot.bdf, static_cast<unsigned long long>(action.dmaFacts.bytes), action.dmaFacts.pages,
           action.dmaFacts.deviceMapper ? 1u : 0u, snapshot.blockers);
     // Actual RAM allocation + IOVM generation, NOT GPU DMA qualification.
@@ -163,10 +183,11 @@ IOReturn Navi48Native::computeFinishAction(OSObject *owner, void *argument, void
     return static_cast<Navi48Native *>(owner)->computeFinishGated(*static_cast<Action *>(argument));
 }
 IOReturn Navi48Native::computeFinishGated(Action &action) {
+    action.checkpoint = Checkpoint::ComputeFinished;
     const auto &f = action.computeFacts;
     auto *report = OSDictionary::withCapacity(24);
     bool ok = report && number(report, "SchemaVersion", 1, 32) && number(report, "Stage", f.stage, 32) &&
-        number(report, "FailedStage", f.failedStage, 32) && number(report, "Result", f.result, 32) &&
+        number(report, "FailedStage", f.failedStage, 32) && number(report, "PreflightCheck", f.preflightCheck, 32) && number(report, "Result", f.result, 32) &&
         number(report, "HardwareTouched", f.hardwareTouched, 32) && number(report, "FirmwareLoaded", f.firmwareLoaded, 32) &&
         number(report, "GPUInitialized", f.initialized, 32) && number(report, "ComputePassed", f.computePassed, 32) &&
         number(report, "VRAMBytes", f.vramBytes) && number(report, "MCBase", f.mcBase) &&
@@ -187,7 +208,7 @@ IOReturn Navi48Native::computeFinishGated(Action &action) {
     }
     if (ok) ok = setProperty("Navi48Native,Compute", report);
     if (report) report->release();
-    stage_ = Stage::TrialFinished;
+    stage_ = Stage::TrialFinished; action.cancelledOrInactive = cancelStart_ || isInactive();
     if (!f.hardwareTouched) { stage_ = Stage::Failed; withdrawGated(action, true); return kIOReturnNotReady; }
     // Once GPU-visible, retain the service/module, RAM, mappings and PCI lease
     // even when a stage times out or registry publication fails. NO hot unload.
@@ -195,6 +216,43 @@ IOReturn Navi48Native::computeFinishGated(Action &action) {
     if (cancelStart_ || isInactive()) withdrawGated(action, true);
     else registerService();
     return kIOReturnSuccess; // service retains diagnostic FAILURE as well as success
+}
+void Navi48Native::recordBootDiagnostic(const Action &a, IOReturn result) {
+    // Generic values ONLY in IOResources: no owner/provider/map references.
+    // Survives detach/free and a wrapped dmesg buffer. Best effort on OOM;
+    // NEVER changes the result, authorizes accesses or retries hardware.
+    if (a.checkpoint == Checkpoint::StartState) return; // reject rearm without overwriting original result
+    auto *report = OSDictionary::withCapacity(48);
+    if (!report) { IOLog("Navi48Native: boot diagnostic allocation failed\n"); return; }
+    const auto &p = a.platformFacts; const auto &c = a.computeFacts;
+    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x000201, 32) &&
+        number(report, "Checkpoint", static_cast<uint32_t>(a.checkpoint), 32) &&
+        number(report, "StartReturn", static_cast<uint32_t>(result), 32) &&
+        number(report, "ComputeRequested", a.computeRequested, 32) &&
+        number(report, "PlatformObserved", a.platformObserved, 32) && number(report, "DMAObserved", a.dmaObserved, 32) &&
+        number(report, "ComputeObserved", a.computeObserved, 32) &&
+        number(report, "PlatformResult", static_cast<uint32_t>(p.result), 32) &&
+        number(report, "PlatformDecision", static_cast<uint32_t>(a.platformDecision), 32) &&
+        number(report, "CancelledOrInactive", a.cancelledOrInactive, 32) &&
+        number(report, "PlatformPhase", static_cast<uint32_t>(p.phase), 32) && number(report, "FailedBar", p.failedBar, 32) &&
+        number(report, "PCIBDF", p.bdf, 32) && number(report, "PCICommand", p.command, 32) &&
+        number(report, "MappingsHeldBeforeCleanup", p.mappingsHeld, 32) &&
+        number(report, "ConsoleResult", static_cast<uint32_t>(p.console.result), 32) &&
+        number(report, "ConsoleBase", p.console.rawBase) && number(report, "ConsoleRowBytes", p.console.rowBytes) &&
+        number(report, "ConsoleWidth", p.console.width) && number(report, "ConsoleHeight", p.console.height) &&
+        number(report, "ConsoleDepth", p.console.depth) && number(report, "ConsoleOffset", p.console.offset) && number(report, "ConsoleLength", p.console.length) &&
+        number(report, "ScratchOffset", a.request.candidate.offset) && number(report, "ScratchBytes", a.request.candidate.bytes) &&
+        number(report, "DMAResult", static_cast<uint32_t>(a.dmaResult), 32) &&
+        number(report, "DMAPhase", static_cast<uint32_t>(a.dmaFacts.phase), 32) && number(report, "DMAPages", a.dmaFacts.pages, 32) &&
+        number(report, "ComputeStage", c.stage, 32) && number(report, "FailedStage", c.failedStage, 32) &&
+        number(report, "PreflightCheck", c.preflightCheck, 32) && number(report, "ComputeResult", c.result, 32) &&
+        number(report, "HardwareTouched", c.hardwareTouched, 32) && number(report, "FirmwareLoaded", c.firmwareLoaded, 32) &&
+        number(report, "GPUInitialized", c.initialized, 32) &&
+        number(report, "ComputePassed", c.computePassed, 32) && number(report, "LanesChecked", c.lanesChecked, 32) &&
+        number(report, "LanesWrong", c.lanesWrong, 32);
+    if (ok) IOService::publishResource("Navi48Native,BootDiagnostics", report); // outside gate, after cleanup
+    else IOLog("Navi48Native: boot diagnostic serialization failed\n");
+    report->release();
 }
 bool Navi48Native::publish(const n48native::PlatformSnapshot &snapshot, const n48native::DmaBuffer::Snapshot &dma) {
     auto *report = OSDictionary::withCapacity(24);

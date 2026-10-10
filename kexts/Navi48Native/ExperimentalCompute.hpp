@@ -12,7 +12,7 @@ public:
         uint64_t consoleBase{0}, rowBytes{0}, width{0}, height{0}, depth{0}, consoleOffset{0}, consoleLength{0};
     };
     struct Snapshot {
-        uint32_t stage{0}, failedStage{0}, result{static_cast<uint32_t>(kIOReturnNotReady)};
+        uint32_t stage{0}, failedStage{0}, preflightCheck{0}, result{static_cast<uint32_t>(kIOReturnNotReady)};
         bool hardwareTouched{false}, firmwareLoaded{false}, initialized{false}, computePassed{false}, idleSleepPrevented{false};
         uint64_t vramBytes{0}, mcBase{0}, elapsedUs[2]{};
         bool fenceLanded[2]{}, ibTestPassed[2]{};

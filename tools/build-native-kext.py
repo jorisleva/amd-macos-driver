@@ -230,6 +230,9 @@ def main():
             'gpu_visible_resources_retained_until_reboot': True,
             'hardware_execution_observed': False, 'metal_implemented': False,
             'user_client_implemented': False}
+        report['boot_diagnostics'] = {'linked': True, 'resource': 'Navi48Native,BootDiagnostics',
+            'publish_outside_gate': True, 'value_objects_only': True,
+            'persistence_tested_with_iokit_doubles': True, 'persistence_observed_in_kernel': False}
         artifact = destination / (PRODUCT + '.kext')
         executable = artifact / 'Contents/MacOS' / PRODUCT; executable.parent.mkdir(parents=True)
         run(['xcrun', 'clang++', '-arch', 'x86_64', '-target', 'x86_64-apple-macos11.0',
