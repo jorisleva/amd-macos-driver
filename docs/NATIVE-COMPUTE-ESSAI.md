@@ -1,5 +1,12 @@
 # Essai natif 0.2.0 : initialisation et calcul Radeon
 
+> **Premier boot effectué le 10 octobre :** module 0.2.0 chargé, UUID/arguments
+> conformes, mais service retiré, pas de rapport compute ni résultat Radeon
+> validé. [Rapport du boot](reports/2026-10-10-native-compute-boot.md).
+> **Prochaine action : récupérer le code de refus dans dmesg, pas redémarrer ou
+> recharger le kext avant diagnostic.** Les étapes ci-dessous sont le protocole
+> de l'essai, pas des opérations déjà réussies.
+
 ## Ce qui change
 
 **Ne pas redémarrer l'ancien essai 0.1.2 pour espérer un calcul.** Le bundle

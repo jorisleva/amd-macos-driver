@@ -1,6 +1,17 @@
 # Travail restant — Hackintosh Tahoe
 
-## Dernier état : essai matériel natif 0.2.0 prêt
+## Dernier état : premier boot 0.2.0, chargement oui / calcul non validé
+
+**10 octobre : le bon kext est réellement chargé**, UUID et cinq arguments
+conformes. Aucun nœud/instance `Navi48Native`, aucun rapport Resources/Compute ;
+deux fermetures du bail PCI par le client natif pendant le boot. Initialisation,
+fences et résultats GPU non validés. Relever le code de refus avec
+`sudo dmesg` dans ce même boot ; ne pas relancer/rebooter aveuglément.
+Le journal unifié ne restitue pas nos lignes IOLog, et sudo non interactif
+requiert un mot de passe. OPENCORE/EFI d'essai/backups inchangés.
+[Résultat observé](reports/2026-10-10-native-compute-boot.md).
+
+## Préparation 0.2.0, historique du 9 octobre
 
 PROBE1401 injectera maintenant **0.2.0**, avec chemin firmware/GMC/GART/CP/MES/GFX
 appelé par le service et deux dispatchs gfx1201, fences et 64 comparaisons.
@@ -188,8 +199,11 @@ Réglages, sauvegarde et commandes Git pour le Mac :
    bundle est maintenant créé ; aucun essai noyau ou firmware réel n'est encore
    effectué. L'essai natif **0.2.0** est désormais déployé sur PROBE1401 :
    orchestration firmware/GMC/GART/CP/MES/GFX et deux shaders raccordés au service.
-   Redémarrer via F12 sur cette clé selon [la procédure actuelle](NATIVE-COMPUTE-ESSAI.md),
-   puis observer chargement, étapes matérielles, fences et résultats Radeon.
+   Le premier boot du 10 octobre a validé le chargement, mais le service se
+   retire sans rapport GPU. Extraire d'abord le code de refus du buffer noyau
+   privilégié, sans reload ni reboot ; rendre le diagnostic persistant si ce
+   buffer est déjà perdu. Corriger ce refus avant un nouvel essai. Puis observer
+   étapes matérielles, fences et résultats Radeon selon [la procédure](NATIVE-COMPUTE-ESSAI.md).
    Référence OPENCORE intacte. Établir/qualifier ensuite console, réservations,
    géométrie/base MC, propriété GPU exclusive, HDP, DMA et puissance/restauration.
    L'essai explicite ne transforme pas les conditions inconnues en Claims vrais.

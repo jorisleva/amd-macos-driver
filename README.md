@@ -8,13 +8,16 @@ L'objectif est de réutiliser la couche Metal du fork NVIDIA de NullMoth, puis d
 
 **Dernier état natif : `Navi48Native.kext` 0.2.0 sur PROBE1401.** Le service
 appelle désormais l'initialisation PSP/GMC/SMU/IMU/RLC/CP/MES/GFX puis deux
-shaders gfx1201, fences et comparaison de 64 résultats. **Code compilé/signé et
-EFI déployée, pas encore exécutés dans le noyau/Radeon** : étapes matérielles
-1/2 non terminées, pas de Metal/WindowServer ni API de calcul libre. Essai
+shaders gfx1201, fences et comparaison de 64 résultats. **Premier boot observé
+le 10 octobre : module 0.2.0 réellement chargé, UUID/arguments conformes, mais
+service retiré, aucun rapport de calcul ni résultat GPU.** Code de refus précis
+à relever dans le buffer noyau privilégié ; étapes matérielles 1/2 non terminées,
+pas de Metal/WindowServer ni API de calcul libre. Essai
 matériel explicitement risqué, ressources conservées jusqu'au reboot ; OPENCORE
 intact et ancien essai 0.1.2 sauvegardé. **Procédure actuelle :
 [essai initialisation/calcul 0.2.0](docs/NATIVE-COMPUTE-ESSAI.md)** ·
-[rapport](docs/reports/2026-10-09-native-compute.md).
+[préparation](docs/reports/2026-10-09-native-compute.md) ·
+[résultat du premier boot](docs/reports/2026-10-10-native-compute-boot.md).
 
 Les sections datées ci-dessous conservent l'historique, pas l'état actuel de la
 clé. La progression et les conditions de passage sont dans [ROADMAP.md](ROADMAP.md).

@@ -4,7 +4,9 @@
 kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
 calculs gfx1201 internes, avec fences et comparaison des 64 résultats. Aucun
 accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
-**Compilé/signé/déployé sur PROBE1401, pas encore chargé ni exécuté sur Radeon.**
+**Compilé/signé/déployé sur PROBE1401 ; premier chargement noyau observé le
+10 octobre, mais service retiré, aucun calcul Radeon validé.**
+[Rapport et diagnostic à récupérer](../../docs/reports/2026-10-10-native-compute-boot.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·

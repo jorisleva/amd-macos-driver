@@ -1,5 +1,10 @@
 # Navi48Native 0.2.0 — initialisation et calcul raccordés, EFI déployée
 
+> **Suite observée le 10 octobre :** le module 0.2.0 a bien été chargé, mais
+> le service se retire sans rapport de calcul. Aucun résultat GPU validé.
+> Voir [le rapport du premier boot](2026-10-10-native-compute-boot.md).
+> Les états non chargés ci-dessous décrivent la préparation du 9 octobre.
+
 ## Verdict
 
 **Le prochain boot PROBE1401 tentera réellement l'initialisation et deux calculs
