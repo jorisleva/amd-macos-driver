@@ -1,12 +1,13 @@
-# Essai natif 0.2.4 : initialisation, calcul Radeon et adoption déclarée
+# Essai natif 0.2.5 : initialisation, calcul Radeon et préflight corrigé
 
-> **Boot 0.2.4 effectué le 10 octobre à 14:30:29 UTC.** Module/UUID/arguments
-> conformes. **Adoption des 3 BAR (`DescriptorOrigin=1`) + DMA préparée**,
-> puis refus logiciel au préflight accélérateur (`FailedStage=1`,
-> `PreflightCheck=7`), aucun hardware.
+> **PROBE1401 contient désormais 0.2.5**, vérifié/signé/ocvalidate conforme,
+> ancienne EFI 0.2.4 sauvegardée. **Prochaine action : F12 → PROBE1401 → Tahoe,
+> puis relever version, `AcceleratorIteratorNull` et rapports.** [Déploiement](reports/2026-10-10-native-preflight-deployment.md).
+> Le noyau courant reste en **0.2.4**, adoption + DMA OK puis refus préflight,
+> sans résultat Radeon.
 > [Boot 0.2.4](reports/2026-10-10-native-0.2.4-boot.md).
-> Prochaine action : corriger le préflight (itérateur null = cas nominal),
-> sans autoriser un concurrent. Aucun retry/reload dans le noyau courant.
+> **0.2.5 non encore chargé/boot testé** : préflight et résultats matériels à
+> observer, pas présumés. Aucun retry/reload dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -62,12 +63,12 @@ ne bloque pas la veille forcée : **ne pas mettre cette session en veille**.
 
 ## Bundle déployé pour le prochain boot
 
-- Produit : `out/native-kext/declared-adoption-0.2.4/Navi48Native.kext`, x86_64.
+- Produit : `out/native-kext/preflight-fix-0.2.5/Navi48Native.kext`, x86_64.
 - Exécutable SHA-256 :
-  `9fe464d7cffac6c0cdd2b7dcf77244cad96d05d1c726b2059f8fc0fead2bef9e`.
+  `c1e6c4bb565380bb4a7585a212de6b4e90dca4320c532bebb467716ec403ddd0`.
 - Dix firmwares et deux shaders vérifiés dans le Mach-O ; signature ad hoc
   stricte ; zéro avertissement. **Cela ne valide pas la liaison/ABI/charge noyau.**
-- 3 202 contrôles contrôleur, 1 311 service/lifecycle, 162 adaptateur DMA,
+- 3 207 contrôles contrôleur, 1 311 service/lifecycle, 162 adaptateur DMA,
   29 pool IOVM et 39 accès bornés, sur RAM/doubles IOKit avec ASan/UBSan ;
   pas une simulation réussie de shader Radeon. 86 tests Python sur
   outils/profils/remplacements, sans accès GPU.
@@ -112,15 +113,15 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.4 / UUID 4F894D5F-FDC9-384C-8688-C6B4BAA68674**, les cinq arguments natifs.
+Vérifier module **0.2.5 / SHA ci-dessus**, les cinq arguments natifs.
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Si l'acquisition réussit, exiger **`DescriptorOrigin=1`** sur les BAR partagés,
-puis les rapports Resources/Compute avec les critères du protocole. Si refus,
-relever **`MapCheck`/`DescriptorOrigin`** et les valeurs observées. Si la
-publication best effort manque,
+Le préflight doit passer (`AcceleratorIteratorNull=1` attendu) ; si refus,
+relever **`FailedStage`/`PreflightCheck`** avant toute hypothèse. Si
+l'orchestration continue, exiger les rapports Resources/Compute avec les
+critères du protocole. Si la publication best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.
 
@@ -180,13 +181,13 @@ Les sources produisent **0.2.3**, maintenant déployé ; ces commandes ne charge
 pas le pilote. La préparation EFI locale seule exige un boot de référence.
 
 Le remplacement déjà effectué a utilisé `--deploy-probe1401
---experimental-compute --replace-native-0.2.3` : profil/hashes 0.2.3 exacts,
-64+64 Mio, build 0.2.4 vérifié. Une exception de **copie hors ligne seulement**
+--experimental-compute --replace-native-0.2.4` : profil/hashes 0.2.4 exacts,
+64+64 Mio, build 0.2.5 vérifié. Une exception de **copie hors ligne seulement**
 autorise le boot retiré/version/UUID/arguments exacts avec zéro instance native,
 pas une reprise GPU. Les anciennes options restent limitées à leurs sources
-respectives (`0.2.0 → 0.2.1 → 0.2.2 → 0.2.3 → 0.2.4`).
-**La clé est désormais en 0.2.4 : ne pas rejouer ces options de remplacement**,
+respectives (`0.2.0 → … → 0.2.5`).
+**La clé est désormais en 0.2.5 : ne pas rejouer ces options de remplacement**,
 qui refuseront cet état sans nouvelle revue. OPENCORE et backups préservés.
-[Déploiement actuel](reports/2026-10-10-native-adoption-deployment.md) ·
-[Déploiement 0.2.3](reports/2026-10-10-native-descriptor-deployment.md) ·
+[Déploiement actuel](reports/2026-10-10-native-preflight-deployment.md) ·
+[Déploiement 0.2.4](reports/2026-10-10-native-adoption-deployment.md) ·
 [Préparation historique 0.2.0](reports/2026-10-09-native-compute.md).
