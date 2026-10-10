@@ -1,6 +1,6 @@
 # Travail restant — Hackintosh Tahoe
 
-## Dernier état : 0.2.10 déployé (shell + phases), prochain boot interactif
+## Dernier état : boot 0.2.10, kick coupable, shell à réparer
 
 **10 octobre : le bon kext est réellement chargé**, UUID et cinq arguments
 conformes. Aucun nœud/instance `Navi48Native`, aucun rapport Resources/Compute ;
@@ -8,12 +8,12 @@ deux fermetures du bail PCI par le client natif pendant le boot. Initialisation,
 fences et résultats GPU non validés. Capture `sudo dmesg` lue dans ce même
 boot : buffer de 128 Kio écrasé, aucune ligne native, refus exact inconnu.
 Correctif **0.2.1** : diagnostic IOResources destiné à survivre au retrait,
-**0.2.9 toujours en mémoire** (service + GPU tenus) : SCRATCH tué pendant
-le test, GC vivant. **0.2.10 déployé par copie forcée explicite** (fichiers
-seuls, tout vérifié) : phases ring-test + shell lecture seule (triple
-opt-in), non encore chargé. Prochaine action : F12 → PROBE1401 → Tahoe,
-puis interagir via le shell au lieu de rebooter.
-[Boot 0.2.9](reports/2026-10-10-native-0.2.9-boot.md) ·
+**0.2.10 booté le 10 octobre à 20:33:55 UTC** : écriture CPU OK, kick tue
+l'accès (2/2), service conservé (1 instance). Shell : open + routage OK,
+bug plumbing (`request.result` jamais stocké, fix 1 ligne). Prochaine action :
+0.2.11 (fix shell + diagnostic doorbell file/adresse/index), sans
+unload/reload/veille dans le noyau courant.
+[Boot 0.2.10](reports/2026-10-10-native-0.2.10-boot.md) ·
 [déploiement 0.2.10](reports/2026-10-10-native-shell-deployment.md) ·
 [Boot 0.2.0](reports/2026-10-10-native-compute-boot.md) ·
 [correctif](reports/2026-10-10-native-boot-diagnostics.md) ·

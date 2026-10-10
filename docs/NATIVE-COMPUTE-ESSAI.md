@@ -1,13 +1,12 @@
 # Essai natif 0.2.10 : ring-test découpé et shell lecture seule
 
-> **PROBE1401 contient désormais 0.2.10** (copie forcée explicite, fichiers
-> seuls, tout vérifié). **Prochaine action : F12 → PROBE1401 → Tahoe, puis
-> relever phases, nœud shell, et interagir en lecture seule.**
-> [Déploiement](reports/2026-10-10-native-shell-deployment.md).
-> Boot 0.2.9 toujours en mémoire : SCRATCH tué pendant le test, GC vivant.
-> [Boot 0.2.9](reports/2026-10-10-native-0.2.9-boot.md).
-> **0.2.10 non encore chargé/boot testé** : phases, shell et résultats à
-> observer, pas présumés. Aucun retry/reload dans le noyau courant.
+> **Boot 0.2.10 effectué le 10 octobre à 20:33:55 UTC.** Module/UUID/six
+> arguments conformes, service conservé (1 instance). **Écriture CPU OK,
+kick tue l'accès (2/2).** Shell : canal prouvé, bug plumbing identifié
+> (fix 1 ligne en 0.2.11).
+> [Boot 0.2.10](reports/2026-10-10-native-0.2.10-boot.md).
+> Prochaine action : 0.2.11 (fix shell + diagnostic doorbell), sans
+> unload/reload/veille dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -114,15 +113,15 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.10 / SHA ci-dessus**, les **six** arguments natifs (dont `navi48-native-shell=1`).
+Vérifier module **0.2.10 / UUID C9F3A729-7910-351B-9F27-22996B70461B**, les **six** arguments natifs (dont `navi48-native-shell=1`).
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Si stage 16 : relever `RingPhase`/`RingWriteReadback`/`RingAfterKick`, puis
-**interagir via le shell** (`ioreg -r -c Navi48Shell`, sélecteurs Snapshot/
-ReadGcReg/ReadMmhubReg/ReadBar0Word/RingTestSurvey, lecture seule) au lieu
-de rebooter. Si la publication best effort manque,
+Le découpage tranche : écriture CPU OK (`0xCAFEDEAD` relu), kick tue l'accès
+(`0xFFFFFFFF` après, 2/2). Le shell s'ouvre (routage OK) mais son résultat
+n'est pas propagé (bug `request.result`, fix 1 ligne en 0.2.11). Aucune
+écriture/commande envoyée via le shell. Si la publication best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.
 

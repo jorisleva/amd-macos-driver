@@ -6,9 +6,11 @@ kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deu
 calculs gfx1201 internes, avec fences et comparaison des 64 résultats, ring-test
 découpé (write/read, kick, poll + relevés), et **shell lecture seule**
 (`Navi48Shell`, 5 sélecteurs, aucune écriture/soumission/horloge).
-**Boot 0.2.9 toujours en mémoire** : SCRATCH tué pendant le test, GC vivant.
-[Boot 0.2.9](../../docs/reports/2026-10-10-native-0.2.9-boot.md) ·
-[déploiement 0.2.10](../../docs/reports/2026-10-10-native-shell-deployment.md).
+**Boot 0.2.10** (10 octobre, 20:33:55 UTC) : service conservé (1 instance).
+**Écriture CPU OK, kick tue l'accès (2/2).** Shell : canal prouvé (open +
+routage OK), bug plumbing identifié (fix 1 ligne en 0.2.11). Aucune
+écriture/commande envoyée.
+[Boot 0.2.10](../../docs/reports/2026-10-10-native-0.2.10-boot.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
