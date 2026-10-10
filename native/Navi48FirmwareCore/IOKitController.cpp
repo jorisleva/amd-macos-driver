@@ -58,6 +58,7 @@ IOKitController::RetiredLease::~RetiredLease() {
     for (unsigned i = 3; i-- > 0;) {
         if (windows[i].map) windows[i].map->release();
         if (windows[i].descriptor) windows[i].descriptor->release();
+        if (windows[i].retained) windows[i].retained->release();
     }
     if (pci) {
         if (providerOpen) pci->close(owner);
@@ -73,6 +74,7 @@ void IOKitController::releaseLocked(RetiredLease &retired) {
     for (unsigned i = 0; i < 3; ++i) {
         retired.windows[i] = windows_[i];
         windows_[i] = {};
+        windows_[i].retained = nullptr; // cleared with the rest; retired keeps both retains
     }
     retired.pci = pci_; retired.owner = owner_; retired.providerOpen = facts_.providerOpen;
     pci_ = nullptr; owner_ = nullptr;
@@ -150,13 +152,47 @@ PlatformResult IOKitController::checkDescriptors() {
         const uint64_t physical = descriptor->getPhysicalSegment(0, &contiguous, kIOMemoryMapperNone);
         if (descriptor->getLength() != bar.bytes || contiguous != bar.bytes || physical != bar.cpuPhysical)
             return PlatformResult::InvalidDescriptor;
-        if (pci_->getDeviceMemoryWithRegister(kRegisters[i]) != descriptor)
+        // Way 1 adopted window: the provider must still return the ORIGINALLY
+        // retained object (stable provider), while we validate the adopted one.
+        auto *expected = windows_[i].retained ? windows_[i].retained : descriptor;
+        if (pci_->getDeviceMemoryWithRegister(kRegisters[i]) != expected)
             return PlatformResult::ConfigurationChanged;
         for (unsigned j = 0; j < i; ++j)
             if (overlaps({bar.cpuPhysical, bar.bytes}, {facts_.bars[j].cpuPhysical, facts_.bars[j].bytes}))
                 return PlatformResult::PhysicalOverlap;
     }
     facts_.failedBar = 0;
+    return PlatformResult::MappingsHeldUnqualified;
+}
+PlatformResult IOKitController::adoptDeclared(unsigned i) {
+    // Way 1: follow the mapping-declared object, with FULL revalidation.
+    // The declared object must independently satisfy every property the
+    // retained one satisfied: length, CPU physical segment (contiguous =
+    // full BAR at the config base), and provider identity (the provider must
+    // still return the RETAINED object: a stable provider + a shared mapping
+    // is the only adopted scenario). Anything else stays InvalidMap.
+    // No state is changed on failure; the caller keeps the original lease.
+    auto &w = windows_[i];
+    auto &bar = facts_.bars[i];
+    IODeviceMemory *declared = w.map ? static_cast<IODeviceMemory *>(w.map->getMemoryDescriptor()) : nullptr;
+    if (!declared || declared == w.descriptor) return PlatformResult::InvalidMap;
+    IOByteCount contiguous = 0;
+    const uint64_t physical = declared->getPhysicalSegment(0, &contiguous, kIOMemoryMapperNone);
+    if (declared->getLength() != bar.bytes || contiguous != bar.bytes || physical != bar.cpuPhysical)
+        return PlatformResult::InvalidMap;
+    // Provider stability: it must still return the retained object.
+    // A provider substitution is ConfigurationChanged, never an adoption.
+    if (pci_->getDeviceMemoryWithRegister(kRegisters[i]) != w.descriptor) return PlatformResult::InvalidMap;
+    // Adopt: retain the declared object AND keep the original retain.
+    // checkDescriptors() keeps verifying the provider returns the original;
+    // checkMaps() verifies the mapping against the adopted one. Both are
+    // released together. No pointer escapes this TU.
+    declared->retain();
+    w.retained = w.descriptor;
+    w.descriptor = declared;
+    bar.descriptorOrigin = DescriptorOrigin::DeclaredAdopted;
+    bar.observedDescriptorMatch = true; // now validated against the adopted object
+    bar.mapCheck = MapCheck::Ok; // re-check below confirms every other property
     return PlatformResult::MappingsHeldUnqualified;
 }
 PlatformResult IOKitController::checkMaps() {
@@ -175,9 +211,12 @@ PlatformResult IOKitController::checkMaps() {
         const bool taskMatch = w.map->getAddressTask() == kernel_task;
         // Fresh provider lookup at check time. Read-only: no retain, no map,
         // no state change; the returned object is only compared, never stored.
+        // After a way-1 adoption the provider must keep returning the
+        // ORIGINALLY retained object: compare against it, not the adopted one.
         auto *reread = pci_->getDeviceMemoryWithRegister(kRegisters[i]);
         const bool rereadPresent = reread != nullptr;
-        const bool rereadMatch = rereadPresent && reread == w.descriptor;
+        auto *origin = w.retained ? w.retained : w.descriptor;
+        const bool rereadMatch = rereadPresent && reread == origin;
         const bool declaredIsReread = rereadPresent && w.map->getMemoryDescriptor() == reread;
         // Values only: addresses/options are never dereferenced, only compared.
         bar.observedAddress = address; bar.observedMapOptions = options;
@@ -185,9 +224,24 @@ PlatformResult IOKitController::checkMaps() {
         bar.observedDescriptorMatch = descriptorMatch; bar.observedTaskMatch = taskMatch;
         bar.observedRereadPresent = rereadPresent; bar.observedRereadMatch = rereadMatch;
         bar.observedDeclaredIsReread = declaredIsReread;
-        // Identical checks to before, now attributed field by field. The first
-        // divergence wins, exactly as the previous single boolean expression.
-        if (!descriptorMatch) { bar.mapCheck = MapCheck::DescriptorMismatch; return PlatformResult::InvalidMap; }
+        // Way 1: a shared mapping declaring another object is adopted ONLY
+        // if the declared object fully revalidates AND the provider still
+        // returns the retained one. Otherwise the mismatch stays terminal.
+        if (!descriptorMatch) {
+            bar.mapCheck = MapCheck::DescriptorMismatch;
+            if (!(rereadPresent && rereadMatch && declaredIsReread == false)) {
+                bar.descriptorOrigin = DescriptorOrigin::NotAdopted;
+                return PlatformResult::InvalidMap;
+            }
+            // reread==retained!=declared: the exact 0.2.3 hardware scenario.
+            if (adoptDeclared(i) != PlatformResult::MappingsHeldUnqualified) {
+                bar.descriptorOrigin = DescriptorOrigin::NotAdopted;
+                return PlatformResult::InvalidMap;
+            }
+            // Adopted: re-read the adopted descriptor match, then fall through
+            // to every remaining property check below (task/length/segment/
+            // options/address). Nothing is skipped.
+        }
         if (!taskMatch) { bar.mapCheck = MapCheck::TaskMismatch; return PlatformResult::InvalidMap; }
         if (length != bar.bytes) { bar.mapCheck = MapCheck::LengthMismatch; return PlatformResult::InvalidMap; }
         if (contiguous != bar.bytes) { bar.mapCheck = MapCheck::ContiguousMismatch; return PlatformResult::InvalidMap; }
@@ -236,7 +290,7 @@ ConsoleObservation IOKitController::captureConsole() {
 PlatformResult IOKitController::acquire(IOService *owner, IOService *provider, const PlatformRequest &request) {
     if (!lock_) return PlatformResult::NoLock;
     RetiredLease retired; // failure cleanup runs after unlocking
-    Guard guard(lock_);
+    Guard guard(lock_); // adoptDeclared runs under this same lock: no reentry
     if (facts_.phase != PlatformPhase::Empty) return PlatformResult::Used;
     uint32_t value = 0;
     if (!PE_parse_boot_argn("navi48-native-platform", &value, sizeof(value)) || value != 1)

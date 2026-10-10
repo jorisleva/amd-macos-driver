@@ -79,6 +79,7 @@ struct Fixture {
             CHECK(s.bars[i].observedDescriptorMatch && s.bars[i].observedTaskMatch);
             CHECK(s.bars[i].observedRereadPresent && s.bars[i].observedRereadMatch);
             CHECK(s.bars[i].observedDeclaredIsReread);
+            CHECK(s.bars[i].descriptorOrigin == DescriptorOrigin::Retained);
         }
         CHECK(s.command == 7 && s.bdf == 0x70000);
         CHECK(owner.references() == 2 && pci.references() == 2);
@@ -266,16 +267,17 @@ static void mapsAndLifetime() {
         // scenarios that survive that earlier guard: shared map declaring
         // another object (reread==retained!=declared), or a lookup that
         // vanishes exactly at checkMaps() time.
-        { // shared map declaring another object: InvalidMap + reread==retained
+        { // shared map declaring a NON-conforming object: InvalidMap + NotAdopted
             Fixture f; IOKitController c;
             auto *other = new IODeviceMemory; other->index = 9;
-            f.descriptors[bar]->recipe.backing = other;
+            f.descriptors[bar]->recipe.backing = other; // zero length: adoption refused
             f.refused(c, PlatformResult::InvalidMap);
             const auto detail = c.snapshot();
             CHECK(detail.failedBar == registers[bar] && detail.bars[bar].mapCheck == MapCheck::DescriptorMismatch);
             CHECK(!detail.bars[bar].observedDescriptorMatch);
             CHECK(detail.bars[bar].observedRereadPresent && detail.bars[bar].observedRereadMatch);
             CHECK(!detail.bars[bar].observedDeclaredIsReread);
+            CHECK(detail.bars[bar].descriptorOrigin == DescriptorOrigin::NotAdopted);
             other->release();
         }
         { // persistent provider substitution: ConfigurationChanged before checkMaps()
@@ -310,6 +312,42 @@ static void mapsAndLifetime() {
         Fixture f; IOKitController c;
         f.descriptors[1]->recipe.address = f.descriptors[0]->recipe.address;
         f.refused(c, PlatformResult::VirtualOverlap);
+    }
+    // Way 1: a shared mapping declaring a FULLY conforming other object is
+    // adopted after revalidation, and the lease succeeds. Separate block:
+    // it must NOT live inside Fixture::mapped(), which asserts the strict
+    // Retained path. acquire() + adoption-specific checks here.
+    for (unsigned bar = 0; bar < 3; ++bar) {
+        Fixture f; IOKitController c;
+        auto *other = new IODeviceMemory; other->index = 9;
+        other->bytes = lengths[bar]; other->contiguous = lengths[bar]; other->physical = bases[bar];
+        f.descriptors[bar]->recipe.backing = other; // mapping declares a conforming object
+        CHECK(f.acquire(c) == PlatformResult::MappingsHeldUnqualified);
+        const auto adopted = c.snapshot();
+        CHECK(adopted.phase == PlatformPhase::MappedUnqualified && adopted.mappingsHeld);
+        CHECK(adopted.bars[bar].descriptorOrigin == DescriptorOrigin::DeclaredAdopted);
+        CHECK(adopted.bars[bar].mapCheck == MapCheck::Ok && adopted.bars[bar].observedDescriptorMatch);
+        CHECK(adopted.bars[bar].observedRereadMatch && !adopted.bars[bar].observedDeclaredIsReread);
+        for (unsigned i = 0; i < 3; ++i)
+            if (i != bar) CHECK(adopted.bars[i].descriptorOrigin == DescriptorOrigin::Retained);
+        CHECK(c.revalidate() == PlatformResult::MappingsHeldUnqualified);
+        CHECK(c.snapshot().bars[bar].descriptorOrigin == DescriptorOrigin::DeclaredAdopted);
+        c.release(); f.closed();
+        other->release();
+    }
+    // A declared object that fails ANY property is NotAdopted: the lease
+    // still refuses, with the exact MapCheck of the surviving guard.
+    for (unsigned bar = 0; bar < 3; ++bar) {
+        Fixture f; IOKitController c;
+        auto *other = new IODeviceMemory; other->index = 9;
+        other->bytes = lengths[bar]; other->contiguous = lengths[bar];
+        other->physical = bases[bar] + 4096; // wrong base: adoption refused
+        f.descriptors[bar]->recipe.backing = other;
+        f.refused(c, PlatformResult::InvalidMap);
+        const auto detail = c.snapshot();
+        CHECK(detail.bars[bar].descriptorOrigin == DescriptorOrigin::NotAdopted);
+        CHECK(detail.bars[bar].mapCheck == MapCheck::DescriptorMismatch);
+        other->release();
     }
     {
         Fixture f; IOKitController c; f.mapped(c);

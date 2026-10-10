@@ -170,7 +170,7 @@ IOReturn Navi48Native::finishGated(Action &action) {
         return kIOReturnSuccess;
     }
     stage_ = Stage::MappedFirmwareBlocked; action.checkpoint = Checkpoint::PreparedOnly;
-    IOLog("Navi48Native: started 0.2.3 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
+    IOLog("Navi48Native: started 0.2.4 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
           snapshot.bdf, static_cast<unsigned long long>(action.dmaFacts.bytes), action.dmaFacts.pages,
           action.dmaFacts.deviceMapper ? 1u : 0u, snapshot.blockers);
     // Actual RAM allocation + IOVM generation, NOT GPU DMA qualification.
@@ -222,10 +222,10 @@ void Navi48Native::recordBootDiagnostic(const Action &a, IOReturn result) {
     // Survives detach/free and a wrapped dmesg buffer. Best effort on OOM;
     // NEVER changes the result, authorizes accesses or retries hardware.
     if (a.checkpoint == Checkpoint::StartState) return; // reject rearm without overwriting original result
-    auto *report = OSDictionary::withCapacity(64);
+    auto *report = OSDictionary::withCapacity(72);
     if (!report) { IOLog("Navi48Native: boot diagnostic allocation failed\n"); return; }
     const auto &p = a.platformFacts; const auto &c = a.computeFacts;
-    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x000203, 32) &&
+    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x000204, 32) &&
         number(report, "Checkpoint", static_cast<uint32_t>(a.checkpoint), 32) &&
         number(report, "StartReturn", static_cast<uint32_t>(result), 32) &&
         number(report, "ComputeRequested", a.computeRequested, 32) &&
@@ -260,10 +260,11 @@ bool Navi48Native::recordBars(OSDictionary *report, const n48native::PlatformSna
     // a BAR that checkMaps() never reached; later BARs keep their zero defaults.
     constexpr const char *names[3] = {"BAR0Map", "BAR2Map", "BAR5Map"};
     for (unsigned i = 0; i < 3; ++i) {
-        auto *bar = OSDictionary::withCapacity(12);
+        auto *bar = OSDictionary::withCapacity(14);
         if (!bar) return false;
         const auto &observation = snapshot.bars[i];
         const bool ok = number(bar, "MapCheck", static_cast<uint32_t>(observation.mapCheck), 32) &&
+            number(bar, "DescriptorOrigin", static_cast<uint32_t>(observation.descriptorOrigin), 32) &&
             number(bar, "ObservedAddress", observation.observedAddress) &&
             number(bar, "ObservedMapOptions", observation.observedMapOptions, 32) &&
             number(bar, "ObservedLength", observation.observedLength) &&

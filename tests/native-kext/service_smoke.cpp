@@ -129,7 +129,7 @@ int main() {
         f.pci.afterClose = [](IOPCIDevice *) { callbackDriver->stop(callbackProvider); };
         f.driver.stop(&f.pci); f.closed(); CHECK(f.driver.stops == 1);
         auto *diagnostic = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
-        CHECK(value(diagnostic, "Checkpoint") == 14 && value(diagnostic, "DriverVersion") == 0x203);
+        CHECK(value(diagnostic, "Checkpoint") == 14 && value(diagnostic, "DriverVersion") == 0x204);
         CHECK(value(diagnostic, "StartReturn") == 0 && value(diagnostic, "DMAObserved") == 1);
         CHECK(value(diagnostic, "ComputeObserved") == 0);
         CHECK(!f.driver.start(&f.pci)); // no hot restart/rearm
@@ -305,15 +305,45 @@ int main() {
             CHECK(value(diagnostic, "PlatformResult") == static_cast<uint32_t>(n48native::PlatformResult::ConfigurationChanged));
             CHECK(value(diagnostic, "PlatformDecision") == static_cast<uint32_t>(n48native::PlatformResult::ConfigurationChanged));
         } else {
-            // Shared map declaring another object: checkMaps() names it.
+            // Shared map declaring a NON-conforming object (zero geometry):
+            // adoption refused, checkMaps() still names the mismatch.
             auto *rejected = dynamic_cast<OSDictionary *>(diagnostic->getObject("BAR0Map"));
             CHECK(value(diagnostic, "PlatformResult") == static_cast<uint32_t>(n48native::PlatformResult::InvalidMap));
             CHECK(value(rejected, "MapCheck") == static_cast<uint32_t>(n48native::MapCheck::DescriptorMismatch));
             CHECK(value(rejected, "DescriptorMatch") == 0);
             CHECK(value(rejected, "RereadPresent") == 1 && value(rejected, "RereadMatch") == 1);
             CHECK(value(rejected, "DeclaredIsReread") == 0);
+            CHECK(value(rejected, "DescriptorOrigin") == static_cast<uint32_t>(n48native::DescriptorOrigin::NotAdopted));
         }
         other->release();
+    }
+    // Way 1 through the REAL service path: a shared mapping declaring a
+    // FULLY conforming object is adopted after revalidation, and start()
+    // proceeds past acquisition (it then continues to DMA, as before).
+    {
+        Fixture f; f.init();
+        constexpr uint64_t sizes[3] = {256 * MiB, 2 * MiB, 512 * 1024};
+        IODeviceMemory *adopted[3]{};
+        for (unsigned i = 0; i < 3; ++i) {
+            adopted[i] = new IODeviceMemory; adopted[i]->index = 9 + i;
+            adopted[i]->bytes = sizes[i]; adopted[i]->contiguous = sizes[i];
+            adopted[i]->physical = f.descriptors[i]->physical;
+            f.descriptors[i]->recipe.backing = adopted[i];
+        }
+        CHECK(f.driver.probe(&f.pci, nullptr) == &f.driver);
+        CHECK(f.driver.start(&f.pci)); // acquisition adopted; DMA proceeds
+        auto *report = dynamic_cast<OSDictionary *>(f.driver.getProperty("Navi48Native,Resources"));
+        CHECK(value(report, "MappingsHeld") == 1 && value(report, "ObservationsValid") == 1);
+        auto *diagnostic = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
+        auto *bar0 = dynamic_cast<OSDictionary *>(diagnostic->getObject("BAR0Map"));
+        CHECK(value(bar0, "MapCheck") == static_cast<uint32_t>(n48native::MapCheck::Ok));
+        CHECK(value(bar0, "DescriptorOrigin") == static_cast<uint32_t>(n48native::DescriptorOrigin::DeclaredAdopted));
+        CHECK(value(bar0, "DescriptorMatch") == 1 && value(bar0, "RereadMatch") == 1);
+        CHECK(value(bar0, "DeclaredIsReread") == 0);
+        callbackDriver = &f.driver; callbackProvider = &f.pci;
+        f.pci.afterClose = [](IOPCIDevice *) { callbackDriver->stop(callbackProvider); };
+        f.driver.stop(&f.pci); f.closed();
+        for (auto *d : adopted) d->release();
     }
     // Each rejected BAR mapping field keeps its decoded ID in the persistent
     // diagnostic. Uses the exact InvalidMap recipe coverage from the controller

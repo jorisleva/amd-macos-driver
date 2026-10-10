@@ -40,11 +40,18 @@ struct PlatformRequest {
     Range candidate; // BAR0-relative request, NOT a VRAM reservation or MC address
     uint64_t requiredBytes;
 };
+enum class DescriptorOrigin : uint32_t {
+    Retained = 0, // mapping declares the descriptor we retained: strict path
+    DeclaredAdopted = 1, // shared mapping path: mapping declares another object,
+    // adopted ONLY after full revalidation (length/segment/provider/config)
+    NotAdopted = 2 // declared object failed revalidation: still InvalidMap
+};
 struct BarObservation {
     uint8_t configRegister;
     uint32_t configLow, configHigh;
     uint64_t cpuPhysical, bytes;
     IOOptionBits reportedMapOptions;
+    DescriptorOrigin descriptorOrigin{DescriptorOrigin::Retained};
     MapCheck mapCheck{MapCheck::NotChecked}; // observed in checkMaps(); NotChecked when never reached
     uint64_t observedAddress{0}; // virtual address returned by the map (0 when none)
     IOOptionBits observedMapOptions{0};
@@ -97,6 +104,11 @@ public:
 private:
     struct Window {
         IODeviceMemory *descriptor{nullptr}; // our extra retain, in addition to provider/map retains
+        // Way 1 adoption: the mapping declared another object that fully
+        // revalidated. descriptor is then the ADOPTED object; retained is the
+        // originally retained provider object (still returned by the stable
+        // provider). Both retained; released together. Null when not adopted.
+        IODeviceMemory *retained{nullptr};
         IOMemoryMap *map{nullptr}; // returned +1; released, never forcibly unmapped
         uint64_t address{0};
     } windows_[3];
@@ -115,6 +127,7 @@ private:
 
     PlatformResult captureConfig(PlatformSnapshot &out);
     PlatformResult checkDescriptors();
+    PlatformResult adoptDeclared(unsigned bar); // way 1: full revalidation, no state change on failure
     PlatformResult checkMaps();
     ConsoleObservation captureConsole();
     PlatformResult revalidateLocked();
