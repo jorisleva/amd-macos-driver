@@ -57,6 +57,28 @@ class ProfileTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             efi.validate_profile(source, old, OFFSET, SIZE, version='0.1.2')
 
+    def test_previous_compute_0_2_0_requires_profile_manifest_and_pinned_binary(self):
+        source = baseline()
+        old = efi.make_profile(source, OFFSET, 64 * 1024 * 1024, compute=True)
+        old['Kernel']['Add'][-1] = efi.injection_entry(compute=True, version='0.2.0')
+        key = 'OC/Kexts/Navi48Native.kext/Contents/MacOS/Navi48Native'
+        hashes = {'OC/config.plist': 'config', key:
+                  '34ce08473ac2acedd0a9094420cbd4ebf159bf48b21a0134095715cfd95809f9'}
+        efi.validate_previous_compute_0_2_0(source, old, hashes, hashes.copy())
+        for changed in (dict(hashes, extra='file'), {'OC/config.plist': 'config'}, dict(hashes, **{key: 'modified'})):
+            with self.assertRaises(ValueError):
+                efi.validate_previous_compute_0_2_0(source, old, changed, hashes)
+        modified = dict(hashes, **{key: 'modified'})
+        with self.assertRaises(ValueError): # even replacing BOTH manifests cannot change the pinned binary
+            efi.validate_previous_compute_0_2_0(source, old, modified, modified.copy())
+        for mutation in ('version', 'scratch', 'security'):
+            changed = copy.deepcopy(old)
+            if mutation == 'version': changed['Kernel']['Add'][-1] = efi.injection_entry(compute=True)
+            elif mutation == 'scratch': changed['NVRAM']['Add'][efi.GUID]['boot-args'] += ' extra=1'
+            else: changed['Misc']['Security']['SecureBootModel'] = 'Default'
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                efi.validate_previous_compute_0_2_0(source, changed, hashes, hashes)
+
     def test_bad_candidates_fail_without_modifying_source(self):
         source = baseline()
         before = plistlib.dumps(source)
@@ -105,6 +127,49 @@ class ProfileTests(unittest.TestCase):
                 efi.validate_trial(efi.TRIAL, dict(info, **{key: value}))
         with self.assertRaises(ValueError):
             efi.validate_trial(Path('/Volumes/OPENCORE'), info)
+
+
+class BootSessionTests(unittest.TestCase):
+    def setUp(self):
+        self.source = baseline()
+        self.args = (self.source['NVRAM']['Add'][efi.GUID]['boot-args'] +
+                     efi.boot_delta(OFFSET, 64 * 1024 * 1024, compute=True)).split()
+        self.loaded = efi.BUNDLE_ID + ' (0.2.0) AB1F0B3A-865C-33FC-BC6B-5CA0056BBF45'
+
+    def validate(self, **kw):
+        parameters = {'baseline': self.source, 'boot_args': self.args, 'loaded': self.loaded,
+                      'allow_retired_0_2_0': True, 'native_service': '', 'native_instances': 0}
+        parameters.update(kw)
+        return efi.validate_boot_session(**parameters)
+
+    def test_reference_boot_keeps_existing_no_experiment_rule(self):
+        args = self.source['NVRAM']['Add'][efi.GUID]['boot-args'].split()
+        self.assertFalse(self.validate(boot_args=args, loaded='', allow_retired_0_2_0=False))
+
+    def test_exact_retired_compute_boot_allows_only_offline_update(self):
+        self.assertTrue(self.validate())
+        with self.assertRaises(ValueError):
+            self.validate(allow_retired_0_2_0=False)
+
+    def test_existing_or_detached_native_instance_rejected(self):
+        for changes in ({'native_service': 'Navi48Native <class Navi48Native>'}, {'native_instances': 1},
+                        {'native_instances': None}, {'native_instances': False}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                self.validate(**changes)
+
+    def test_wrong_or_other_loaded_experiment_rejected(self):
+        for loaded in ('', self.loaded.replace('(0.2.0)', '(0.2.1)'), self.loaded.replace('AB1F', 'AB2F'),
+                       self.loaded + '\n' + efi.helpers.BUNDLE_ID, self.loaded + '\ncom.navi48.bringup',
+                       self.loaded + '\n' + self.loaded):
+            with self.subTest(loaded=loaded), self.assertRaises(ValueError):
+                self.validate(loaded=loaded)
+
+    def test_any_changed_boot_parameters_rejected(self):
+        for args in (self.args[:-1], self.args + ['extra=1'],
+                     [t.replace('risk=1', 'risk=0') for t in self.args],
+                     [t.replace('bytes=0x4000000', 'bytes=0x1800000') for t in self.args]):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                self.validate(boot_args=args)
 
 
 class SwapTests(unittest.TestCase):

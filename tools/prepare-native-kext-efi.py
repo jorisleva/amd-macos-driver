@@ -87,6 +87,38 @@ def make_profile(baseline, offset, size, compute=False):
     return result
 
 
+def validate_previous_compute_0_2_0(baseline, profile, current, reviewed):
+    """Only the already deployed, hashed 64+64 MiB compute trial may be replaced."""
+    validate_profile(baseline, profile, 0x4000000, 0x4000000, compute=True, version='0.2.0')
+    require(current == reviewed and
+            current.get('OC/Kexts/Navi48Native.kext/Contents/MacOS/Navi48Native') ==
+            '34ce08473ac2acedd0a9094420cbd4ebf159bf48b21a0134095715cfd95809f9',
+            'Native 0.2.0 EFI differs from the previously reviewed deployment')
+
+
+def validate_boot_session(baseline, boot_args, loaded, allow_retired_0_2_0=False,
+                          native_service='', native_instances=None):
+    """EFI files ONLY: no unload/retry/MMIO, even in the reviewed retired boot.
+
+    This exception is not a claim that hardware was untouched. It authorizes
+    an offline USB update from the exact loaded 0.2.0 trial, with zero native
+    instances, rather than asking for an extra reference reboot just to copy.
+    """
+    experimental = (BUNDLE_ID, helpers.BUNDLE_ID, 'com.navi48.bringup')
+    native_args = any(t.startswith(('navi48-native-', 'navi48-pci-probe=1')) for t in boot_args)
+    if not native_args and not any(name in loaded for name in experimental):
+        return False
+    require(allow_retired_0_2_0, 'Return to the reference boot before changing the trial EFI')
+    expected_args = (baseline['NVRAM']['Add'][GUID]['boot-args'] +
+                     boot_delta(0x4000000, 0x4000000, compute=True)).split()
+    modules = re.findall(re.escape(BUNDLE_ID) + r'\s+\(([^)]+)\)\s+([0-9A-Fa-f-]+)', loaded)
+    require(boot_args == expected_args and modules == [('0.2.0', 'AB1F0B3A-865C-33FC-BC6B-5CA0056BBF45')] and
+            not any(name in loaded for name in experimental[1:]) and
+            not native_service.strip() and type(native_instances) is int and native_instances == 0,
+            'Only the reviewed retired 0.2.0 boot permits this offline USB update')
+    return True
+
+
 def validate_trial(volume, info):
     require(volume == TRIAL and volume.resolve() == volume,
             'Deployment is restricted to the explicit PROBE1401 mount')
@@ -139,11 +171,17 @@ def main():
     parser.add_argument('--candidate-bytes', type=lambda s: int(s, 0), required=True)
     parser.add_argument('--deploy-probe1401', action='store_true')
     parser.add_argument('--experimental-compute', action='store_true', help='Explicit risky GPU initialization + two one-shot shaders')
-    parser.add_argument('--replace-native-0.1.2', dest='replace_native_0_1_2', action='store_true', help='Replace ONLY the previously hashed native 0.1.2 trial')
+    replacements = parser.add_mutually_exclusive_group()
+    replacements.add_argument('--replace-native-0.1.2', dest='replace_native_0_1_2', action='store_true', help='Replace ONLY the previously hashed native 0.1.2 trial')
+    replacements.add_argument('--replace-native-0.2.0', dest='replace_native_0_2_0', action='store_true', help='Replace ONLY the reviewed compute 0.2.0 EFI with diagnostic 0.2.1; permits offline copy from its exact retired boot')
     args = parser.parse_args()
     require(sys.platform == 'darwin', 'macOS is required')
-    require(not args.replace_native_0_1_2 or (args.deploy_probe1401 and args.experimental_compute),
-            'Replacing native 0.1.2 requires explicit compute deployment')
+    require(not (args.replace_native_0_1_2 or args.replace_native_0_2_0) or
+            (args.deploy_probe1401 and args.experimental_compute),
+            'Replacing a native trial requires explicit compute deployment')
+    require(not args.replace_native_0_2_0 or
+            (VERSION == '0.2.1' and args.candidate_offset == 0x4000000 and args.candidate_bytes == 0x4000000),
+            'The reviewed 0.2.0 replacement is restricted to diagnostic 0.2.1 with unchanged 64+64 MiB scratch')
     destination, build = local_output(ROOT, args.output), local_output(ROOT, args.build)
     require(not destination.exists(), 'Choose a fresh output directory')
     require(subprocess.check_output(['uname', '-m'], text=True).strip() == 'x86_64' and
@@ -151,14 +189,20 @@ def main():
             subprocess.check_output(['sw_vers', '-buildVersion'], text=True).strip() == '25G241',
             'Host must match the reviewed Tahoe x86_64 build')
     current_args = subprocess.check_output(['sysctl', '-n', 'kern.bootargs'], text=True).split()
-    require(not any(t.startswith(('navi48-native-', 'navi48-pci-probe=1')) for t in current_args),
-            'Return to the reference boot before changing the trial EFI')
     loaded = subprocess.check_output(['kmutil', 'showloaded'], stderr=subprocess.PIPE, text=True)
-    require(not any(name in loaded for name in (BUNDLE_ID, helpers.BUNDLE_ID, 'com.navi48.bringup')),
-            'An experimental GPU module is already loaded')
     require(os.path.ismount(REFERENCE.parent) and REFERENCE.resolve() == REFERENCE, 'Reference USB must be mounted')
     initial = tree_hashes(REFERENCE)
     baseline = plistlib.loads((REFERENCE / 'OC/config.plist').read_bytes())
+    native_service, native_instances = '', None
+    if args.replace_native_0_2_0:
+        native_service = subprocess.check_output(['ioreg', '-r', '-c', PRODUCT, '-l', '-w', '0'], text=True)
+        diagnostics = plistlib.loads(subprocess.check_output(['ioreg', '-l', '-d', '1', '-a']))
+        roots = [diagnostics] if isinstance(diagnostics, dict) else diagnostics
+        require(isinstance(roots, list) and len(roots) == 1 and isinstance(roots[0], dict),
+                'Unreviewed IORegistry diagnostics root')
+        native_instances = roots[0].get('IOKitDiagnostics', {}).get('Classes', {}).get(PRODUCT)
+    retired_boot = validate_boot_session(baseline, current_args, loaded, args.replace_native_0_2_0,
+                                         native_service, native_instances)
     profile = make_profile(baseline, args.candidate_offset, args.candidate_bytes, args.experimental_compute)
     require({p.name for p in (REFERENCE / 'OC/Kexts').iterdir() if p.is_dir()} == helpers.BASE_KEXTS,
             'Unexpected reference kext directory')
@@ -167,8 +211,8 @@ def main():
         require(os.path.ismount(TRIAL), 'Trial USB must be mounted')
         validate_trial(TRIAL, plistlib.loads(subprocess.check_output(['diskutil', 'info', '-plist', TRIAL])))
         current = tree_hashes(TRIAL / 'EFI')
-        # First native deployment is only from the previously reviewed probe ON
-        # profile; any additional USB modifications require a separate review.
+        # Each allowed source profile is exact, independently reviewed/hashed.
+        # The replacement flags never authorize an arbitrary native EFI update.
         trial_config = plistlib.loads((TRIAL / 'EFI/OC/config.plist').read_bytes())
         if args.replace_native_0_1_2:
             validate_profile(baseline, trial_config, 0x4000000, 0x1800000, version='0.1.2')
@@ -177,6 +221,13 @@ def main():
                     current['OC/Kexts/Navi48Native.kext/Contents/MacOS/Navi48Native'] ==
                     'ce1f4e39a2795bdabd3789fb8d632fdac3ed3209deab851f30429ca418696e23',
                     'Native 0.1.2 EFI differs from the previously reviewed deployment')
+            expected_kexts = helpers.BASE_KEXTS | {'Navi48Native.kext'}
+        elif args.replace_native_0_2_0:
+            previous = ROOT / 'out/efi-native/native-0.2.0-compute-trial'
+            require(initial == json.loads((previous / 'reference-hashes.json').read_text()),
+                    'Reference differs from the reviewed 0.2.0 deployment')
+            validate_previous_compute_0_2_0(baseline, trial_config, current,
+                                           json.loads((previous / 'native-hashes.json').read_text()))
             expected_kexts = helpers.BASE_KEXTS | {'Navi48Native.kext'}
         else:
             helpers.validate_profile(baseline, trial_config, True)
@@ -193,6 +244,10 @@ def main():
         require(report['experimental_compute']['called_by_service'] is True and
                 report['experimental_compute']['io_vm_per_page'] is True and
                 report['compute_shaders_verified_in_kext'] == 2, 'Missing native compute path/shaders')
+    if args.replace_native_0_2_0:
+        require(report.get('boot_diagnostics', {}).get('resource') == 'Navi48Native,BootDiagnostics' and
+                report.get('symbol_audit', {}).get('boot_diagnostic_publisher_linked') is True,
+                'Missing reviewed 0.2.1 persistent diagnostic publisher')
     require(sums == json.loads((build / 'SHA256SUMS.json').read_text()) and
             digest(artifact / 'Contents/MacOS' / PRODUCT) == report['executable_sha256'], 'Modified kext artifact')
     audit_sources(build / 'source/driver')
@@ -248,6 +303,10 @@ def main():
               'explicit_hardware_risk_acknowledged': args.experimental_compute,
               'two_one_shot_shaders_scheduled': args.experimental_compute,
               'native_0_1_2_replacement_acknowledged': args.replace_native_0_1_2,
+              'native_0_2_0_replacement_acknowledged': args.replace_native_0_2_0,
+              'prepared_from_reviewed_retired_0_2_0_boot': retired_boot,
+              'running_native_version_during_update': '0.2.0' if retired_boot else None,
+              'running_native_hardware_touched_reported': None, 'hot_load_performed': False,
               'gpu_command_executed': False,
               'private_smbios_included': True, 'reference_files': len(initial), 'trial_files': len(hashes),
               'reference_efi_unchanged': True, 'trial_efi_replaced': False,
