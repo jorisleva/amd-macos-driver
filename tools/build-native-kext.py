@@ -210,7 +210,7 @@ def main():
                   '-D_FORTIFY_SOURCE=0', '-fno-builtin', '-fno-common', '-fno-stack-protector',
                   '-mkernel', '-Wall', '-Wextra', '-Werror', '-Wshadow', '-Os', '-MD']
         deps = []
-        for name in ('Navi48Native.cpp', 'DmaBuffer.cpp', 'kmod_info.c'):
+        for name in ('Navi48Native.cpp', 'Navi48Shell.cpp', 'DmaBuffer.cpp', 'kmod_info.c'):
             obj = objects / (Path(name).stem + '.o'); dep = obj.with_suffix('.d'); deps.append(dep)
             cxx = name.endswith('.cpp')
             flags = ['-std=c++17', '-fapple-kext', '-fno-exceptions', '-fno-rtti', '-fcheck-new',
@@ -229,7 +229,11 @@ def main():
             'io_vm_per_page': True, 'cpu_physical_dma_assumption': False,
             'gpu_visible_resources_retained_until_reboot': True,
             'hardware_execution_observed': False, 'metal_implemented': False,
-            'user_client_implemented': False}
+            'user_client_implemented': False,
+            'read_only_shell': {'linked': True, 'class': 'Navi48Shell',
+                'opt_in': ['navi48-native-compute=1', 'navi48-native-risk=1', 'navi48-native-shell=1'],
+                'selectors': ['Snapshot', 'ReadGcReg', 'ReadMmhubReg', 'ReadBar0Word', 'RingTestSurvey'],
+                'writes': False, 'post_hardware_only': True, 'gate_serialized': True}}
         report['boot_diagnostics'] = {'linked': True, 'resource': 'Navi48Native,BootDiagnostics',
             'publish_outside_gate': True, 'value_objects_only': True,
             'persistence_tested_with_iokit_doubles': True, 'persistence_observed_in_kernel': False}
@@ -237,7 +241,7 @@ def main():
         executable = artifact / 'Contents/MacOS' / PRODUCT; executable.parent.mkdir(parents=True)
         run(['xcrun', 'clang++', '-arch', 'x86_64', '-target', 'x86_64-apple-macos11.0',
              '-isysroot', sysroot, '-nostdlib', '-Xlinker', '-kext', objects / 'Navi48Native.o',
-             objects / 'kmod_info.o', objects / 'DmaBuffer.o',
+             objects / 'kmod_info.o', objects / 'Navi48Shell.o', objects / 'DmaBuffer.o',
              objects / 'Navi48PlatformController.o', objects / 'Navi48FirmwareCore.o',
              *sorted(objects.glob('compute-*.o')),
              '-L' + str(sdk / 'Library/x86_64'), '-lkmodc++', '-lkmod', '-Wl,-no_deduplicate',

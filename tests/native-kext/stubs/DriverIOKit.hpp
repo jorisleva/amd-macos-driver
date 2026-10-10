@@ -41,6 +41,10 @@ class IOWorkLoop;
 class IOCommandGate;
 class OSDictionary;
 class IOUserClient;
+struct IOExternalMethodArguments;
+struct IOExternalMethodDispatch;
+using io_user_reference_t = uint64_t;
+constexpr uint32_t kIOExternalMethodArgumentsCurrentVersion = 2;
 constexpr uint32_t kIOMessageServiceIsTerminated = 1, kIOMessageServiceIsRequestingClose = 2;
 constexpr uint32_t kIOMessageServiceIsSuspended = 3, kIOMessageDeviceWillPowerOff = 4;
 namespace fake {
@@ -145,7 +149,30 @@ public:
         if (fake::gateDepth) fake::resourcePublishedInGate = true;
     }
     static IOPlatformExpert *getPlatform() { return fake::platform; }
+    virtual bool attach(IOService *) { return true; }
 };
+// Minimal IOUserClient double: enough to compile the read-only shell gate
+// (open/start/dispatch refused or passed per test flags). No hardware.
+struct IOExternalMethodArguments {
+    uint32_t version = kIOExternalMethodArgumentsCurrentVersion;
+    uint32_t selector = 0;
+    const uint64_t *scalarInput = nullptr;
+    uint32_t scalarInputCount = 0;
+    uint64_t *scalarOutput = nullptr;
+    uint32_t scalarOutputCount = 0;
+};
+struct IOExternalMethodDispatch {};
+class IOUserClient : public IOService {
+public:
+    virtual bool initWithTask(task_t, void *, UInt32) { return true; }
+    virtual IOReturn clientClose() { return kIOReturnSuccess; }
+    virtual IOReturn externalMethod(uint32_t, IOExternalMethodArguments *, IOExternalMethodDispatch * = nullptr,
+                                    OSObject * = nullptr, void * = nullptr) { return kIOReturnUnsupported; }
+};
+namespace fake {
+inline bool shellPresent = false;
+inline uint32_t shellValue = 0;
+}
 class IOCommandGate : public OSObject {
     OSObject *owner_;
 public:
@@ -310,6 +337,9 @@ inline IOMemoryMap *IOMemoryDescriptor::map(IOOptionBits options) {
 inline void IOMemoryDescriptor::noteMappingPhase() {}
 inline bool PE_parse_boot_argn(const char *key, void *out, int bytes) {
     ++fake::bootReads;
+    if (!std::strcmp(key, "navi48-native-shell") && bytes == 4 && fake::shellPresent) {
+        std::memcpy(out, &fake::shellValue, 4); return true;
+    }
     if (!std::strcmp(key, "navi48-native-platform") && bytes == 4 && fake::bootPresent) {
         std::memcpy(out, &fake::bootValue, 4); return true;
     }

@@ -41,6 +41,13 @@ public:
         NotReached = 0, GfxConstants = 1, MqdInit = 2, MapKgqMes = 3,
         GfxStart = 4, RingTest = 5, EopTest = 6, Done = 7
     };
+    // Ring-test phase split (write/read, kick, poll). The upstream
+    // cp_ring_test_scratch is monolithic; reproducing its three phases with
+    // intermediate surveys names which transition kills SCRATCH access.
+    // Same packets, same doorbell, same timeout budget (1s total).
+    enum class RingPhase : uint32_t {
+        NotReached = 0, WriteRead = 1, Kicked = 2, Polled = 3
+    };
     struct Snapshot {
         uint32_t stage{0}, failedStage{0}, preflightCheck{0}, result{static_cast<uint32_t>(kIOReturnNotReady)};
         bool hardwareTouched{false}, firmwareLoaded{false}, initialized{false}, computePassed{false}, idleSleepPrevented{false};
@@ -49,6 +56,11 @@ public:
         Stage16Step stage16Step{Stage16Step::NotReached};
         bool ringTestPassed{false}, fetchProven{false}; // CP fetch proof (ring_test scratch)
         uint32_t ringTestValue{0}; // SCRATCH_REG0 readback at timeout/success
+        RingPhase ringPhase{RingPhase::NotReached};
+        uint32_t ringWriteReadback{0}; // SCRATCH right after WREG32(CAFEDEAD)
+        uint32_t ringAfterKick{0}; // SCRATCH right after doorbell kick
+        uint32_t ringPollFirst{0}; // SCRATCH at first poll iteration
+        uint64_t ringPollElapsedUs{0}; // poll duration before success/timeout
         // Read-only GC access survey before the ring-test (no writes).
         // Distinguishes a wrong GC base (all GC reads fail) from a live GC
         // with a dead SCRATCH (power-gate/clocks on this register).
@@ -68,6 +80,14 @@ public:
     // function run() calls, host-tested with IOKit doubles. Static wrapper
     // keeps the call site qualified while sharing one implementation.
     static IOReturn checkNoAccelerator(bool &iteratorNull);
+    // Read-only interactive shell backend (Navi48Shell). All methods require
+    // hardwareTouched_ resources; otherwise kIOReturnNotReady. Pure reads:
+    // no MMIO/VRAM write, no firmware, no doorbell, no submission, no
+    // power/clock change. Called under the service workloop gate.
+    IOReturn shellSnapshot(Snapshot &out) const; // values only, always allowed
+    IOReturn shellReadGc(uint32_t reg, int baseIdx, uint32_t &value) const;
+    IOReturn shellReadMmhub(uint32_t reg, uint32_t &value) const;
+    IOReturn shellReadBar0(uint64_t byteOffset, uint32_t &value) const; // scratch only
     IOReturn run(IOService *, IOPCIDevice *, IOWorkLoop *, const Input &);
     void cancel();
     Snapshot snapshot() const; // only after run exits, serialized by the service

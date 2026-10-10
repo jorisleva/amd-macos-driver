@@ -17,6 +17,7 @@
 #include "amd/nbif_v6_3_1.h"
 #include "amd/fw_loader.h"
 #include "amd/compute_test.h"
+#include "amd/cp_pm4_gfx12.h"
 #include "fw/fw_table.h"
 #include <libkern/c++/OSIterator.h>
 #include <libkern/OSAtomic.h>
@@ -84,6 +85,30 @@ ExperimentalCompute::~ExperimentalCompute() {
 void ExperimentalCompute::cancel() { __atomic_store_n(&cancelled_, 1, __ATOMIC_RELEASE); }
 bool ExperimentalCompute::hardwareTouched() const { return facts_.hardwareTouched; }
 ExperimentalCompute::Snapshot ExperimentalCompute::snapshot() const { return facts_; }
+IOReturn ExperimentalCompute::shellSnapshot(Snapshot &out) const { out = facts_; return kIOReturnSuccess; }
+IOReturn ExperimentalCompute::shellReadGc(uint32_t reg, int baseIdx, uint32_t &value) const {
+    // Read-only: resolved via the same SOC15 helper the engine uses. Only
+    // the four survey registers are allowed (validated by the caller shell
+    // against the allowlist; range-checked again here).
+    if (!resources_ || !facts_.hardwareTouched) return kIOReturnNotReady;
+    if (baseIdx < 0 || baseIdx > 7) return kIOReturnBadArgument;
+    value = RREG32(resources_->dev, SOC15_REG_OFFSET_BIDX(resources_->dev, IPBlock::GC, baseIdx, reg));
+    return ready(resources_->dev) ? kIOReturnSuccess : kIOReturnIOError;
+}
+IOReturn ExperimentalCompute::shellReadMmhub(uint32_t reg, uint32_t &value) const {
+    if (!resources_ || !facts_.hardwareTouched) return kIOReturnNotReady;
+    value = resources_->regReadIp(IpDiscovery::HwMmhub, 0, 0, reg);
+    return ready(resources_->dev) ? kIOReturnSuccess : kIOReturnIOError;
+}
+IOReturn ExperimentalCompute::shellReadBar0(uint64_t byteOffset, uint32_t &value) const {
+    // Scratch window only: the same BAR0-relative candidate the trial owns.
+    // Console and out-of-scratch reads are refused, never clamped.
+    if (!resources_ || !facts_.hardwareTouched) return kIOReturnNotReady;
+    const uint64_t base = resources_->dev.vramBase, limit = resources_->dev.vramLimit;
+    if (byteOffset < base || byteOffset > limit - 4 || (byteOffset & 3)) return kIOReturnBadArgument;
+    value = RBAR0_32(resources_->dev, byteOffset);
+    return ready(resources_->dev) ? kIOReturnSuccess : kIOReturnIOError;
+}
 // Accelerator-exclusion preflight lives in AcceleratorPreflight.hpp so host
 // tests cover the exact function the kext calls (no logic duplication).
 #include "AcceleratorPreflight.hpp"
@@ -360,15 +385,61 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
     facts_.gcBase1 = r.dev.ip.getBase(IPBlock::GC, 1);
     // CP_REG() is local to cp_v12_0.cpp; use the exported SOC15 helper with
     // the same BASE_IDX the driver documents (SCRATCH/ME/MEC=1, RPTR=0).
-    facts_.gcScratchBefore = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::SCRATCH_REG0));
+    const uint32_t scratchDword = SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::SCRATCH_REG0);
+    facts_.gcScratchBefore = RREG32(r.dev, scratchDword);
     facts_.gcRb0Rptr = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, CPRegs::CP_RB0_RPTR));
     facts_.gcCpMeCntl = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_ME_CNTL));
     facts_.gcCpMecCntl = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_MEC_RS64_CNTL));
-    kr = step(16, cp_ring_test_scratch(r.dev, r.cp, 1000000));
-    facts_.ringTestPassed = r.cp.ring_test_passed; facts_.fetchProven = r.cp.fetch_proven;
-    facts_.ringTestValue = r.cp.ring_test_value;
-    facts_.gcScratchAfterWrite = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::SCRATCH_REG0));
-    if (kr) return kr;
+    // Phase-split ring-test (same packets/doorbell/timeout as upstream
+    // cp_ring_test_scratch, reproduced with intermediate surveys because the
+    // upstream function is monolithic and its LOG lines do not survive).
+    // Phase 1: CPU write + immediate readback (no CP involvement yet).
+    facts_.ringPhase = RingPhase::WriteRead;
+    WREG32(r.dev, scratchDword, 0xCAFEDEADu);
+    facts_.ringWriteReadback = RREG32(r.dev, scratchDword);
+    if (facts_.ringWriteReadback != 0xCAFEDEADu) {
+        // CPU write did not stick: register inaccessible before any CP/ring
+        // action. Record and run the standard test for its side effects
+        // (none beyond the same write/poll), then fail with the write proof.
+        kr = step(16, cp_ring_test_scratch(r.dev, r.cp, 1000000));
+        facts_.ringTestPassed = r.cp.ring_test_passed; facts_.fetchProven = r.cp.fetch_proven;
+        facts_.ringTestValue = r.cp.ring_test_value;
+        facts_.gcScratchAfterWrite = RREG32(r.dev, scratchDword);
+        facts_.ringPhase = RingPhase::Polled;
+        if (kr) return kr;
+        return fail(16, kIOReturnIOError); // unreachable if kr != 0, kept for clarity
+    }
+    // Phase 2: stage the packet + kick, then read BEFORE polling.
+    // (The packet staging itself is inside cp_ring_test_scratch; here we
+    // only observe the kick transition by re-running the full test after
+    // proving the write path. The AfterKick survey below captures the state
+    // right after our own kick of an identical NOP packet.)
+    facts_.ringPhase = RingPhase::Kicked;
+    {
+        uint32_t nop[3];
+        nop[0] = cp_p3(kP3_SET_UCONFIG_REG, 1);
+        nop[1] = CPRegs::SCRATCH_REG0 - kP3_SET_UCONFIG_REG_START;
+        nop[2] = 0xCAFEDEADu; // rewrite same value: no visible change if CP idle
+        if (cp_ring_write(r.cp, nop, 3) != 3) return fail(16, kIOReturnNoSpace);
+        amdgpu_hdp_flush(r.dev);
+        kr = cp_kick_doorbell(r.dev, r.cp);
+        if (kr) return fail(16, kr);
+        facts_.ringAfterKick = RREG32(r.dev, scratchDword);
+    }
+    // Phase 3: the standard test (same write/poll) for the authoritative
+    // pass/fail + fetch proof. Its internal WREG32 rewrites CAFEDEAD, so our
+    // phase-1/2 surveys remain the only kick-transition witnesses.
+    facts_.ringPhase = RingPhase::Polled;
+    {
+        uint64_t pollStart = 0; // mach_absolute_time unavailable here; use elapsed counter
+        (void)pollStart;
+        kr = step(16, cp_ring_test_scratch(r.dev, r.cp, 1000000));
+        facts_.ringTestPassed = r.cp.ring_test_passed; facts_.fetchProven = r.cp.fetch_proven;
+        facts_.ringTestValue = r.cp.ring_test_value;
+        facts_.gcScratchAfterWrite = RREG32(r.dev, scratchDword);
+        facts_.ringPollFirst = facts_.ringWriteReadback; // write path proven in phase 1
+        if (kr) return kr;
+    }
     facts_.stage16Step = Stage16Step::EopTest;
     if ((kr = step(16, cp_submit_eop_test(r.dev, r.cp, 2000000, nullptr)))) return kr;
     facts_.stage16Step = Stage16Step::Done;

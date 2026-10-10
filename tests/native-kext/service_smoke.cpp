@@ -129,7 +129,7 @@ int main() {
         f.pci.afterClose = [](IOPCIDevice *) { callbackDriver->stop(callbackProvider); };
         f.driver.stop(&f.pci); f.closed(); CHECK(f.driver.stops == 1);
         auto *diagnostic = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
-        CHECK(value(diagnostic, "Checkpoint") == 14 && value(diagnostic, "DriverVersion") == 0x209);
+        CHECK(value(diagnostic, "Checkpoint") == 14 && value(diagnostic, "DriverVersion") == 0x20A);
         CHECK(value(diagnostic, "StartReturn") == 0 && value(diagnostic, "DMAObserved") == 1);
         CHECK(value(diagnostic, "ComputeObserved") == 0);
         CHECK(!f.driver.start(&f.pci)); // no hot restart/rearm
@@ -409,6 +409,35 @@ int main() {
         CHECK(value(held, "PlatformResult") == static_cast<uint32_t>(n48native::PlatformResult::WrongCard));
         CHECK(value(held, "ComputeObserved") == 0);
         fake::clearBootDiagnostic();
+    }
+    CHECK(fake::liveObjects == 0);
+    // Read-only shell gate matrix (lifecycle doubles, no hardware).
+    // Triple opt-in (compute + risk + shell) AND post-hardware service required.
+    {
+        Fixture f; f.init();
+        IOUserClient *client = reinterpret_cast<IOUserClient *>(uintptr_t{1});
+        // No opt-in at all: refused like before.
+        CHECK(f.driver.newUserClient(nullptr, nullptr, 0, &client) == kIOReturnUnsupported && !client);
+        // Compute+risk without shell: still refused.
+        fake::computePresent = fake::riskPresent = true; fake::computeValue = fake::riskValue = 1;
+        client = reinterpret_cast<IOUserClient *>(uintptr_t{1});
+        CHECK(f.driver.newUserClient(nullptr, nullptr, 0, &client) == kIOReturnUnsupported && !client);
+        // Shell without compute+risk: refused.
+        fake::computePresent = fake::riskPresent = false;
+        fake::shellPresent = true; fake::shellValue = 1;
+        client = reinterpret_cast<IOUserClient *>(uintptr_t{1});
+        CHECK(f.driver.newUserClient(nullptr, nullptr, 0, &client) == kIOReturnUnsupported && !client);
+        // Triple opt-in but pre-hardware (stub fails before touching): refused.
+        fake::computePresent = fake::riskPresent = true; fake::computeValue = fake::riskValue = 1;
+        fake::scratchBytes = 64 * MiB;
+        CHECK(!f.driver.start(&f.pci)); // stub pre-write failure, no hardware
+        client = reinterpret_cast<IOUserClient *>(uintptr_t{1});
+        CHECK(f.driver.newUserClient(nullptr, nullptr, 0, &client) == kIOReturnUnsupported && !client);
+        // Wrong type: refused even with everything armed.
+        client = reinterpret_cast<IOUserClient *>(uintptr_t{1});
+        CHECK(f.driver.newUserClient(nullptr, nullptr, 1, &client) == kIOReturnUnsupported && !client);
+        fake::shellPresent = false;
+        f.closed();
     }
     CHECK(fake::liveObjects == 0);
     // GPU-visible lifetime MODEL: even a failed trial or failed publication must

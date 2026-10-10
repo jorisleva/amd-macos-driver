@@ -10,9 +10,10 @@ from native_kext_audit import VERSION, audit_defined, audit_sources
 
 class NativeKextAuditTests(unittest.TestCase):
     def test_current_diagnostic_version_identity(self):
-        self.assertEqual(VERSION, '0.2.9')
+        self.assertEqual(VERSION, '0.2.10')
         facts = audit_sources(ROOT / 'kexts/Navi48Native')
-        self.assertTrue(facts['user_clients_disabled'])
+        self.assertTrue(facts['read_only_shell_gated'])
+        self.assertTrue(facts['shell_writes_forbidden'])
         self.assertFalse(facts['apple_graphics_personalities'])
 
     def test_diagnostic_publisher_must_be_linked(self):
@@ -22,8 +23,10 @@ class NativeKextAuditTests(unittest.TestCase):
                    '__ZN9n48native15IOKitController7acquireEP9IOServiceS2_RKNS_15PlatformRequestE',
                    '__ZN6amdgpu8psp_initERNS_13DeviceContextERNS_10PSPContextE',
                    '__ZN10n48compute8psp_initERNS_13DeviceContextERNS_10PSPContextE',
-                   '__ZN9n48native9DmaBuffer8allocateEtest'}
+                   '__ZN9n48native9DmaBuffer8allocateEtest',
+                   '__ZN11Navi48Shell5startEP9IOService'}
         self.assertTrue(audit_defined(symbols)['boot_diagnostic_publisher_linked'])
+        self.assertTrue(audit_defined(symbols)['read_only_shell_linked'])
         symbols.remove('__ZN12Navi48Native20recordBootDiagnosticERKNS_6ActionEi')
         with self.assertRaisesRegex(ValueError, 'recordBootDiagnostic'):
             audit_defined(symbols)

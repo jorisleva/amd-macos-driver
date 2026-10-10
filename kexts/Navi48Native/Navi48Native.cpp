@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "Navi48Native.hpp"
+#include "Navi48Shell.hpp"
 #include <IOKit/IOMessage.h>
 #include <libkern/c++/OSDictionary.h>
 #include <libkern/c++/OSNumber.h>
@@ -170,7 +171,7 @@ IOReturn Navi48Native::finishGated(Action &action) {
         return kIOReturnSuccess;
     }
     stage_ = Stage::MappedFirmwareBlocked; action.checkpoint = Checkpoint::PreparedOnly;
-    IOLog("Navi48Native: started 0.2.9 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
+    IOLog("Navi48Native: started 0.2.10 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
           snapshot.bdf, static_cast<unsigned long long>(action.dmaFacts.bytes), action.dmaFacts.pages,
           action.dmaFacts.deviceMapper ? 1u : 0u, snapshot.blockers);
     // Actual RAM allocation + IOVM generation, NOT GPU DMA qualification.
@@ -185,7 +186,7 @@ IOReturn Navi48Native::computeFinishAction(OSObject *owner, void *argument, void
 IOReturn Navi48Native::computeFinishGated(Action &action) {
     action.checkpoint = Checkpoint::ComputeFinished;
     const auto &f = action.computeFacts;
-    auto *report = OSDictionary::withCapacity(32);
+    auto *report = OSDictionary::withCapacity(36);
     bool ok = report && number(report, "SchemaVersion", 1, 32) && number(report, "Stage", f.stage, 32) &&
         number(report, "FailedStage", f.failedStage, 32) && number(report, "PreflightCheck", f.preflightCheck, 32) && number(report, "Result", f.result, 32) &&
         number(report, "HardwareTouched", f.hardwareTouched, 32) && number(report, "FirmwareLoaded", f.firmwareLoaded, 32) &&
@@ -204,6 +205,10 @@ IOReturn Navi48Native::computeFinishGated(Action &action) {
         number(report, "GCScratchAfterWrite", f.gcScratchAfterWrite, 32) &&
         number(report, "GCRb0Rptr", f.gcRb0Rptr, 32) &&
         number(report, "GCCpMeCntl", f.gcCpMeCntl, 32) && number(report, "GCCpMecCntl", f.gcCpMecCntl, 32) &&
+        number(report, "RingPhase", static_cast<uint32_t>(f.ringPhase), 32) &&
+        number(report, "RingWriteReadback", f.ringWriteReadback, 32) &&
+        number(report, "RingAfterKick", f.ringAfterKick, 32) &&
+        number(report, "RingPollFirst", f.ringPollFirst, 32) &&
         number(report, "HardwareQualificationComplete", 0, 32) && number(report, "MetalAcceleration", 0, 32) &&
         recordRwBars(report, f);
     for (unsigned variant = 0; ok && variant < 2; ++variant) {
@@ -233,10 +238,10 @@ void Navi48Native::recordBootDiagnostic(const Action &a, IOReturn result) {
     // Survives detach/free and a wrapped dmesg buffer. Best effort on OOM;
     // NEVER changes the result, authorizes accesses or retries hardware.
     if (a.checkpoint == Checkpoint::StartState) return; // reject rearm without overwriting original result
-    auto *report = OSDictionary::withCapacity(88);
+    auto *report = OSDictionary::withCapacity(96);
     if (!report) { IOLog("Navi48Native: boot diagnostic allocation failed\n"); return; }
     const auto &p = a.platformFacts; const auto &c = a.computeFacts;
-    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x000209, 32) &&
+    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x00020A, 32) &&
         number(report, "Checkpoint", static_cast<uint32_t>(a.checkpoint), 32) &&
         number(report, "StartReturn", static_cast<uint32_t>(result), 32) &&
         number(report, "ComputeRequested", a.computeRequested, 32) &&
@@ -271,6 +276,10 @@ void Navi48Native::recordBootDiagnostic(const Action &a, IOReturn result) {
         number(report, "GCScratchAfterWrite", c.gcScratchAfterWrite, 32) &&
         number(report, "GCRb0Rptr", c.gcRb0Rptr, 32) &&
         number(report, "GCCpMeCntl", c.gcCpMeCntl, 32) && number(report, "GCCpMecCntl", c.gcCpMecCntl, 32) &&
+        number(report, "RingPhase", static_cast<uint32_t>(c.ringPhase), 32) &&
+        number(report, "RingWriteReadback", c.ringWriteReadback, 32) &&
+        number(report, "RingAfterKick", c.ringAfterKick, 32) &&
+        number(report, "RingPollFirst", c.ringPollFirst, 32) &&
         recordBars(report, a.platformFacts) && recordRwBars(report, c);
     if (ok) IOService::publishResource("Navi48Native,BootDiagnostics", report); // outside gate, after cleanup
     else IOLog("Navi48Native: boot diagnostic serialization failed\n");
@@ -431,11 +440,122 @@ bool Navi48Native::willTerminate(IOService *provider, IOOptionBits options) {
     if (provider == getProvider()) invalidate();
     return IOService::willTerminate(provider, options);
 }
-IOReturn Navi48Native::newUserClient(task_t, void *, UInt32, OSDictionary *, IOUserClient **handler) {
-    if (handler) *handler = nullptr;
-    return kIOReturnUnsupported;
+namespace {
+bool shellOptIn() {
+    uint32_t shell = 0;
+    return PE_parse_boot_argn("navi48-native-shell", &shell, sizeof(shell)) && shell == 1;
 }
-IOReturn Navi48Native::newUserClient(task_t, void *, UInt32, IOUserClient **handler) {
+} // namespace
+IOReturn Navi48Native::newUserClient(task_t owningTask, void *securityToken, UInt32 type, OSDictionary *,
+                                     IOUserClient **handler) {
     if (handler) *handler = nullptr;
-    return kIOReturnUnsupported;
+    // Read-only shell: triple opt-in (compute + risk + shell) AND live
+    // GPU-holding service. Anything else is refused exactly like before.
+    if (type != 0 || !shellOptIn() || !shellAvailable()) return kIOReturnUnsupported;
+    auto *client = new Navi48Shell;
+    if (!client) return kIOReturnNoMemory;
+    if (!client->initWithTask(owningTask, securityToken, type) || !client->attach(this) ||
+        !client->start(this)) {
+        client->release();
+        if (handler) *handler = nullptr;
+        return kIOReturnNotReady;
+    }
+    if (handler) *handler = client;
+    return kIOReturnSuccess;
+}
+IOReturn Navi48Native::newUserClient(task_t owningTask, void *securityToken, UInt32 type, IOUserClient **handler) {
+    return newUserClient(owningTask, securityToken, type, nullptr, handler);
+}
+bool Navi48Native::shellAvailable() const {
+    return compute_ && compute_->hardwareTouched() && !isInactive();
+}
+struct ShellRequest {
+    uint32_t selector;
+    const uint64_t *scalarInput;
+    uint32_t scalarInputCount;
+    uint64_t *scalarOutput;
+    uint32_t *scalarOutputCount;
+    IOReturn result{kIOReturnNotReady};
+};
+IOReturn Navi48Native::shellAction(OSObject *owner, void *argument, void *, void *, void *) {
+    return static_cast<Navi48Native *>(owner)->shellGated(
+        static_cast<ShellRequest *>(argument)->selector, static_cast<ShellRequest *>(argument)->scalarInput,
+        static_cast<ShellRequest *>(argument)->scalarInputCount, static_cast<ShellRequest *>(argument)->scalarOutput,
+        *static_cast<ShellRequest *>(argument)->scalarOutputCount);
+}
+IOReturn Navi48Native::shellDispatch(uint32_t selector, const uint64_t *scalarInput, uint32_t scalarInputCount,
+                                     uint64_t *scalarOutput, uint32_t &scalarOutputCount) {
+    if (!gateAdded_ || !shellAvailable()) return kIOReturnNotReady;
+    ShellRequest request{selector, scalarInput, scalarInputCount, scalarOutput, &scalarOutputCount};
+    const IOReturn gated = gate_->runAction(shellAction, &request);
+    if (gated != kIOReturnSuccess) return gated;
+    return request.result;
+}
+IOReturn Navi48Native::shellGated(uint32_t selector, const uint64_t *scalarInput, uint32_t scalarInputCount,
+                                  uint64_t *scalarOutput, uint32_t &scalarOutputCount) {
+    // Read-only dispatch, serialized under the workloop gate. compute_ is
+    // stable: post-hardware retention keeps it alive until reboot, and stop
+    // paths set cancelStart_/inactive which we re-check here.
+    if (!shellAvailable() || !scalarOutput || scalarOutputCount < 8) return kIOReturnBadArgument;
+    n48native::ExperimentalCompute::Snapshot facts{};
+    switch (static_cast<n48native::ShellSelector>(selector)) {
+        case n48native::ShellSelector::Snapshot: {
+            if (compute_->shellSnapshot(facts)) return kIOReturnIOError;
+            scalarOutput[0] = facts.stage; scalarOutput[1] = facts.failedStage;
+            scalarOutput[2] = facts.result; scalarOutput[3] = facts.preflightCheck;
+            scalarOutput[4] = (uint64_t{facts.computePassed} << 32) | facts.lanesChecked;
+            scalarOutput[5] = (uint64_t{facts.firmwareLoaded} << 48) | (uint64_t{facts.initialized} << 32) |
+                (uint64_t{facts.hardwareTouched} << 16) | facts.lanesWrong;
+            scalarOutput[6] = (uint64_t{facts.fenceLanded[0]} << 48) | (uint64_t{facts.ibTestPassed[0]} << 32) |
+                (uint64_t{facts.fenceLanded[1]} << 16) | facts.ibTestPassed[1];
+            scalarOutput[7] = (uint64_t{static_cast<uint32_t>(facts.stage16Step)} << 32) |
+                static_cast<uint32_t>(facts.ringPhase);
+            scalarOutputCount = 8;
+            return kIOReturnSuccess;
+        }
+        case n48native::ShellSelector::ReadGcReg: {
+            if (scalarInputCount < 1) return kIOReturnBadArgument;
+            const uint32_t reg = static_cast<uint32_t>(scalarInput[0]);
+            int baseIdx = -1;
+            if (reg == 0x2040) baseIdx = 1;
+            else if (reg == 0x0F60) baseIdx = 0;
+            else if (reg == 0x0803) baseIdx = 1;
+            else if (reg == 0x2904) baseIdx = 1;
+            else return kIOReturnBadArgument; // allowlist only, never clamped
+            uint32_t value = 0;
+            const IOReturn read = compute_->shellReadGc(reg, baseIdx, value);
+            if (read) return read;
+            scalarOutput[0] = value; scalarOutputCount = 1;
+            return kIOReturnSuccess;
+        }
+        case n48native::ShellSelector::ReadMmhubReg: {
+            if (scalarInputCount < 1) return kIOReturnBadArgument;
+            const uint32_t reg = static_cast<uint32_t>(scalarInput[0]);
+            if (reg != 0x554 && reg != 0x555 && reg != 0x4c7) return kIOReturnBadArgument;
+            uint32_t value = 0;
+            const IOReturn read = compute_->shellReadMmhub(reg, value);
+            if (read) return read;
+            scalarOutput[0] = value; scalarOutputCount = 1;
+            return kIOReturnSuccess;
+        }
+        case n48native::ShellSelector::ReadBar0Word: {
+            if (scalarInputCount < 1) return kIOReturnBadArgument;
+            uint32_t value = 0;
+            const IOReturn read = compute_->shellReadBar0(scalarInput[0], value);
+            if (read) return read;
+            scalarOutput[0] = value; scalarOutputCount = 1;
+            return kIOReturnSuccess;
+        }
+        case n48native::ShellSelector::RingTestSurvey: {
+            if (compute_->shellSnapshot(facts)) return kIOReturnIOError;
+            scalarOutput[0] = facts.gcBase0; scalarOutput[1] = facts.gcBase1;
+            scalarOutput[2] = facts.gcScratchBefore; scalarOutput[3] = facts.gcScratchAfterWrite;
+            scalarOutput[4] = facts.gcRb0Rptr; scalarOutput[5] = facts.gcCpMeCntl;
+            scalarOutput[6] = facts.gcCpMecCntl; scalarOutput[7] = facts.ringTestValue;
+            scalarOutputCount = 8;
+            return kIOReturnSuccess;
+        }
+        default:
+            return kIOReturnUnsupported;
+    }
 }

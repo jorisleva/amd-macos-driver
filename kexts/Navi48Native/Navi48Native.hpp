@@ -23,6 +23,11 @@ public:
     bool willTerminate(IOService *provider, IOOptionBits options) override;
     IOReturn newUserClient(task_t, void *, UInt32, OSDictionary *, IOUserClient **) override;
     IOReturn newUserClient(task_t, void *, UInt32, IOUserClient **) override;
+    // Read-only interactive shell (Navi48Shell). Triple opt-in: compute=1 +
+    // risk=1 + shell=1. Only while holding GPU resources (post-hardware).
+    bool shellAvailable() const;
+    IOReturn shellDispatch(uint32_t selector, const uint64_t *scalarInput, uint32_t scalarInputCount,
+                           uint64_t *scalarOutput, uint32_t &scalarOutputCount);
 private:
     enum class Stage : uint32_t { Fresh, Starting, PreparingDma, Computing, TrialFinished, MappedFirmwareBlocked, Retired, Failed };
     // Stable IDs for the software-only IOResources boot diagnostic.
@@ -57,6 +62,9 @@ private:
     static IOReturn startAction(OSObject *, void *, void *, void *, void *);
     static IOReturn retireAction(OSObject *, void *, void *, void *, void *);
     static IOReturn finishAction(OSObject *, void *, void *, void *, void *);
+    static IOReturn shellAction(OSObject *, void *, void *, void *, void *);
+    IOReturn shellGated(uint32_t selector, const uint64_t *scalarInput, uint32_t scalarInputCount,
+                        uint64_t *scalarOutput, uint32_t &scalarOutputCount);
     IOReturn startGated(Action &);
     IOReturn finishGated(Action &);
     static IOReturn computeFinishAction(OSObject *, void *, void *, void *, void *);
