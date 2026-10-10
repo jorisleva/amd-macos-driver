@@ -72,10 +72,11 @@ class ProfileTests(unittest.TestCase):
         source = baseline()
         binaries = {'0.2.0': '34ce08473ac2acedd0a9094420cbd4ebf159bf48b21a0134095715cfd95809f9',
                     '0.2.1': '441140b8f86095f0bd06e7c77d61f90ae20518e0fa40171e35dd270bd49e01da',
-                    '0.2.2': '46fe9e475150d275dde9986a98591dc5acd92b20ff506b6853e35cfe0a5de62a'}
+                    '0.2.2': '46fe9e475150d275dde9986a98591dc5acd92b20ff506b6853e35cfe0a5de62a',
+                    '0.2.3': '61fc8ffc684fce66d8898db4f2b8dd7143b6dea288ecb25d7f1de613c1a4eeec'}
         # NOTE: the pinned hash is the DEPLOYED source EFI's binary (what we
         # replace), not the new build's (already pinned by VERSION + report).
-        successors = {'0.2.0': '0.2.1', '0.2.1': '0.2.2', '0.2.2': '0.2.3'}
+        successors = {'0.2.0': '0.2.1', '0.2.1': '0.2.2', '0.2.2': '0.2.3', '0.2.3': '0.2.4'}
         for version, binary in binaries.items():
             with self.subTest(version=version):
                 old = efi.make_profile(source, OFFSET, 64 * 1024 * 1024, compute=True)
@@ -158,7 +159,8 @@ class ProfileTests(unittest.TestCase):
 class BootSessionTests(unittest.TestCase):
     modules = {'0.2.0': efi.BUNDLE_ID + ' (0.2.0) AB1F0B3A-865C-33FC-BC6B-5CA0056BBF45',
                '0.2.1': efi.BUNDLE_ID + ' (0.2.1) 62893962-8984-3EE0-B636-40E33C9F073D',
-               '0.2.2': efi.BUNDLE_ID + ' (0.2.2) E88B08E7-29B2-3BF1-A836-D7270C52B6AC'}
+               '0.2.2': efi.BUNDLE_ID + ' (0.2.2) E88B08E7-29B2-3BF1-A836-D7270C52B6AC',
+               '0.2.3': efi.BUNDLE_ID + ' (0.2.3) 1E9DDB5A-0841-3DE1-9999-0D854E226E14'}
     def setUp(self):
         self.source = baseline()
         self.args = (self.source['NVRAM']['Add'][efi.GUID]['boot-args'] +
@@ -179,12 +181,12 @@ class BootSessionTests(unittest.TestCase):
         self.assertFalse(self.validate(boot_args=args, loaded='', allow_retired=False))
 
     def test_exact_retired_compute_boot_allows_only_offline_update(self):
-        for source in ('0.2.0', '0.2.1', '0.2.2'):
+        for source in ('0.2.0', '0.2.1', '0.2.2', '0.2.3'):
             with self.subTest(source=source):
                 self.assertTrue(self.validate(source))
                 with self.assertRaises(ValueError):
                     self.validate(source, allow_retired=False)
-                other = {'0.2.0': '0.2.1', '0.2.1': '0.2.2', '0.2.2': '0.2.0'}[source]
+                other = {'0.2.0': '0.2.1', '0.2.1': '0.2.2', '0.2.2': '0.2.3', '0.2.3': '0.2.0'}[source]
                 with self.assertRaises(ValueError): # a retired boot never authorizes another source
                     self.validate(other, loaded=self.modules[source])
 
