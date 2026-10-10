@@ -1,6 +1,6 @@
 # Navi48Native.kext — service PCI/DMA et essai init/compute
 
-**Sources et bundle x86_64 0.2.5 déployé sur PROBE1401**, personnalité PCI, service IOKit et points
+**Sources et bundle x86_64 0.2.6 déployé sur PROBE1401**, personnalité PCI, service IOKit et points
 kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
 calculs gfx1201 internes, avec fences et comparaison des 64 résultats. Aucun
 accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
@@ -8,8 +8,11 @@ accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
 conformes, service retiré, aucun calcul Radeon validé. **Préflight accélérateur
 passé (`AcceleratorIteratorNull=1`)**, puis refus au mapping RW BAR0 du
 compute (`FailedStage=1`, `PreflightCheck=12`, `BadArgument`).
-`HardwareTouched=0`.
-[Boot 0.2.5](../../docs/reports/2026-10-10-native-0.2.5-boot.md).
+`HardwareTouched=0`. **0.2.6 déployé/vérifié, ancienne EFI sauvegardée, non
+encore chargé** : `RWBar0Map`/`RWBar2Map`/`RWBar5Map` au champ près, mêmes
+gardes.
+[Boot 0.2.5](../../docs/reports/2026-10-10-native-0.2.5-boot.md) ·
+[déploiement 0.2.6](../../docs/reports/2026-10-10-native-rw-deployment.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
@@ -108,7 +111,7 @@ python3 -B tools/build-native-kext.py \
 python3 -B -m unittest discover -s tests/tools -v
 ```
 
-Bundle déployé : `out/native-kext/preflight-fix-0.2.5/Navi48Native.kext`.
+Bundle déployé : `out/native-kext/rw-diagnostics-0.2.6/Navi48Native.kext`.
 Anciens builds conservés dans les backups EFI de chaque remplacement.
 Le builder vérifie core/controller/source/SDK, exporte la révision Navi48
 épinglée et applique la correction PSP fail-closed déjà auditée. Les moteurs
@@ -116,7 +119,7 @@ sont renommés à la compilation, sans service/hook graphique amont. Dix
 firmwares et deux bytecodes publics sont vérifiés dans le Mach-O signé.
 Tout warning ou import non revu fait échouer le build.
 
-1 311 contrôles service/lifecycle (+3 207 contrôleur), 162 DMA, 29 pool IOVM et
+1 319 contrôles service/lifecycle (+3 207 contrôleur), 162 DMA, 29 pool IOVM et
 39 accès RAM, tous ASan/UBSan, plus 86 tests Python (dont les remplacements EFI stricts). **Les doubles ne fabriquent jamais une preuve
 positive de calcul Radeon.** Les notices amont/firmware restent dans le bundle.
 Les exports EFI privés et sorties de compilation restent hors Git.

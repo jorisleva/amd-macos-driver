@@ -6,17 +6,18 @@ L'objectif est de réutiliser la couche Metal du fork NVIDIA de NullMoth, puis d
 
 **Statut : calcul et rendu Apple AIR validés sur la RX 9070 XT sous Windows.** Les quatre shaders graphiques compilés sur Mac et traduits en SPIR-V passent les 48 cas du banc Radeon : 330 984 pixels RGBA exactement conformes, aucun écart de gardes/entrées et aucune erreur Vulkan/synchronisation. Leurs 96 fichiers RGBA sont identiques à ceux du contrôle GLSL rejoué. Le calcul Apple et le contrôle GLSL passent 36 cas chacun ; les trois rejets attendus, 15 tests Rust ciblés, 13 CTest et huit tests Python passent sous Windows. Preuves : [rapport Metal/Radeon](docs/reports/2026-10-07-metal-graphics-radeon.md). Tahoe installé démarre maintenant sur ce PC, sans accélération. Navi48Bringup est construit deux fois pour x86_64 et contrôlé statiquement ; son chargement, RADV Darwin et le rendu via Metal sous macOS restent à qualifier. Ce dossier ne fournit pas encore de pilote installable ; le fork contient toujours le pilote NVIDIA.
 
-**Dernier état natif : `Navi48Native.kext` 0.2.5 booté le 10 octobre.** Le service
+**Dernier état natif : `Navi48Native.kext` 0.2.6 sur PROBE1401, prêt pour le prochain boot.** Le service
 appelle désormais l'initialisation PSP/GMC/SMU/IMU/RLC/CP/MES/GFX puis deux
 shaders gfx1201, fences et comparaison de 64 résultats. **Premier boot observé
 le 10 octobre : module 0.2.0 réellement chargé, UUID/arguments conformes, mais
 service retiré, aucun rapport de calcul ni résultat GPU.** Capture privilégiée
 lue : buffer de boot écrasé, code de refus inconnu. Correctif **0.2.1** avec
-module 0.2.5 chargé, **préflight accélérateur passé
-(`AcceleratorIteratorNull=1`)**, puis refus au mapping RW BAR0 du compute
-(`FailedStage=1`, `PreflightCheck=12`, `BadArgument`), zéro hardware. Aucun
-calcul Radeon, init ou fence validé
-([boot 0.2.5](docs/reports/2026-10-10-native-0.2.5-boot.md)).
+boot 0.2.5 réellement lu : préflight passé, refus RW BAR0 (`PreflightCheck=12`),
+zéro hardware. **0.2.6 déployé/vérifié, ancienne EFI sauvegardée, non encore
+chargé** : diagnostic RW au champ près (`RWBar0Map`). Aucun calcul Radeon,
+init ou fence validé
+([boot 0.2.5](docs/reports/2026-10-10-native-0.2.5-boot.md) ·
+[déploiement 0.2.6](docs/reports/2026-10-10-native-rw-deployment.md)).
 Étapes matérielles 1/2 non terminées, pas de Metal/WindowServer ni API de calcul libre. Essai
 matériel explicitement risqué, ressources conservées jusqu'au reboot ; OPENCORE
 intact et ancien essai 0.1.2 sauvegardé. **Procédure actuelle :
