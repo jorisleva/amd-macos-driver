@@ -4,15 +4,12 @@
 kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
 calculs gfx1201 internes, avec fences et comparaison des 64 résultats. Aucun
 accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
-**0.2.2 est booté le 10 octobre à 13:20:56 UTC**, module/UUID/arguments
-conformes, service retiré, aucun calcul Radeon validé. **Champ rejeté identifié
-: `BAR0Map/MapCheck=3` (`DescriptorMismatch`)** ; adresse/options/longueur/
-contigu/physique/tâche BAR0 conformes, BAR2/BAR5 non atteints,
-`HardwareTouched=0`. **0.2.3 déployé/vérifié, ancienne EFI sauvegardée, non
-encore chargé** : ajoute `RereadMatch`/`DeclaredIsReread` par BAR, sans
-assouplir les gardes.
-[Boot 0.2.2](../../docs/reports/2026-10-10-native-0.2.2-boot.md) ·
-[déploiement 0.2.3](../../docs/reports/2026-10-10-native-descriptor-deployment.md).
+**0.2.3 est booté le 10 octobre à 14:02:44 UTC**, module/UUID/arguments
+conformes, service retiré, aucun calcul Radeon validé. **Scénario tranché :
+mapping partagé déclarant un autre objet** (`RereadMatch=1`,
+`DeclaredIsReread=0`) ; provider stable, autres propriétés BAR0 conformes,
+BAR2/BAR5 non atteints, `HardwareTouched=0`.
+[Boot 0.2.3](../../docs/reports/2026-10-10-native-0.2.3-boot.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
