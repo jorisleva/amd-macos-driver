@@ -1,6 +1,6 @@
 # Travail restant — Hackintosh Tahoe
 
-## Dernier état : boot 0.2.1, refus BAR0 exact, aucun calcul
+## Dernier état : 0.2.2 déployé, prochain boot au champ près
 
 **10 octobre : le bon kext est réellement chargé**, UUID et cinq arguments
 conformes. Aucun nœud/instance `Navi48Native`, aucun rapport Resources/Compute ;
@@ -8,13 +8,13 @@ deux fermetures du bail PCI par le client natif pendant le boot. Initialisation,
 fences et résultats GPU non validés. Capture `sudo dmesg` lue dans ce même
 boot : buffer de 128 Kio écrasé, aucune ligne native, refus exact inconnu.
 Correctif **0.2.1** : diagnostic IOResources destiné à survivre au retrait,
-**booté le 10 octobre à 12:31:43 UTC**, module/UUID/arguments conformes.
+**0.2.1 booté le 10 octobre à 12:31:43 UTC**, module/UUID/arguments conformes.
 **BootDiagnostics réellement lu : Checkpoint 10, `InvalidMap`, BAR0 `0x10`,
-DMA/compute non observés, `HardwareTouched=0`.** Prochaine action : isoler la
-propriété exacte du mapping BAR0 rejetée par `checkMaps()`, corriger sans
-masquer la divergence, puis remplacement revu avant un nouveau boot. Aucun
-retry/reload dans le noyau courant.
+DMA/compute non observés, `HardwareTouched=0`.** **0.2.2 déployé/vérifié**,
+ancienne EFI sauvegardée, non encore chargé. Prochaine action : F12 → PROBE1401
+→ Tahoe, relever `BAR0Map/MapCheck` et ses valeurs, sans retry/reload.
 [Boot 0.2.1](reports/2026-10-10-native-0.2.1-boot.md) ·
+[déploiement 0.2.2](reports/2026-10-10-native-mapping-deployment.md) ·
 [Boot 0.2.0](reports/2026-10-10-native-compute-boot.md) ·
 [correctif](reports/2026-10-10-native-boot-diagnostics.md) ·
 [déploiement 0.2.1](reports/2026-10-10-native-diagnostics-deployment.md).
@@ -211,8 +211,8 @@ Réglages, sauvegarde et commandes Git pour le Mac :
    retire sans rapport GPU. Le buffer privilégié est maintenant lu : messages
    de boot écrasés. Le correctif diagnostic persistant 0.2.1 est déployé,
    chargé le 10 octobre ; signature/ocvalidate/hashes vérifiés et ancienne EFI
-   sauvegardée. Le diagnostic réel est `InvalidMap` sur BAR0. Isoler le champ
-   exact rejeté, corriger sans retry/reload. Puis observer
+   sauvegardée. Le diagnostic réel est `InvalidMap` sur BAR0. **0.2.2 déployé**
+   pour nommer le champ exact au prochain boot, sans retry/reload. Puis observer
    étapes matérielles, fences et résultats Radeon selon [la procédure](NATIVE-COMPUTE-ESSAI.md).
    Référence OPENCORE intacte. Établir/qualifier ensuite console, réservations,
    géométrie/base MC, propriété GPU exclusive, HDP, DMA et puissance/restauration.

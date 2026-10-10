@@ -7,12 +7,15 @@ accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
 **0.2.1 est booté le 10 octobre à 12:31:43 UTC**, module/UUID/arguments
 conformes, service retiré, aucun calcul Radeon validé. **Diagnostic IOResources
 réellement lu : Checkpoint 10, `InvalidMap`, BAR0 `0x10`, DMA/compute non
-observés, `HardwareTouched=0`.** Le refus du boot 0.2.0 reste inconnu, son buffer
-étant écrasé.
+observés, `HardwareTouched=0`.** **0.2.2 déployé/vérifié, ancienne EFI
+sauvegardée, non encore chargé** : ajoute `BAR0Map`/`BAR2Map`/`BAR5Map` avec
+`MapCheck` et valeurs observées, sans assouplir les gardes. Le refus du boot
+0.2.0 reste inconnu, son buffer étant écrasé.
 [Boot](../../docs/reports/2026-10-10-native-compute-boot.md) ·
 [correctif diagnostic](../../docs/reports/2026-10-10-native-boot-diagnostics.md) ·
-[déploiement](../../docs/reports/2026-10-10-native-diagnostics-deployment.md) ·
-[boot 0.2.1](../../docs/reports/2026-10-10-native-0.2.1-boot.md).
+[déploiement 0.2.1](../../docs/reports/2026-10-10-native-diagnostics-deployment.md) ·
+[boot 0.2.1](../../docs/reports/2026-10-10-native-0.2.1-boot.md) ·
+[déploiement 0.2.2](../../docs/reports/2026-10-10-native-mapping-deployment.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
@@ -119,8 +122,8 @@ sont renommés à la compilation, sans service/hook graphique amont. Dix
 firmwares et deux bytecodes publics sont vérifiés dans le Mach-O signé.
 Tout warning ou import non revu fait échouer le build.
 
-419 contrôles service/lifecycle, 162 DMA, 29 pool IOVM et 39 accès RAM, tous
-ASan/UBSan, plus 86 tests Python (dont le remplacement EFI strict). **Les doubles ne fabriquent jamais une preuve
+1 041 contrôles service/lifecycle, 162 DMA, 29 pool IOVM et 39 accès RAM, tous
+ASan/UBSan, plus 86 tests Python (dont les remplacements EFI stricts). **Les doubles ne fabriquent jamais une preuve
 positive de calcul Radeon.** Les notices amont/firmware restent dans le bundle.
 Les exports EFI privés et sorties de compilation restent hors Git.
 
