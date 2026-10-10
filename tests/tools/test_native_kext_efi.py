@@ -84,10 +84,13 @@ class ProfileTests(unittest.TestCase):
         # NOTE: the pinned hash is the DEPLOYED source EFI's binary (what we
         # replace), not the new build's (already pinned by VERSION + report).
         successors = {'0.2.0': '0.2.1', '0.2.1': '0.2.2', '0.2.2': '0.2.3', '0.2.3': '0.2.4',
-                      '0.2.4': '0.2.5', '0.2.5': '0.2.6', '0.2.6': '0.2.7', '0.2.7': '0.2.8', '0.2.8': '0.2.9', '0.2.9': '0.2.10', '0.2.10': '0.2.11'}
+                      '0.2.4': '0.2.5', '0.2.5': '0.2.6', '0.2.6': '0.2.7', '0.2.7': '0.2.8',
+                      '0.2.8': '0.2.9', '0.2.9': '0.2.10', '0.2.10': '0.2.11'}
+        shells = ('0.2.10', '0.2.11')
         for version, binary in binaries.items():
             with self.subTest(version=version):
-                old = efi.make_profile(source, OFFSET, 64 * 1024 * 1024, compute=True)
+                shelled = version in shells
+                old = efi.make_profile(source, OFFSET, 64 * 1024 * 1024, compute=True, shell=shelled)
                 old['Kernel']['Add'][-1] = efi.injection_entry(compute=True, version=version)
                 key = 'OC/Kexts/Navi48Native.kext/Contents/MacOS/Navi48Native'
                 hashes = {'OC/config.plist': 'config', key: binary}
