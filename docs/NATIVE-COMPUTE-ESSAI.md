@@ -1,13 +1,12 @@
 # Essai natif 0.2.9 : initialisation, calcul Radeon et relevé GC
 
-> **PROBE1401 contient désormais 0.2.9** (copie forcée explicite depuis le
-> boot 0.2.8 conservé, fichiers seuls, tout vérifié). **Prochaine action :
-> F12 → PROBE1401 → Tahoe, puis relever version, bases GC et halts.**
-> [Déploiement](reports/2026-10-10-native-gc-deployment.md).
-> Boot 0.2.8 toujours en mémoire : `RingTest` step 5, SCRATCH illisible.
-> [Boot 0.2.8](reports/2026-10-10-native-0.2.8-boot.md).
-> **0.2.9 non encore chargé/boot testé** : relevé GC et résultats matériels
-> à observer, pas présumés. Aucun retry/reload dans le noyau courant.
+> **Boot 0.2.9 effectué le 10 octobre à 19:47:46 UTC.** Module/UUID/arguments
+> conformes, service conservé (1 instance). **Bases GC résolues, SCRATCH=0
+> avant le test, `0xFFFFFFFF` après**, autres registres lisibles : ni base
+> fausse, ni GC mort.
+> [Boot 0.2.9](reports/2026-10-10-native-0.2.9-boot.md).
+> Prochaine action : découper le ring-test avec relevés intermédiaires, sans
+> modifier l'amont. Aucun retry/reload dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -114,14 +113,15 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.9 / SHA ci-dessus**, les cinq arguments natifs.
+Vérifier module **0.2.9 / UUID 809701A2-4A08-39F7-AA30-9CE65ECE4C7B**, les cinq arguments natifs.
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Si stage 16 : relever `GCBase0`/`GCBase1`/`GCScratchBefore`/`GCScratchAfterWrite`/
-`GCRb0Rptr`/`GCCpMeCntl`/`GCCpMecCntl`. Tout GC illisible = base fausse ;
-seul SCRATCH mort = power-gate/horloges. Si la publication best effort manque,
+Le relevé GC montre : bases résolues, SCRATCH=0 avant puis `0xFFFFFFFF`
+après le test, autres registres lisibles. Ni base fausse, ni GC mort : le
+test tue l'accès. Prochaine étape : découper write/read, kick, poll. Si la
+publication best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.
 

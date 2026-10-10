@@ -5,13 +5,11 @@ personnalité PCI, service IOKit et points kmod. Le service appelle maintenant
 un chemin expérimental complet jusqu'à deux calculs gfx1201 internes, avec
 fences et comparaison des 64 résultats. Aucun accélérateur annoncé, aucun hook
 Apple/NVIDIA, aucun `UserClient` autorisé.
-**Boot 0.2.8 toujours en mémoire** (10 octobre, 19:06:44 UTC) : service
-conservé (1 instance). **Sous-étape `RingTest` (step 5),
-`RingTestValue=0xFFFFFFFF`** = SCRATCH illisible. **0.2.9 déployé par copie
-forcée explicite, ancienne EFI sauvegardée, non encore chargé** : relevé GC
-en lecture seule (bases, SCRATCH avant/après, RPTR, halts).
-[Boot 0.2.8](../../docs/reports/2026-10-10-native-0.2.8-boot.md) ·
-[déploiement 0.2.9](../../docs/reports/2026-10-10-native-gc-deployment.md).
+**Boot 0.2.9** (10 octobre, 19:47:46 UTC) : service conservé (1 instance).
+**Bases GC résolues, SCRATCH=0 avant le test, `0xFFFFFFFF` après**, autres
+registres lisibles : ni base fausse, ni GC mort — le test tue l'accès.
+Prochaine étape : découper write/read, kick, poll avec relevés.
+[Boot 0.2.9](../../docs/reports/2026-10-10-native-0.2.9-boot.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
