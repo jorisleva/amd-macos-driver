@@ -7,8 +7,8 @@
     <key>CFBundleExecutable</key><string>Navi48Native</string>
     <key>CFBundlePackageType</key><string>KEXT</string>
     <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
-    <key>CFBundleVersion</key><string>0.2.7</string>
-    <key>CFBundleShortVersionString</key><string>0.2.7</string>
+    <key>CFBundleVersion</key><string>0.2.8</string>
+    <key>CFBundleShortVersionString</key><string>0.2.8</string>
     <key>IOKitPersonalities</key>
     <dict>
         <key>Navi48Native</key>

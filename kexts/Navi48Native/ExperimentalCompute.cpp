@@ -341,12 +341,25 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
     r.cp.tmr_mec_ic = t[PSPGfxFwType::RS64_MEC]; r.cp.tmr_mec_dc0 = t[PSPGfxFwType::RS64_MEC_P0]; r.cp.tmr_mec_dc1 = t[PSPGfxFwType::RS64_MEC_P1];
     if ((kr = step(14, cp_init_full(r.dev, r.gmc, r.cp, false)))) return kr;
     if ((kr = step(15, mes_init_full(r.dev, r.psp, r.gmc, r.mes)))) return kr;
+    // Stage-16 sub-steps: record WHICH call hung before invoking it, so a
+    // Timeout names the exact operation. Ring-test proof (fetch vs memory
+    // path) is captured into the snapshot after each poll.
+    facts_.stage16Step = Stage16Step::GfxConstants;
     if ((kr = step(16, gfx_constants_init(r.dev, r.gfx)))) return kr;
+    facts_.stage16Step = Stage16Step::MqdInit;
     if ((kr = step(16, cp_gfx_mqd_init(r.dev, r.cp)))) return kr;
+    facts_.stage16Step = Stage16Step::MapKgqMes;
     if ((kr = step(16, cp_map_gfx_kgq_mes(r.dev, r.cp, r.mes)))) return kr;
+    facts_.stage16Step = Stage16Step::GfxStart;
     if ((kr = step(16, cp_gfx_start(r.dev, r.cp, false)))) return kr;
-    if ((kr = step(16, cp_ring_test_scratch(r.dev, r.cp, 1000000)))) return kr;
+    facts_.stage16Step = Stage16Step::RingTest;
+    kr = step(16, cp_ring_test_scratch(r.dev, r.cp, 1000000));
+    facts_.ringTestPassed = r.cp.ring_test_passed; facts_.fetchProven = r.cp.fetch_proven;
+    facts_.ringTestValue = r.cp.ring_test_value;
+    if (kr) return kr;
+    facts_.stage16Step = Stage16Step::EopTest;
     if ((kr = step(16, cp_submit_eop_test(r.dev, r.cp, 2000000, nullptr)))) return kr;
+    facts_.stage16Step = Stage16Step::Done;
     facts_.initialized = true;
     for (unsigned variant = 0; variant < 2; ++variant) {
         ComputeTestResult result{};
