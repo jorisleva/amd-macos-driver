@@ -152,8 +152,11 @@ def validate_boot_session(baseline, boot_args, loaded, allow_retired=False,
         return False
     require(allow_retired, 'Return to the reference boot before changing the trial EFI')
     require(retired_source in RETIRED_BOOT_MODULES, 'Unreviewed retired boot source')
+    # 0.2.10+ boots carry the triple opt-in shell arg; earlier ones do not.
+    # The expected args must match the reviewed profile of THAT version.
+    shell_expected = retired_source in ('0.2.10', '0.2.11')
     expected_args = (baseline['NVRAM']['Add'][GUID]['boot-args'] +
-                     boot_delta(0x4000000, 0x4000000, compute=True)).split()
+                     boot_delta(0x4000000, 0x4000000, compute=True, shell=shell_expected)).split()
     modules = re.findall(re.escape(BUNDLE_ID) + r'\s+\(([^)]+)\)\s+([0-9A-Fa-f-]+)', loaded)
     require(boot_args == expected_args and modules == [RETIRED_BOOT_MODULES[retired_source]] and
             not any(name in loaded for name in experimental[1:]),

@@ -195,6 +195,10 @@ class BootSessionTests(unittest.TestCase):
         self.loaded = self.modules['0.2.0']
 
     def validate(self, source='0.2.0', **kw):
+        # 0.2.10+ boots carry navi48-native-shell=1 (triple opt-in).
+        if 'boot_args' not in kw and source in ('0.2.10', '0.2.11'):
+            kw['boot_args'] = (self.source['NVRAM']['Add'][efi.GUID]['boot-args'] +
+                               efi.boot_delta(OFFSET, 64 * 1024 * 1024, compute=True, shell=True)).split()
         parameters = {'baseline': self.source, 'boot_args': self.args,
                       'allow_retired': True, 'native_service': '', 'native_instances': 0,
                       'retired_source': source}
