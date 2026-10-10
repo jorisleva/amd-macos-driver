@@ -3,9 +3,12 @@
 > **Premier boot effectué le 10 octobre :** module 0.2.0 chargé, UUID/arguments
 > conformes, mais service retiré, pas de rapport compute ni résultat Radeon
 > validé. [Rapport du boot](reports/2026-10-10-native-compute-boot.md).
-> **Prochaine action : récupérer le code de refus dans dmesg, pas redémarrer ou
-> recharger le kext avant diagnostic.** Les étapes ci-dessous sont le protocole
-> de l'essai, pas des opérations déjà réussies.
+> **Suite : capture privilégiée lue, messages du boot écrasés.** Refus exact
+> inconnu. Correctif diagnostic **0.2.1** compilé/testé hors ligne, **non chargé
+> et non déployé** ([rapport et décodage](reports/2026-10-10-native-boot-diagnostics.md)).
+> Revoir/sauvegarder la mise à jour USB avant un futur boot diagnostic ; aucun
+> reload/retry dans le noyau courant. Ce document décrit le profil 0.2.0 encore
+> présent sur PROBE1401, pas des opérations matérielles déjà réussies.
 
 ## Ce qui change
 
@@ -149,11 +152,15 @@ python3 -B tools/build-native-kext.py \
   --output out/native-kext/<repertoire-neuf>
 python3 -B -m unittest discover -s tests/tools -v
 python3 -B tools/prepare-native-kext-efi.py \
-  --build out/native-kext/compute-trial-0.2.0 \
+  --build out/native-kext/boot-diagnostics-0.2.1-final \
   --output out/efi-native/native-compute-<repertoire-neuf> \
   --candidate-offset 0x4000000 --candidate-bytes 0x4000000 \
   --experimental-compute
 ```
+
+Les sources actuelles produisent **0.2.1**, non déployé ; l'exemple prépare
+seulement une nouvelle EFI locale. Il ne doit pas être suivi d'un boot de la
+clé 0.2.0 en pensant lire le nouveau diagnostic.
 
 Le déploiement est distinct : `--deploy-probe1401 --replace-native-0.1.2` ne peut
 remplacer que le profil 0.1.2/hashes précédemment revus. Après remplacement, le

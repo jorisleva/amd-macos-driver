@@ -10,9 +10,11 @@ L'objectif est de réutiliser la couche Metal du fork NVIDIA de NullMoth, puis d
 appelle désormais l'initialisation PSP/GMC/SMU/IMU/RLC/CP/MES/GFX puis deux
 shaders gfx1201, fences et comparaison de 64 résultats. **Premier boot observé
 le 10 octobre : module 0.2.0 réellement chargé, UUID/arguments conformes, mais
-service retiré, aucun rapport de calcul ni résultat GPU.** Code de refus précis
-à relever dans le buffer noyau privilégié ; étapes matérielles 1/2 non terminées,
-pas de Metal/WindowServer ni API de calcul libre. Essai
+service retiré, aucun rapport de calcul ni résultat GPU.** Capture privilégiée
+lue : buffer de boot écrasé, code de refus inconnu. Correctif **0.2.1** avec
+diagnostic persistant IOResources compilé/testé hors ligne, **non chargé/non
+déployé** ([rapport](docs/reports/2026-10-10-native-boot-diagnostics.md)).
+Étapes matérielles 1/2 non terminées, pas de Metal/WindowServer ni API de calcul libre. Essai
 matériel explicitement risqué, ressources conservées jusqu'au reboot ; OPENCORE
 intact et ancien essai 0.1.2 sauvegardé. **Procédure actuelle :
 [essai initialisation/calcul 0.2.0](docs/NATIVE-COMPUTE-ESSAI.md)** ·

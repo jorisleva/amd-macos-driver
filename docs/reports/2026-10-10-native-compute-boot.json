@@ -63,5 +63,16 @@
   "hot_load_or_system_install_performed": false,
   "security_or_nvram_changed": false,
   "reboot_performed_by_agent": false,
-  "next_action": "User captures sudo dmesg to /tmp/navi48-native-dmesg.txt in same boot; inspect exact refusal, no reload/retry"
+  "dmesg_user_capture_read": true,
+  "dmesg_capture_bytes": 131071,
+  "dmesg_capture_lines": 135,
+  "dmesg_earliest_timestamp_seconds_since_boot": 742.730521,
+  "dmesg_latest_timestamp_seconds_since_boot": 777.569067,
+  "dmesg_boot_messages_overwritten": true,
+  "dmesg_native_messages": 0,
+  "dmesg_sha256": "3ab94bc30321cc89db4e7ad2a7eeb94d4c637cb90bc1c6f1623e68f8388eb199",
+  "offline_diagnostic_fix_version": "0.2.1",
+  "diagnostic_fix_deployed": false,
+  "diagnostic_fix_loaded": false,
+  "next_action": "Review verified/backed-up 0.2.0 to 0.2.1 EFI replacement before a planned diagnostic boot; no hot reload/retry"
 }

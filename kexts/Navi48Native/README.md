@@ -1,12 +1,15 @@
 # Navi48Native.kext — service PCI/DMA et essai init/compute
 
-**Vrai bundle noyau x86_64 0.2.0**, personnalité PCI, service IOKit et points
+**Sources et bundle hors ligne x86_64 0.2.1**, personnalité PCI, service IOKit et points
 kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
 calculs gfx1201 internes, avec fences et comparaison des 64 résultats. Aucun
 accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
-**Compilé/signé/déployé sur PROBE1401 ; premier chargement noyau observé le
-10 octobre, mais service retiré, aucun calcul Radeon validé.**
-[Rapport et diagnostic à récupérer](../../docs/reports/2026-10-10-native-compute-boot.md).
+**0.2.0 demeure sur PROBE1401 et chargé dans le noyau** : premier boot le
+10 octobre, service retiré, aucun calcul Radeon validé. Buffer privilégié lu
+mais messages du boot écrasés. **0.2.1 ajoute le diagnostic IOResources,
+compilé/signé/testé, non déployé/non chargé.**
+[Boot](../../docs/reports/2026-10-10-native-compute-boot.md) ·
+[correctif diagnostic](../../docs/reports/2026-10-10-native-boot-diagnostics.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
@@ -69,6 +72,19 @@ fences et premiers résultats de chaque shader. La réussite exige deux fences,
 deux tests IB et 64 comparaisons sans erreur ; `HardwareTouched` seul ne suffit
 pas. Qualification globale et Metal restent zéro, même après un calcul passé.
 
+## Diagnostic de refus conservé (0.2.1)
+
+`Navi48Native,BootDiagnostics`, schéma 1, est publié dans IOResources hors
+command gate, uniquement avec des objets valeur génériques. Aucune référence
+au service/provider/mapping/DMA retenue par le rapport. Il est destiné à
+survivre au refus de start/détachement/free et au buffer dmesg écrasé. Best
+effort en cas d'OOM ; dernière publication, pas historique. Persistance testée
+sur doubles IOKit, pas encore observée sur le vrai noyau. Aucun garde contourné,
+aucun hardware/résultat inventé. Lire `PlatformObserved`, `DMAObserved` et
+`ComputeObserved` avant d'interpréter leurs champs. Checkpoint, décision
+plateforme/BAR, IOReturn DMA et `PreflightCheck` localisent le refus.
+[Décodage](../../docs/reports/2026-10-10-native-boot-diagnostics.md).
+
 ## Activation explicite
 
 Le socle exige `navi48-native-platform=1`, scratch offset aligné 64 Kio et
@@ -93,14 +109,15 @@ python3 -B -m unittest discover -s tests/tools -v
 ```
 
 Bundle déployé : `out/native-kext/compute-trial-0.2.0/Navi48Native.kext`.
+Correctif hors ligne : `out/native-kext/boot-diagnostics-0.2.1-final/Navi48Native.kext`.
 Le builder vérifie core/controller/source/SDK, exporte la révision Navi48
 épinglée et applique la correction PSP fail-closed déjà auditée. Les moteurs
 sont renommés à la compilation, sans service/hook graphique amont. Dix
 firmwares et deux bytecodes publics sont vérifiés dans le Mach-O signé.
 Tout warning ou import non revu fait échouer le build.
 
-321 contrôles service/lifecycle, 162 DMA, 29 pool IOVM et 39 accès RAM, tous
-ASan/UBSan, plus 78 tests Python. **Les doubles ne fabriquent jamais une preuve
+419 contrôles service/lifecycle, 162 DMA, 29 pool IOVM et 39 accès RAM, tous
+ASan/UBSan, plus 80 tests Python. **Les doubles ne fabriquent jamais une preuve
 positive de calcul Radeon.** Les notices amont/firmware restent dans le bundle.
 Les exports EFI privés et sorties de compilation restent hors Git.
 

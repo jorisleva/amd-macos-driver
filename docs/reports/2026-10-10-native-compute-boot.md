@@ -14,8 +14,8 @@ retrait. Cela ne confirme ni une acquisition complète des mappings, ni la
 préparation DMA, ni l'exécution de l'orchestration firmware.
 
 **Initialisation GPU, fences et résultats Radeon : non validés. Étapes
-matérielles 1/2 : non terminées.** Le code de refus exact n'est pas accessible
-avec les permissions actuelles ; ne pas attribuer cet échec à PSP, au mapper,
+matérielles 1/2 : non terminées.** Le code de refus exact reste inconnu : la capture privilégiée ultérieure ne
+contient plus les messages du boot ; ne pas attribuer cet échec à PSP, au mapper,
 à la console ou à un BAR précis sans le journal correspondant.
 
 ## Relevé du vrai noyau
@@ -79,6 +79,22 @@ Ne jamais demander le mot de passe dans la conversation. Lire ensuite le
 fichier et relever le code/ligne de refus. Si le buffer de boot a été écrasé,
 il faudra rendre le diagnostic de refus persistant avant un essai suivant,
 plutôt que relancer aveuglément l'initialisation dans cette session.
+
+### Suite après capture utilisateur (même boot)
+
+L'utilisateur a exécuté la capture privilégiée ci-dessus. Le fichier de
+**131 071 octets / 135 lignes** commence au milieu d'un message et couvre
+742,730521–777,569067 secondes après le boot : **buffer de 128 Kio écrasé,
+aucune ligne native**. Code de refus/phase toujours inconnus. Les erreurs
+XProtect et IOVersatileHDCPClient restantes ne démontrent pas un défaut natif.
+
+Un correctif **0.2.1** conserve désormais un diagnostic de refus dans
+IOResources, sans référence au service/provider ; compilé et testé **hors
+ligne, non chargé et non déployé**. Il ne récupère pas ce boot rétroactivement.
+[Capture, correctif et procédure suivante](2026-10-10-native-boot-diagnostics.md).
+Les preuves originales ci-dessous sont conservées ; le buffer supplémentaire
+reste privé dans `dmesg-followup/`, SHA-256
+`3ab94bc30321cc89db4e7ad2a7eeb94d4c637cb90bc1c6f1623e68f8388eb199`.
 
 ## Préservation et preuves
 
