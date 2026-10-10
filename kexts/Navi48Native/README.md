@@ -4,18 +4,18 @@
 kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
 calculs gfx1201 internes, avec fences et comparaison des 64 résultats. Aucun
 accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
-**0.2.1 est booté le 10 octobre à 12:31:43 UTC**, module/UUID/arguments
-conformes, service retiré, aucun calcul Radeon validé. **Diagnostic IOResources
-réellement lu : Checkpoint 10, `InvalidMap`, BAR0 `0x10`, DMA/compute non
-observés, `HardwareTouched=0`.** **0.2.2 déployé/vérifié, ancienne EFI
-sauvegardée, non encore chargé** : ajoute `BAR0Map`/`BAR2Map`/`BAR5Map` avec
-`MapCheck` et valeurs observées, sans assouplir les gardes. Le refus du boot
-0.2.0 reste inconnu, son buffer étant écrasé.
+**0.2.2 est booté le 10 octobre à 13:20:56 UTC**, module/UUID/arguments
+conformes, service retiré, aucun calcul Radeon validé. **Champ rejeté identifié
+: `BAR0Map/MapCheck=3` (`DescriptorMismatch`)** ; adresse/options/longueur/
+contigu/physique/tâche BAR0 conformes, BAR2/BAR5 non atteints,
+`HardwareTouched=0`. Le refus du boot 0.2.0 reste inconnu, son buffer étant
+écrasé ; le boot 0.2.1 avait donné `InvalidMap` BAR0 sans détail.
 [Boot](../../docs/reports/2026-10-10-native-compute-boot.md) ·
 [correctif diagnostic](../../docs/reports/2026-10-10-native-boot-diagnostics.md) ·
 [déploiement 0.2.1](../../docs/reports/2026-10-10-native-diagnostics-deployment.md) ·
 [boot 0.2.1](../../docs/reports/2026-10-10-native-0.2.1-boot.md) ·
-[déploiement 0.2.2](../../docs/reports/2026-10-10-native-mapping-deployment.md).
+[déploiement 0.2.2](../../docs/reports/2026-10-10-native-mapping-deployment.md) ·
+[boot 0.2.2](../../docs/reports/2026-10-10-native-0.2.2-boot.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·

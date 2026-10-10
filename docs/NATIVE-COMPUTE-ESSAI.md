@@ -1,13 +1,11 @@
 # Essai natif 0.2.2 : initialisation, calcul Radeon et diagnostic au champ près
 
-> **PROBE1401 contient désormais 0.2.2**, vérifié/signé/ocvalidate conforme,
-> ancienne EFI 0.2.1 sauvegardée. **Prochaine action : F12 → PROBE1401 → Tahoe,
-> puis relever version et `BAR0Map/MapCheck`.** [Déploiement](reports/2026-10-10-native-mapping-deployment.md).
-> Le noyau courant reste en **0.2.1**, service retiré, sans résultat Radeon ;
-> son diagnostic est `InvalidMap` BAR0 `0x10`, DMA/compute non observés.
-> [Boot 0.2.1](reports/2026-10-10-native-0.2.1-boot.md).
-> **0.2.2 non encore chargé/boot testé** : champ exact et résultats matériels
-> à observer, pas présumés. Aucun retry/reload dans le noyau courant.
+> **Boot 0.2.2 effectué le 10 octobre à 13:20:56 UTC.** Module/UUID/arguments
+> conformes. **Champ rejeté identifié : `BAR0Map/MapCheck=3`
+> (`DescriptorMismatch`), autres propriétés BAR0 conformes, aucun hardware.**
+> [Boot 0.2.2](reports/2026-10-10-native-0.2.2-boot.md).
+> Prochaine action : comparer les identités d'objets descripteur, sans
+> assouplir les gardes. Aucun retry/reload dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
