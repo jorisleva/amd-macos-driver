@@ -94,6 +94,7 @@ PREVIOUS_COMPUTE_TRIALS = {
     '0.2.1': ('0.2.2', '441140b8f86095f0bd06e7c77d61f90ae20518e0fa40171e35dd270bd49e01da'),
     '0.2.2': ('0.2.3', '46fe9e475150d275dde9986a98591dc5acd92b20ff506b6853e35cfe0a5de62a'),
     '0.2.3': ('0.2.4', '61fc8ffc684fce66d8898db4f2b8dd7143b6dea288ecb25d7f1de613c1a4eeec'),
+    '0.2.4': ('0.2.5', '9fe464d7cffac6c0cdd2b7dcf77244cad96d05d1c726b2059f8fc0fead2bef9e'),
 }
 def validate_previous_compute_trial(baseline, profile, current, reviewed, expected_version):
     """Only an already deployed, hashed 64+64 MiB compute trial may be replaced."""
@@ -115,6 +116,7 @@ RETIRED_BOOT_MODULES = {
     '0.2.1': ('0.2.1', '62893962-8984-3EE0-B636-40E33C9F073D'),
     '0.2.2': ('0.2.2', 'E88B08E7-29B2-3BF1-A836-D7270C52B6AC'),
     '0.2.3': ('0.2.3', '1E9DDB5A-0841-3DE1-9999-0D854E226E14'),
+    '0.2.4': ('0.2.4', '4F894D5F-FDC9-384C-8688-C6B4BAA68674'),
 }
 def validate_boot_session(baseline, boot_args, loaded, allow_retired=False,
                           native_service='', native_instances=None, retired_source=None):
@@ -198,10 +200,11 @@ def main():
     replacements.add_argument('--replace-native-0.2.1', dest='replace_native_0_2_1', action='store_true', help='Replace ONLY the reviewed diagnostic 0.2.1 EFI with field-level 0.2.2; permits offline copy from its exact retired boot')
     replacements.add_argument('--replace-native-0.2.2', dest='replace_native_0_2_2', action='store_true', help='Replace ONLY the reviewed field-level 0.2.2 EFI with descriptor-identity 0.2.3; permits offline copy from its exact retired boot')
     replacements.add_argument('--replace-native-0.2.3', dest='replace_native_0_2_3', action='store_true', help='Replace ONLY the reviewed descriptor-identity 0.2.3 EFI with declared-adoption 0.2.4; permits offline copy from its exact retired boot')
+    replacements.add_argument('--replace-native-0.2.4', dest='replace_native_0_2_4', action='store_true', help='Replace ONLY the reviewed declared-adoption 0.2.4 EFI with accelerator-preflight 0.2.5; permits offline copy from its exact retired boot')
     args = parser.parse_args()
     require(sys.platform == 'darwin', 'macOS is required')
     require(not (args.replace_native_0_1_2 or args.replace_native_0_2_0 or args.replace_native_0_2_1 or
-                 args.replace_native_0_2_2 or args.replace_native_0_2_3) or
+                 args.replace_native_0_2_2 or args.replace_native_0_2_3 or args.replace_native_0_2_4) or
             (args.deploy_probe1401 and args.experimental_compute),
             'Replacing a native trial requires explicit compute deployment')
     if args.replace_native_0_2_0:
@@ -215,7 +218,10 @@ def main():
                 'The reviewed 0.2.2 replacement is restricted to descriptor-identity 0.2.3 with unchanged 64+64 MiB scratch')
     if args.replace_native_0_2_3:
         require(VERSION == '0.2.4' and args.candidate_offset == 0x4000000 and args.candidate_bytes == 0x4000000,
-                'The reviewed 0.2.2 replacement is restricted to descriptor-identity 0.2.3 with unchanged 64+64 MiB scratch')
+                'The reviewed 0.2.3 replacement is restricted to declared-adoption 0.2.4 with unchanged 64+64 MiB scratch')
+    if args.replace_native_0_2_4:
+        require(VERSION == '0.2.5' and args.candidate_offset == 0x4000000 and args.candidate_bytes == 0x4000000,
+                'The reviewed 0.2.4 replacement is restricted to accelerator-preflight 0.2.5 with unchanged 64+64 MiB scratch')
     destination, build = local_output(ROOT, args.output), local_output(ROOT, args.build)
     require(not destination.exists(), 'Choose a fresh output directory')
     require(subprocess.check_output(['uname', '-m'], text=True).strip() == 'x86_64' and
@@ -230,7 +236,8 @@ def main():
     native_service, native_instances = '', None
     retired_source = ('0.2.0' if args.replace_native_0_2_0 else
                       '0.2.1' if args.replace_native_0_2_1 else
-                      '0.2.2' if args.replace_native_0_2_2 else ('0.2.3' if args.replace_native_0_2_3 else None))
+                      '0.2.2' if args.replace_native_0_2_2 else
+                      '0.2.3' if args.replace_native_0_2_3 else ('0.2.4' if args.replace_native_0_2_4 else None))
     if retired_source is not None:
         native_service = subprocess.check_output(['ioreg', '-r', '-c', PRODUCT, '-l', '-w', '0'], text=True)
         diagnostics = plistlib.loads(subprocess.check_output(['ioreg', '-l', '-d', '1', '-a']))
@@ -259,14 +266,16 @@ def main():
                     'ce1f4e39a2795bdabd3789fb8d632fdac3ed3209deab851f30429ca418696e23',
                     'Native 0.1.2 EFI differs from the previously reviewed deployment')
             expected_kexts = helpers.BASE_KEXTS | {'Navi48Native.kext'}
-        elif args.replace_native_0_2_0 or args.replace_native_0_2_1 or args.replace_native_0_2_2 or args.replace_native_0_2_3:
+        elif args.replace_native_0_2_0 or args.replace_native_0_2_1 or args.replace_native_0_2_2 or args.replace_native_0_2_3 or args.replace_native_0_2_4:
             retired = ('0.2.0' if args.replace_native_0_2_0 else
                        '0.2.1' if args.replace_native_0_2_1 else
-                       '0.2.2' if args.replace_native_0_2_2 else '0.2.3')
+                       '0.2.2' if args.replace_native_0_2_2 else
+                       '0.2.3' if args.replace_native_0_2_3 else '0.2.4')
             previous = ROOT / {'0.2.0': 'out/efi-native/native-0.2.0-compute-trial',
                                '0.2.1': 'out/efi-native/native-0.2.1-diagnostics-trial',
                                '0.2.2': 'out/efi-native/native-0.2.2-mapping-trial',
-                               '0.2.3': 'out/efi-native/native-0.2.3-descriptor-trial'}[retired]
+                               '0.2.3': 'out/efi-native/native-0.2.3-descriptor-trial',
+                               '0.2.4': 'out/efi-native/native-0.2.4-adoption-trial'}[retired]
             require(initial == json.loads((previous / 'reference-hashes.json').read_text()),
                     'Reference differs from the reviewed ' + retired + ' deployment')
             validate_previous_compute_trial(baseline, trial_config, current,
@@ -287,7 +296,7 @@ def main():
         require(report['experimental_compute']['called_by_service'] is True and
                 report['experimental_compute']['io_vm_per_page'] is True and
                 report['compute_shaders_verified_in_kext'] == 2, 'Missing native compute path/shaders')
-    if args.replace_native_0_2_0 or args.replace_native_0_2_1 or args.replace_native_0_2_2 or args.replace_native_0_2_3:
+    if args.replace_native_0_2_0 or args.replace_native_0_2_1 or args.replace_native_0_2_2 or args.replace_native_0_2_3 or args.replace_native_0_2_4:
         require(report.get('boot_diagnostics', {}).get('resource') == 'Navi48Native,BootDiagnostics' and
                 report.get('symbol_audit', {}).get('boot_diagnostic_publisher_linked') is True,
                 'Missing reviewed persistent diagnostic publisher')
@@ -350,6 +359,7 @@ def main():
               'native_0_2_1_replacement_acknowledged': args.replace_native_0_2_1,
               'native_0_2_2_replacement_acknowledged': args.replace_native_0_2_2,
               'native_0_2_3_replacement_acknowledged': args.replace_native_0_2_3,
+              'native_0_2_4_replacement_acknowledged': args.replace_native_0_2_4,
               'prepared_from_reviewed_retired_boot': retired_boot,
               'retired_source_version': retired_source if retired_boot else None,
               'running_native_version_during_update': retired_source if retired_boot else None,
