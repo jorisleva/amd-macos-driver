@@ -1,6 +1,6 @@
 # Travail restant — Hackintosh Tahoe
 
-## Dernier état : boot 0.2.3, mapping partagé confirmé, aucun hardware
+## Dernier état : 0.2.4 déployé (voie 1), prochain boot décisif
 
 **10 octobre : le bon kext est réellement chargé**, UUID et cinq arguments
 conformes. Aucun nœud/instance `Navi48Native`, aucun rapport Resources/Compute ;
@@ -8,13 +8,13 @@ deux fermetures du bail PCI par le client natif pendant le boot. Initialisation,
 fences et résultats GPU non validés. Capture `sudo dmesg` lue dans ce même
 boot : buffer de 128 Kio écrasé, aucune ligne native, refus exact inconnu.
 Correctif **0.2.1** : diagnostic IOResources destiné à survivre au retrait,
-**0.2.3 booté le 10 octobre à 14:02:44 UTC**, module/UUID/arguments conformes.
-**Scénario tranché : mapping partagé déclarant un autre objet**
-(`RereadMatch=1, DeclaredIsReread=0`), provider stable, `HardwareTouched=0`.
-Prochaine action : adopter l'objet déclaré avec revalidation complète ou
-changer de méthode d'acquisition, sans retry/reload dans le noyau courant.
+**0.2.3 booté le 10 octobre à 14:02:44 UTC** : mapping partagé déclarant un
+autre objet, provider stable, `HardwareTouched=0`. **0.2.4 déployé/vérifié**,
+ancienne EFI sauvegardée, non encore chargé : voie 1 (adoption après
+revalidation totale, `DescriptorOrigin`). Prochaine action : F12 → PROBE1401
+→ Tahoe, relever `DescriptorOrigin` et les rapports, sans retry/reload.
 [Boot 0.2.3](reports/2026-10-10-native-0.2.3-boot.md) ·
-[Boot 0.2.2](reports/2026-10-10-native-0.2.2-boot.md) ·
+[déploiement 0.2.4](reports/2026-10-10-native-adoption-deployment.md) ·
 [Boot 0.2.0](reports/2026-10-10-native-compute-boot.md) ·
 [correctif](reports/2026-10-10-native-boot-diagnostics.md) ·
 [déploiement 0.2.1](reports/2026-10-10-native-diagnostics-deployment.md).
