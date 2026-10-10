@@ -271,6 +271,8 @@ def main():
     if args.replace_native_0_2_9:
         require(VERSION == '0.2.10' and args.candidate_offset == 0x4000000 and args.candidate_bytes == 0x4000000,
                 'The reviewed 0.2.9 replacement is restricted to shell+phases 0.2.10 with unchanged 64+64 MiB scratch')
+        require(args.read_only_shell,
+                'The reviewed 0.2.9 replacement requires --read-only-shell (triple opt-in boot-arg)')
     destination, build = local_output(ROOT, args.output), local_output(ROOT, args.build)
     require(not destination.exists(), 'Choose a fresh output directory')
     require(subprocess.check_output(['uname', '-m'], text=True).strip() == 'x86_64' and
@@ -303,7 +305,12 @@ def main():
     retired_boot = validate_boot_session(baseline, current_args, loaded, retired_source is not None,
                                          native_service, native_instances, retired_source,
                                          allow_retained=allow_retained_copy)
-    profile = make_profile(baseline, args.candidate_offset, args.candidate_bytes, args.experimental_compute)
+    require(not args.read_only_shell or args.experimental_compute,
+            'Read-only shell requires the explicit compute trial')
+    require(not args.read_only_shell or VERSION == '0.2.10',
+            'Read-only shell is only reviewed for 0.2.10')
+    profile = make_profile(baseline, args.candidate_offset, args.candidate_bytes,
+                           args.experimental_compute, args.read_only_shell)
     require({p.name for p in (REFERENCE / 'OC/Kexts').iterdir() if p.is_dir()} == helpers.BASE_KEXTS,
             'Unexpected reference kext directory')
     current = None
@@ -402,7 +409,8 @@ def main():
 
     def validate(path):
         validate_profile(baseline, plistlib.loads((path / 'OC/config.plist').read_bytes()),
-                         args.candidate_offset, args.candidate_bytes, args.experimental_compute)
+                         args.candidate_offset, args.candidate_bytes, args.experimental_compute,
+                         VERSION, args.read_only_shell)
         label = path.parent.name + '-' + path.name
         command([validator, path / 'OC/config.plist'], logs / ('ocvalidate-' + label + '.log'))
         command(['codesign', '--verify', '--strict', path / 'OC/Kexts' / artifact.name],

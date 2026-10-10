@@ -1,6 +1,6 @@
 # Travail restant — Hackintosh Tahoe
 
-## Dernier état : boot 0.2.9, SCRATCH tué pendant le test, GC vivant
+## Dernier état : 0.2.10 déployé (shell + phases), prochain boot interactif
 
 **10 octobre : le bon kext est réellement chargé**, UUID et cinq arguments
 conformes. Aucun nœud/instance `Navi48Native`, aucun rapport Resources/Compute ;
@@ -8,13 +8,13 @@ deux fermetures du bail PCI par le client natif pendant le boot. Initialisation,
 fences et résultats GPU non validés. Capture `sudo dmesg` lue dans ce même
 boot : buffer de 128 Kio écrasé, aucune ligne native, refus exact inconnu.
 Correctif **0.2.1** : diagnostic IOResources destiné à survivre au retrait,
-**0.2.9 booté le 10 octobre à 19:47:46 UTC** : service conservé (1 instance),
-bases GC résolues, SCRATCH=0 avant le test, `0xFFFFFFFF` après, autres
-registres GC lisibles. Ni base fausse, ni GC mort : le test tue l'accès.
-Prochaine action : découper le ring-test (write/read, kick, poll) avec
-relevés intermédiaires, sans modifier l'amont ni retry/reload.
+**0.2.9 toujours en mémoire** (service + GPU tenus) : SCRATCH tué pendant
+le test, GC vivant. **0.2.10 déployé par copie forcée explicite** (fichiers
+seuls, tout vérifié) : phases ring-test + shell lecture seule (triple
+opt-in), non encore chargé. Prochaine action : F12 → PROBE1401 → Tahoe,
+puis interagir via le shell au lieu de rebooter.
 [Boot 0.2.9](reports/2026-10-10-native-0.2.9-boot.md) ·
-[Boot 0.2.8](reports/2026-10-10-native-0.2.8-boot.md) ·
+[déploiement 0.2.10](reports/2026-10-10-native-shell-deployment.md) ·
 [Boot 0.2.0](reports/2026-10-10-native-compute-boot.md) ·
 [correctif](reports/2026-10-10-native-boot-diagnostics.md) ·
 [déploiement 0.2.1](reports/2026-10-10-native-diagnostics-deployment.md).
