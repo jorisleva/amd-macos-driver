@@ -1,11 +1,12 @@
-# Essai natif 0.2.6 : initialisation, calcul Radeon et diagnostic RW
+# Essai natif 0.2.7 : initialisation, calcul Radeon et adoption RW
 
-> **Boot 0.2.6 effectué le 10 octobre à 15:09:46 UTC.** Module/UUID/arguments
-> conformes. **Champ RW nommé : `RWBar0Map/MapCheck=3` (`DescriptorMismatch`)**,
-> même scénario que le RO (partage, provider stable), aucun hardware.
+> **PROBE1401 contient désormais 0.2.7**, vérifié/signé/ocvalidate conforme,
+> ancienne EFI 0.2.6 sauvegardée. **Prochaine action : F12 → PROBE1401 → Tahoe,
+> puis relever version, `Origin` et rapports.** [Déploiement](reports/2026-10-10-native-rw-adoption-deployment.md).
+> Le noyau courant reste en **0.2.6**, refus RW nommé, sans résultat Radeon.
 > [Boot 0.2.6](reports/2026-10-10-native-0.2.6-boot.md).
-> Prochaine action : porter l'adoption voie 1 au chemin RW, sans assouplir
-> les gardes. Aucun retry/reload dans le noyau courant.
+> **0.2.7 non encore chargé/boot testé** : adoption RW et résultats matériels
+> à observer, pas présumés. Aucun retry/reload dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -61,12 +62,12 @@ ne bloque pas la veille forcée : **ne pas mettre cette session en veille**.
 
 ## Bundle déployé pour le prochain boot
 
-- Produit : `out/native-kext/rw-diagnostics-0.2.6/Navi48Native.kext`, x86_64.
+- Produit : `out/native-kext/rw-adoption-0.2.7/Navi48Native.kext`, x86_64.
 - Exécutable SHA-256 :
-  `efcf2e8f823c3be7485a536f6819bfe10cf686d243b207bcacb8c7a361da67c0`.
+  `2409a00710dd276ff8c19848e568fca04f0793326294ef9da70af8a6f116ec37`.
 - Dix firmwares et deux shaders vérifiés dans le Mach-O ; signature ad hoc
   stricte ; zéro avertissement. **Cela ne valide pas la liaison/ABI/charge noyau.**
-- 3 207 contrôles contrôleur, 1 319 service/lifecycle, 162 adaptateur DMA,
+- 3 207 contrôles contrôleur, 1 323 service/lifecycle, 162 adaptateur DMA,
   29 pool IOVM et 39 accès bornés, sur RAM/doubles IOKit avec ASan/UBSan ;
   pas une simulation réussie de shader Radeon. 86 tests Python sur
   outils/profils/remplacements, sans accès GPU.
@@ -111,13 +112,14 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.6 / UUID BAD9777A-7C72-338A-A6B8-01FA4A3D28C3**, les cinq arguments natifs.
+Vérifier module **0.2.7 / SHA ci-dessus**, les cinq arguments natifs.
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Le refus RW actuel est **`RWBar0Map/MapCheck=3`** (partage confirmé,
-`RereadMatch=1, DeclaredIsReread=0`). Si la publication best effort manque,
+Si adoption RW réussie (`Origin=1`), exiger les rapports Resources/Compute
+avec les critères du protocole. Si refus, relever `MapCheck`/`Origin` et les
+valeurs. Si la publication best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.
 
@@ -177,13 +179,13 @@ Les sources produisent **0.2.3**, maintenant déployé ; ces commandes ne charge
 pas le pilote. La préparation EFI locale seule exige un boot de référence.
 
 Le remplacement déjà effectué a utilisé `--deploy-probe1401
---experimental-compute --replace-native-0.2.5` : profil/hashes 0.2.5 exacts,
-64+64 Mio, build 0.2.6 vérifié. Une exception de **copie hors ligne seulement**
+--experimental-compute --replace-native-0.2.6` : profil/hashes 0.2.6 exacts,
+64+64 Mio, build 0.2.7 vérifié. Une exception de **copie hors ligne seulement**
 autorise le boot retiré/version/UUID/arguments exacts avec zéro instance native,
 pas une reprise GPU. Les anciennes options restent limitées à leurs sources
-respectives (`0.2.0 → … → 0.2.6`).
-**La clé est désormais en 0.2.6 : ne pas rejouer ces options de remplacement**,
+respectives (`0.2.0 → … → 0.2.7`).
+**La clé est désormais en 0.2.7 : ne pas rejouer ces options de remplacement**,
 qui refuseront cet état sans nouvelle revue. OPENCORE et backups préservés.
-[Déploiement actuel](reports/2026-10-10-native-rw-deployment.md) ·
-[Déploiement 0.2.5](reports/2026-10-10-native-preflight-deployment.md) ·
+[Déploiement actuel](reports/2026-10-10-native-rw-adoption-deployment.md) ·
+[Déploiement 0.2.6](reports/2026-10-10-native-rw-deployment.md) ·
 [Préparation historique 0.2.0](reports/2026-10-09-native-compute.md).
