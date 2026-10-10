@@ -49,6 +49,15 @@ public:
         Stage16Step stage16Step{Stage16Step::NotReached};
         bool ringTestPassed{false}, fetchProven{false}; // CP fetch proof (ring_test scratch)
         uint32_t ringTestValue{0}; // SCRATCH_REG0 readback at timeout/success
+        // Read-only GC access survey before the ring-test (no writes).
+        // Distinguishes a wrong GC base (all GC reads fail) from a live GC
+        // with a dead SCRATCH (power-gate/clocks on this register).
+        uint32_t gcBase0{0}, gcBase1{0}; // resolved IP bases (0xFFFFFFFF = unresolved)
+        uint32_t gcScratchBefore{0}; // SCRATCH_REG0 before the CPU write
+        uint32_t gcScratchAfterWrite{0}; // SCRATCH_REG0 after WREG32(CAFEDEAD)
+        uint32_t gcRb0Rptr{0}; // CP_RB0_RPTR at ring-test timeout
+        uint32_t gcCpMeCntl{0}; // CP_ME_CNTL (GC[0]): PFP/ME halt state
+        uint32_t gcCpMecCntl{0}; // CP_MEC_RS64_CNTL (GC[1]): MEC halt state
         uint64_t vramBytes{0}, mcBase{0}, elapsedUs[2]{};
         bool fenceLanded[2]{}, ibTestPassed[2]{};
         uint32_t dmaBuffers{0}, lanesChecked{0}, lanesWrong{0}, observed[2][4]{}, expected[2][4]{};

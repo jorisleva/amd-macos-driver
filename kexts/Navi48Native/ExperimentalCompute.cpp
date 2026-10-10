@@ -352,10 +352,22 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
     if ((kr = step(16, cp_map_gfx_kgq_mes(r.dev, r.cp, r.mes)))) return kr;
     facts_.stage16Step = Stage16Step::GfxStart;
     if ((kr = step(16, cp_gfx_start(r.dev, r.cp, false)))) return kr;
+    // Read-only GC survey BEFORE the ring-test writes anything. Distinguishes
+    // a wrong GC base (all GC reads fail) from a live GC with a dead SCRATCH
+    // (power-gate/clocks on this register). Pure reads, no state change.
     facts_.stage16Step = Stage16Step::RingTest;
+    facts_.gcBase0 = r.dev.ip.getBase(IPBlock::GC, 0);
+    facts_.gcBase1 = r.dev.ip.getBase(IPBlock::GC, 1);
+    // CP_REG() is local to cp_v12_0.cpp; use the exported SOC15 helper with
+    // the same BASE_IDX the driver documents (SCRATCH/ME/MEC=1, RPTR=0).
+    facts_.gcScratchBefore = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::SCRATCH_REG0));
+    facts_.gcRb0Rptr = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, CPRegs::CP_RB0_RPTR));
+    facts_.gcCpMeCntl = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_ME_CNTL));
+    facts_.gcCpMecCntl = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_MEC_RS64_CNTL));
     kr = step(16, cp_ring_test_scratch(r.dev, r.cp, 1000000));
     facts_.ringTestPassed = r.cp.ring_test_passed; facts_.fetchProven = r.cp.fetch_proven;
     facts_.ringTestValue = r.cp.ring_test_value;
+    facts_.gcScratchAfterWrite = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::SCRATCH_REG0));
     if (kr) return kr;
     facts_.stage16Step = Stage16Step::EopTest;
     if ((kr = step(16, cp_submit_eop_test(r.dev, r.cp, 2000000, nullptr)))) return kr;

@@ -170,7 +170,7 @@ IOReturn Navi48Native::finishGated(Action &action) {
         return kIOReturnSuccess;
     }
     stage_ = Stage::MappedFirmwareBlocked; action.checkpoint = Checkpoint::PreparedOnly;
-    IOLog("Navi48Native: started 0.2.8 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
+    IOLog("Navi48Native: started 0.2.9 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
           snapshot.bdf, static_cast<unsigned long long>(action.dmaFacts.bytes), action.dmaFacts.pages,
           action.dmaFacts.deviceMapper ? 1u : 0u, snapshot.blockers);
     // Actual RAM allocation + IOVM generation, NOT GPU DMA qualification.
@@ -199,6 +199,11 @@ IOReturn Navi48Native::computeFinishGated(Action &action) {
         number(report, "RingTestPassed", f.ringTestPassed, 32) &&
         number(report, "FetchProven", f.fetchProven, 32) &&
         number(report, "RingTestValue", f.ringTestValue, 32) &&
+        number(report, "GCBase0", f.gcBase0, 32) && number(report, "GCBase1", f.gcBase1, 32) &&
+        number(report, "GCScratchBefore", f.gcScratchBefore, 32) &&
+        number(report, "GCScratchAfterWrite", f.gcScratchAfterWrite, 32) &&
+        number(report, "GCRb0Rptr", f.gcRb0Rptr, 32) &&
+        number(report, "GCCpMeCntl", f.gcCpMeCntl, 32) && number(report, "GCCpMecCntl", f.gcCpMecCntl, 32) &&
         number(report, "HardwareQualificationComplete", 0, 32) && number(report, "MetalAcceleration", 0, 32) &&
         recordRwBars(report, f);
     for (unsigned variant = 0; ok && variant < 2; ++variant) {
@@ -231,7 +236,7 @@ void Navi48Native::recordBootDiagnostic(const Action &a, IOReturn result) {
     auto *report = OSDictionary::withCapacity(88);
     if (!report) { IOLog("Navi48Native: boot diagnostic allocation failed\n"); return; }
     const auto &p = a.platformFacts; const auto &c = a.computeFacts;
-    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x000208, 32) &&
+    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x000209, 32) &&
         number(report, "Checkpoint", static_cast<uint32_t>(a.checkpoint), 32) &&
         number(report, "StartReturn", static_cast<uint32_t>(result), 32) &&
         number(report, "ComputeRequested", a.computeRequested, 32) &&
@@ -261,6 +266,11 @@ void Navi48Native::recordBootDiagnostic(const Action &a, IOReturn result) {
         number(report, "RingTestPassed", c.ringTestPassed, 32) &&
         number(report, "FetchProven", c.fetchProven, 32) &&
         number(report, "RingTestValue", c.ringTestValue, 32) &&
+        number(report, "GCBase0", c.gcBase0, 32) && number(report, "GCBase1", c.gcBase1, 32) &&
+        number(report, "GCScratchBefore", c.gcScratchBefore, 32) &&
+        number(report, "GCScratchAfterWrite", c.gcScratchAfterWrite, 32) &&
+        number(report, "GCRb0Rptr", c.gcRb0Rptr, 32) &&
+        number(report, "GCCpMeCntl", c.gcCpMeCntl, 32) && number(report, "GCCpMecCntl", c.gcCpMecCntl, 32) &&
         recordBars(report, a.platformFacts) && recordRwBars(report, c);
     if (ok) IOService::publishResource("Navi48Native,BootDiagnostics", report); // outside gate, after cleanup
     else IOLog("Navi48Native: boot diagnostic serialization failed\n");
