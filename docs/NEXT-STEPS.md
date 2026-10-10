@@ -1,6 +1,6 @@
 # Travail restant — Hackintosh Tahoe
 
-## Dernier état : boot 0.2.2, descripteur BAR0 rejeté, aucun hardware
+## Dernier état : 0.2.3 déployé, prochain boot trancheur
 
 **10 octobre : le bon kext est réellement chargé**, UUID et cinq arguments
 conformes. Aucun nœud/instance `Navi48Native`, aucun rapport Resources/Compute ;
@@ -8,14 +8,13 @@ deux fermetures du bail PCI par le client natif pendant le boot. Initialisation,
 fences et résultats GPU non validés. Capture `sudo dmesg` lue dans ce même
 boot : buffer de 128 Kio écrasé, aucune ligne native, refus exact inconnu.
 Correctif **0.2.1** : diagnostic IOResources destiné à survivre au retrait,
-**0.2.2 booté le 10 octobre à 13:20:56 UTC**, module/UUID/arguments conformes.
-**Champ rejeté identifié : `BAR0Map/MapCheck=3` (`DescriptorMismatch`).**
-Adresse/options/longueur/contigu/physique/tâche BAR0 conformes ; BAR2/BAR5
-non atteints ; `HardwareTouched=0`. Prochaine action : comparer les identités
-d'objets descripteur (retenu vs déclaré vs relu), sans assouplir les gardes ni
-retry/reload dans le noyau courant.
+**0.2.2 booté le 10 octobre à 13:20:56 UTC** : `DescriptorMismatch` BAR0
+(`MapCheck=3`), autres propriétés conformes, `HardwareTouched=0`. **0.2.3
+déployé/vérifié**, ancienne EFI sauvegardée, non encore chargé. Prochaine
+action : F12 → PROBE1401 → Tahoe, relever `RereadMatch`/`DeclaredIsReread`,
+sans retry/reload dans le noyau courant.
 [Boot 0.2.2](reports/2026-10-10-native-0.2.2-boot.md) ·
-[Boot 0.2.1](reports/2026-10-10-native-0.2.1-boot.md) ·
+[déploiement 0.2.3](reports/2026-10-10-native-descriptor-deployment.md) ·
 [Boot 0.2.0](reports/2026-10-10-native-compute-boot.md) ·
 [correctif](reports/2026-10-10-native-boot-diagnostics.md) ·
 [déploiement 0.2.1](reports/2026-10-10-native-diagnostics-deployment.md).

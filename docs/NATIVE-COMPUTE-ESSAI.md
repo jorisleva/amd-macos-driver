@@ -1,11 +1,13 @@
-# Essai natif 0.2.2 : initialisation, calcul Radeon et diagnostic au champ près
+# Essai natif 0.2.3 : initialisation, calcul Radeon et identités descripteur
 
-> **Boot 0.2.2 effectué le 10 octobre à 13:20:56 UTC.** Module/UUID/arguments
-> conformes. **Champ rejeté identifié : `BAR0Map/MapCheck=3`
-> (`DescriptorMismatch`), autres propriétés BAR0 conformes, aucun hardware.**
+> **PROBE1401 contient désormais 0.2.3**, vérifié/signé/ocvalidate conforme,
+> ancienne EFI 0.2.2 sauvegardée. **Prochaine action : F12 → PROBE1401 → Tahoe,
+> puis relever version et `RereadMatch`/`DeclaredIsReread`.** [Déploiement](reports/2026-10-10-native-descriptor-deployment.md).
+> Le noyau courant reste en **0.2.2**, service retiré, sans résultat Radeon ;
+> son diagnostic est `DescriptorMismatch` BAR0 `MapCheck=3`.
 > [Boot 0.2.2](reports/2026-10-10-native-0.2.2-boot.md).
-> Prochaine action : comparer les identités d'objets descripteur, sans
-> assouplir les gardes. Aucun retry/reload dans le noyau courant.
+> **0.2.3 non encore chargé/boot testé** : scénario et résultats matériels à
+> observer, pas présumés. Aucun retry/reload dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -61,12 +63,12 @@ ne bloque pas la veille forcée : **ne pas mettre cette session en veille**.
 
 ## Bundle déployé pour le prochain boot
 
-- Produit : `out/native-kext/mapping-detail-0.2.2/Navi48Native.kext`, x86_64.
+- Produit : `out/native-kext/descriptor-identity-0.2.3/Navi48Native.kext`, x86_64.
 - Exécutable SHA-256 :
-  `46fe9e475150d275dde9986a98591dc5acd92b20ff506b6853e35cfe0a5de62a`.
+  `61fc8ffc684fce66d8898db4f2b8dd7143b6dea288ecb25d7f1de613c1a4eeec`.
 - Dix firmwares et deux shaders vérifiés dans le Mach-O ; signature ad hoc
   stricte ; zéro avertissement. **Cela ne valide pas la liaison/ABI/charge noyau.**
-- 2 731 contrôles contrôleur, 1 041 service/lifecycle, 162 adaptateur DMA,
+- 3 028 contrôles contrôleur, 1 290 service/lifecycle, 162 adaptateur DMA,
   29 pool IOVM et 39 accès bornés, sur RAM/doubles IOKit avec ASan/UBSan ;
   pas une simulation réussie de shader Radeon. 86 tests Python sur
   outils/profils/remplacements, sans accès GPU.
@@ -111,15 +113,15 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.2 / SHA ci-dessus**, les cinq arguments natifs.
+Vérifier module **0.2.3 / SHA ci-dessus**, les cinq arguments natifs.
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Si `InvalidMap` revient, relever **`BAR0Map/MapCheck`** et ses valeurs
-observées (0 non atteint, 1 Ok, 2 NullMap, 3 descripteur, 4 tâche, 5 longueur,
-6 contigu, 7 physique, 8 cache, 9 flags, 10 adresse nulle, 11 non alignée,
-12 débordement, 13 adresse changée). Si la publication best effort manque,
+Si `DescriptorMismatch` revient, relever **`RereadMatch`/`DeclaredIsReread`**
+(0/1 = substitution provider, 1/0 = mapping partagé, relecture absente =
+disparue au check) en plus de `BAR0Map/MapCheck` et ses valeurs. Si la
+publication best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.
 
@@ -169,23 +171,23 @@ python3 -B tools/build-native-kext.py \
   --output out/native-kext/<repertoire-neuf>
 python3 -B -m unittest discover -s tests/tools -v
 python3 -B tools/prepare-native-kext-efi.py \
-  --build out/native-kext/boot-diagnostics-0.2.1-final \
+  --build out/native-kext/descriptor-identity-0.2.3 \
   --output out/efi-native/native-compute-<repertoire-neuf> \
   --candidate-offset 0x4000000 --candidate-bytes 0x4000000 \
   --experimental-compute
 ```
 
-Les sources produisent **0.2.2**, maintenant déployé ; ces commandes ne chargent
+Les sources produisent **0.2.3**, maintenant déployé ; ces commandes ne chargent
 pas le pilote. La préparation EFI locale seule exige un boot de référence.
 
 Le remplacement déjà effectué a utilisé `--deploy-probe1401
---experimental-compute --replace-native-0.2.1` : profil/hashes 0.2.1 exacts,
-64+64 Mio, build 0.2.2 vérifié. Une exception de **copie hors ligne seulement**
+--experimental-compute --replace-native-0.2.2` : profil/hashes 0.2.2 exacts,
+64+64 Mio, build 0.2.3 vérifié. Une exception de **copie hors ligne seulement**
 autorise le boot retiré/version/UUID/arguments exacts avec zéro instance native,
-pas une reprise GPU. Les anciennes options `--replace-native-0.1.2` et
-`--replace-native-0.2.0` restent limitées à leurs sources respectives.
-**La clé est désormais en 0.2.2 : ne pas rejouer ces options de remplacement**,
+pas une reprise GPU. Les anciennes options restent limitées à leurs sources
+respectives (`0.2.0 → 0.2.1 → 0.2.2 → 0.2.3`).
+**La clé est désormais en 0.2.3 : ne pas rejouer ces options de remplacement**,
 qui refuseront cet état sans nouvelle revue. OPENCORE et backups préservés.
-[Déploiement actuel](reports/2026-10-10-native-mapping-deployment.md) ·
-[Déploiement 0.2.1](reports/2026-10-10-native-diagnostics-deployment.md) ·
+[Déploiement actuel](reports/2026-10-10-native-descriptor-deployment.md) ·
+[Déploiement 0.2.2](reports/2026-10-10-native-mapping-deployment.md) ·
 [Préparation historique 0.2.0](reports/2026-10-09-native-compute.md).

@@ -1,6 +1,6 @@
 # Navi48Native.kext — service PCI/DMA et essai init/compute
 
-**Sources et bundle x86_64 0.2.1 déployé sur PROBE1401**, personnalité PCI, service IOKit et points
+**Sources et bundle x86_64 0.2.3 déployé sur PROBE1401**, personnalité PCI, service IOKit et points
 kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
 calculs gfx1201 internes, avec fences et comparaison des 64 résultats. Aucun
 accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
@@ -8,14 +8,11 @@ accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
 conformes, service retiré, aucun calcul Radeon validé. **Champ rejeté identifié
 : `BAR0Map/MapCheck=3` (`DescriptorMismatch`)** ; adresse/options/longueur/
 contigu/physique/tâche BAR0 conformes, BAR2/BAR5 non atteints,
-`HardwareTouched=0`. Le refus du boot 0.2.0 reste inconnu, son buffer étant
-écrasé ; le boot 0.2.1 avait donné `InvalidMap` BAR0 sans détail.
-[Boot](../../docs/reports/2026-10-10-native-compute-boot.md) ·
-[correctif diagnostic](../../docs/reports/2026-10-10-native-boot-diagnostics.md) ·
-[déploiement 0.2.1](../../docs/reports/2026-10-10-native-diagnostics-deployment.md) ·
-[boot 0.2.1](../../docs/reports/2026-10-10-native-0.2.1-boot.md) ·
-[déploiement 0.2.2](../../docs/reports/2026-10-10-native-mapping-deployment.md) ·
-[boot 0.2.2](../../docs/reports/2026-10-10-native-0.2.2-boot.md).
+`HardwareTouched=0`. **0.2.3 déployé/vérifié, ancienne EFI sauvegardée, non
+encore chargé** : ajoute `RereadMatch`/`DeclaredIsReread` par BAR, sans
+assouplir les gardes.
+[Boot 0.2.2](../../docs/reports/2026-10-10-native-0.2.2-boot.md) ·
+[déploiement 0.2.3](../../docs/reports/2026-10-10-native-descriptor-deployment.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
@@ -114,15 +111,15 @@ python3 -B tools/build-native-kext.py \
 python3 -B -m unittest discover -s tests/tools -v
 ```
 
-Bundle déployé : `out/native-kext/boot-diagnostics-0.2.1-final/Navi48Native.kext`.
-Ancien 0.2.0 conservé dans le backup EFI du remplacement.
+Bundle déployé : `out/native-kext/descriptor-identity-0.2.3/Navi48Native.kext`.
+Anciens builds conservés dans les backups EFI de chaque remplacement.
 Le builder vérifie core/controller/source/SDK, exporte la révision Navi48
 épinglée et applique la correction PSP fail-closed déjà auditée. Les moteurs
 sont renommés à la compilation, sans service/hook graphique amont. Dix
 firmwares et deux bytecodes publics sont vérifiés dans le Mach-O signé.
 Tout warning ou import non revu fait échouer le build.
 
-1 041 contrôles service/lifecycle, 162 DMA, 29 pool IOVM et 39 accès RAM, tous
+1 290 contrôles service/lifecycle, 162 DMA, 29 pool IOVM et 39 accès RAM, tous
 ASan/UBSan, plus 86 tests Python (dont les remplacements EFI stricts). **Les doubles ne fabriquent jamais une preuve
 positive de calcul Radeon.** Les notices amont/firmware restent dans le bundle.
 Les exports EFI privés et sorties de compilation restent hors Git.
