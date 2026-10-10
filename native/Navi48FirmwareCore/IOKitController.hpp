@@ -19,6 +19,15 @@ enum class PlatformResult {
     VirtualOverlap, ConfigurationChanged, ConsoleChanged, NotMapped
 };
 enum class ConsoleResult { Unavailable, InvalidGeometry, AmbiguousBase, OutsideBar0, LocatedInBar0 };
+// Fine-grained BAR mapping check. Stable IDs for BootDiagnostics decoding.
+// Does NOT change the fail-closed decision: any non-Ok still returns InvalidMap
+// (or MapFailed/VirtualOverlap as before). Values only, no pointers retained.
+enum class MapCheck : uint32_t {
+    NotChecked = 0, Ok = 1, NullMap = 2, DescriptorMismatch = 3, TaskMismatch = 4,
+    LengthMismatch = 5, ContiguousMismatch = 6, PhysicalMismatch = 7, CacheMismatch = 8,
+    FlagsMismatch = 9, NullAddress = 10, UnalignedAddress = 11, RangeOverflow = 12,
+    AddressChanged = 13
+};
 enum PlatformBlocker : uint32_t {
     MappingLease = 1u << 0, ConsolePlacement = 1u << 1,
     ExclusiveGpuOwnership = 1u << 2, VramGeometry = 1u << 3,
@@ -36,6 +45,11 @@ struct BarObservation {
     uint32_t configLow, configHigh;
     uint64_t cpuPhysical, bytes;
     IOOptionBits reportedMapOptions;
+    MapCheck mapCheck{MapCheck::NotChecked}; // observed in checkMaps(); NotChecked when never reached
+    uint64_t observedAddress{0}; // virtual address returned by the map (0 when none)
+    IOOptionBits observedMapOptions{0};
+    uint64_t observedLength{0}, observedContiguous{0}, observedPhysical{0};
+    bool observedDescriptorMatch{false}, observedTaskMatch{false};
 };
 struct ConsoleObservation {
     ConsoleResult result{ConsoleResult::Unavailable};

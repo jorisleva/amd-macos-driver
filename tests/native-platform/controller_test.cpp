@@ -71,6 +71,12 @@ struct Fixture {
         CHECK(s.phase == PlatformPhase::MappedUnqualified && s.providerOpen && s.mappingsHeld && s.observationsValid);
         CHECK(!s.accessEnabled && s.blockers != 0);
         CHECK((s.blockers & kUnimplementedHardwareProofs) == kUnimplementedHardwareProofs);
+        for (unsigned i = 0; i < 3; ++i) {
+            CHECK(s.bars[i].mapCheck == MapCheck::Ok && s.bars[i].observedAddress != 0);
+            CHECK(s.bars[i].observedMapOptions == options && s.bars[i].observedLength == lengths[i]);
+            CHECK(s.bars[i].observedContiguous == lengths[i] && s.bars[i].observedPhysical == bases[i]);
+            CHECK(s.bars[i].observedDescriptorMatch && s.bars[i].observedTaskMatch);
+        }
         CHECK(s.command == 7 && s.bdf == 0x70000);
         CHECK(owner.references() == 2 && pci.references() == 2);
         for (unsigned i = 0; i < 3; ++i) {
@@ -216,6 +222,11 @@ static void mapsAndLifetime() {
         expected.push_back(10);
         CHECK(fake::events == expected);
     }
+    // Each rejected property maps to exactly one stable MapCheck ID.
+    constexpr MapCheck expectedCheck[12] = {MapCheck::NullAddress, MapCheck::UnalignedAddress,
+        MapCheck::RangeOverflow, MapCheck::LengthMismatch, MapCheck::LengthMismatch, MapCheck::ContiguousMismatch,
+        MapCheck::PhysicalMismatch, MapCheck::CacheMismatch, MapCheck::FlagsMismatch, MapCheck::FlagsMismatch,
+        MapCheck::TaskMismatch, MapCheck::DescriptorMismatch};
     for (unsigned bar = 0; bar < 3; ++bar) {
         for (unsigned which = 0; which < 12; ++which) {
             Fixture f; IOKitController c; auto &r = f.descriptors[bar]->recipe;
@@ -232,9 +243,18 @@ static void mapsAndLifetime() {
             if (which == 10) r.task = nullptr;
             if (which == 11) r.backing = f.descriptors[(bar + 1) % 3];
             f.refused(c, PlatformResult::InvalidMap);
-            CHECK(c.snapshot().failedBar == registers[bar]);
+            const auto detail = c.snapshot();
+            CHECK(detail.failedBar == registers[bar]);
+            CHECK(detail.bars[bar].mapCheck == expectedCheck[which]);
             CHECK(fake::events == std::vector<unsigned>({2, 1, 0, 10}));
         }
+        // A diverged revalidation address keeps its own ID, distinct from overlap
+        // between two different mappings.
+        { Fixture f; IOKitController c; f.mapped(c); f.descriptors[bar]->lastMap->recipe.address += 4096;
+          CHECK(c.revalidate() == PlatformResult::InvalidMap);
+          const auto detail = c.snapshot();
+          CHECK(detail.failedBar == registers[bar] && detail.bars[bar].mapCheck == MapCheck::AddressChanged);
+          f.closed(); }
     }
     {
         Fixture f; IOKitController c;
@@ -332,6 +352,7 @@ static void instability() {
             PlatformResult::InvalidDescriptor, PlatformResult::ConsoleChanged, PlatformResult::ProviderInactive};
         CHECK(c.revalidate() == expected[which]);
         const auto s = c.snapshot();
+        if (which == 1) CHECK(s.bars[0].mapCheck == MapCheck::AddressChanged);
         CHECK(s.phase == PlatformPhase::Failed && !s.observationsValid && !s.mappingsHeld && !s.accessEnabled);
         CHECK(s.blockers & MappingLease); f.closed(); CHECK(f.acquire(c) == PlatformResult::Used);
     }

@@ -11,6 +11,32 @@ static unsigned checks = 0, failed = 0;
 void IOLog(const char *, ...) {}
 void IOSleep(unsigned) { CHECK(false); } // no polling/firmware path belongs to this smoke test
 constexpr uint64_t MiB = 1024 * 1024;
+constexpr unsigned reg[3] = {0x10, 0x18, 0x24};
+constexpr IOOptionBits options = kIOMapAnywhere | kIOMapUnique | kIOMapReadOnly | kIOMapInhibitCache;
+static n48native::MapCheck expected(unsigned bar, unsigned which) {
+    // NullMap is only for a missing map object; the 12 field mutations below
+    // keep the object and diverge one observed property each.
+    constexpr n48native::MapCheck table[3][12] = {
+        {n48native::MapCheck::NullAddress, n48native::MapCheck::UnalignedAddress,
+         n48native::MapCheck::RangeOverflow, n48native::MapCheck::LengthMismatch,
+         n48native::MapCheck::LengthMismatch, n48native::MapCheck::ContiguousMismatch,
+         n48native::MapCheck::PhysicalMismatch, n48native::MapCheck::CacheMismatch,
+         n48native::MapCheck::FlagsMismatch, n48native::MapCheck::FlagsMismatch,
+         n48native::MapCheck::TaskMismatch, n48native::MapCheck::DescriptorMismatch},
+        {n48native::MapCheck::NullAddress, n48native::MapCheck::UnalignedAddress,
+         n48native::MapCheck::RangeOverflow, n48native::MapCheck::LengthMismatch,
+         n48native::MapCheck::LengthMismatch, n48native::MapCheck::ContiguousMismatch,
+         n48native::MapCheck::PhysicalMismatch, n48native::MapCheck::CacheMismatch,
+         n48native::MapCheck::FlagsMismatch, n48native::MapCheck::FlagsMismatch,
+         n48native::MapCheck::TaskMismatch, n48native::MapCheck::DescriptorMismatch},
+        {n48native::MapCheck::NullAddress, n48native::MapCheck::UnalignedAddress,
+         n48native::MapCheck::RangeOverflow, n48native::MapCheck::LengthMismatch,
+         n48native::MapCheck::LengthMismatch, n48native::MapCheck::ContiguousMismatch,
+         n48native::MapCheck::PhysicalMismatch, n48native::MapCheck::CacheMismatch,
+         n48native::MapCheck::FlagsMismatch, n48native::MapCheck::FlagsMismatch,
+         n48native::MapCheck::TaskMismatch, n48native::MapCheck::DescriptorMismatch}};
+    return table[bar][which];
+}
 struct Fixture {
     IOPCIDevice pci;
     IOPlatformExpert platform;
@@ -31,8 +57,6 @@ struct Fixture {
         pci.set32(0x08, 0x030000c0); pci.set16(0x04, 7);
         constexpr uint64_t base[3] = {0x440000000ULL, 0x450000000ULL, 0xfcb00000ULL};
         constexpr uint64_t size[3] = {256 * MiB, 2 * MiB, 512 * 1024};
-        constexpr unsigned reg[3] = {0x10, 0x18, 0x24};
-        constexpr IOOptionBits options = kIOMapAnywhere | kIOMapUnique | kIOMapReadOnly | kIOMapInhibitCache;
         for (unsigned i = 0; i < 3; ++i) {
             auto *d = new IODeviceMemory; descriptors[i] = d; pci.descriptors[i] = d; d->index = i;
             d->bytes = size[i]; d->contiguous = size[i]; d->physical = base[i];
@@ -105,7 +129,7 @@ int main() {
         f.pci.afterClose = [](IOPCIDevice *) { callbackDriver->stop(callbackProvider); };
         f.driver.stop(&f.pci); f.closed(); CHECK(f.driver.stops == 1);
         auto *diagnostic = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
-        CHECK(value(diagnostic, "Checkpoint") == 14 && value(diagnostic, "DriverVersion") == 0x201);
+        CHECK(value(diagnostic, "Checkpoint") == 14 && value(diagnostic, "DriverVersion") == 0x202);
         CHECK(value(diagnostic, "StartReturn") == 0 && value(diagnostic, "DMAObserved") == 1);
         CHECK(value(diagnostic, "ComputeObserved") == 0);
         CHECK(!f.driver.start(&f.pci)); // no hot restart/rearm
@@ -157,6 +181,9 @@ int main() {
         CHECK(value(diagnostic, "PlatformResult") == static_cast<uint32_t>(wrongCard ? n48native::PlatformResult::WrongCard : n48native::PlatformResult::MapFailed));
         CHECK(value(diagnostic, "FailedBar") == (wrongCard ? 0 : 0x18));
         CHECK(value(diagnostic, "DMAObserved") == 0 && value(diagnostic, "ComputeObserved") == 0);
+        auto *bar = dynamic_cast<OSDictionary *>(diagnostic->getObject(wrongCard ? "BAR0Map" : "BAR2Map"));
+        CHECK(value(bar, "MapCheck") == static_cast<uint32_t>(n48native::MapCheck::NotChecked));
+        CHECK(value(bar, "ObservedAddress") == 0 && value(bar, "ObservedLength") == 0);
     }
     // Stop delivered recursively while acquiring cancels, rather than deleting
     // the controller while its own lock is held.
@@ -248,6 +275,45 @@ int main() {
     for (int budget : {0, 1}) {
         Fixture f; fake::allocationBudget = budget;
         CHECK(!f.driver.init()); f.closed(); fake::allocationBudget = -1;
+    }
+    // Each rejected BAR mapping field keeps its decoded ID in the persistent
+    // diagnostic. Uses the exact InvalidMap recipe coverage from the controller
+    // suite, so the next boot names the BAR0 property instead of a bare code.
+    for (unsigned bar = 0; bar < 3; ++bar) {
+        for (unsigned which = 0; which < 12; ++which) {
+            Fixture f; f.init(); auto &recipe = f.descriptors[bar]->recipe;
+            if (which == 0) recipe.address = 0;
+            if (which == 1) ++recipe.address;
+            if (which == 2) recipe.address = UINT64_MAX - 4095;
+            if (which == 3) --recipe.bytes;
+            if (which == 4) ++recipe.bytes;
+            if (which == 5) --recipe.contiguous;
+            if (which == 6) ++recipe.physical;
+            if (which == 7) recipe.options = (options & ~kIOMapCacheMask) | 0x400;
+            if (which == 8) recipe.options &= ~kIOMapReadOnly;
+            if (which == 9) recipe.options &= ~kIOMapUnique;
+            if (which == 10) recipe.task = nullptr;
+            if (which == 11) recipe.backing = f.descriptors[(bar + 1) % 3];
+            CHECK(!f.driver.start(&f.pci)); f.closed();
+            auto *diagnostic = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
+            CHECK(value(diagnostic, "Checkpoint") == 10 && value(diagnostic, "FailedBar") == reg[bar]);
+            constexpr const char *names[3] = {"BAR0Map", "BAR2Map", "BAR5Map"};
+            auto *rejected = dynamic_cast<OSDictionary *>(diagnostic->getObject(names[bar]));
+            CHECK(value(rejected, "MapCheck") == static_cast<uint32_t>(expected(bar, which)));
+            CHECK(value(rejected, "ObservedAddress") == recipe.address || which == 11);
+            // Bars before the failure are Ok; bars after it were never reached.
+            // BAR0 fails first, so BAR2/BAR5 stay NotChecked; BAR5 fails last,
+            // so BAR0/BAR2 are already Ok.
+            if (bar < 2) {
+                auto *unreached = dynamic_cast<OSDictionary *>(diagnostic->getObject(names[bar + 1]));
+                CHECK(value(unreached, "MapCheck") == static_cast<uint32_t>(n48native::MapCheck::NotChecked));
+                CHECK(value(unreached, "ObservedAddress") == 0);
+            } else {
+                auto *earlier = dynamic_cast<OSDictionary *>(diagnostic->getObject(names[0]));
+                CHECK(value(earlier, "MapCheck") == static_cast<uint32_t>(n48native::MapCheck::Ok));
+                CHECK(value(earlier, "ObservedAddress") != 0);
+            }
+        }
     }
     CHECK(fake::liveObjects == 0 && fake::liveLocks == 0 && fake::mapsMade == fake::mapsFreed);
     CHECK(!fake::resourcePublishedInGate); // publication after gate and cleanup

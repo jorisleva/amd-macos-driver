@@ -66,4 +66,5 @@ private:
     void invalidate();
     static void recordBootDiagnostic(const Action &, IOReturn); // OUTSIDE gate, no owner/provider retained
     bool publish(const n48native::PlatformSnapshot &, const n48native::DmaBuffer::Snapshot &);
+    static bool recordBars(OSDictionary *, const n48native::PlatformSnapshot &); // values only, decoded IDs
 };

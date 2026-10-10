@@ -164,17 +164,33 @@ PlatformResult IOKitController::checkMaps() {
         facts_.failedBar = kRegisters[i];
         auto &w = windows_[i];
         auto &bar = facts_.bars[i];
+        bar.mapCheck = MapCheck::NullMap; // fail-closed default until every property passes
         if (!w.map) return PlatformResult::MapFailed;
         IOByteCount contiguous = 0;
         const uint64_t physical = w.map->getPhysicalSegment(0, &contiguous, kIOMemoryMapperNone);
         const IOOptionBits options = w.map->getMapOptions();
         const uint64_t address = w.map->getAddress();
-        if (w.map->getMemoryDescriptor() != w.descriptor || w.map->getAddressTask() != kernel_task ||
-            w.map->getLength() != bar.bytes || contiguous != bar.bytes || physical != bar.cpuPhysical ||
-            (options & kIOMapCacheMask) != kIOMapInhibitCache ||
-            (options & (kIOMapUnique | kIOMapReadOnly)) != (kIOMapUnique | kIOMapReadOnly) ||
-            !address || (address & 0xfff) || bar.bytes > UINTPTR_MAX - address ||
-            (w.address && address != w.address)) return PlatformResult::InvalidMap;
+        const uint64_t length = w.map->getLength();
+        const bool descriptorMatch = w.map->getMemoryDescriptor() == w.descriptor;
+        const bool taskMatch = w.map->getAddressTask() == kernel_task;
+        // Values only: addresses/options are never dereferenced, only compared.
+        bar.observedAddress = address; bar.observedMapOptions = options;
+        bar.observedLength = length; bar.observedContiguous = contiguous; bar.observedPhysical = physical;
+        bar.observedDescriptorMatch = descriptorMatch; bar.observedTaskMatch = taskMatch;
+        // Identical checks to before, now attributed field by field. The first
+        // divergence wins, exactly as the previous single boolean expression.
+        if (!descriptorMatch) { bar.mapCheck = MapCheck::DescriptorMismatch; return PlatformResult::InvalidMap; }
+        if (!taskMatch) { bar.mapCheck = MapCheck::TaskMismatch; return PlatformResult::InvalidMap; }
+        if (length != bar.bytes) { bar.mapCheck = MapCheck::LengthMismatch; return PlatformResult::InvalidMap; }
+        if (contiguous != bar.bytes) { bar.mapCheck = MapCheck::ContiguousMismatch; return PlatformResult::InvalidMap; }
+        if (physical != bar.cpuPhysical) { bar.mapCheck = MapCheck::PhysicalMismatch; return PlatformResult::InvalidMap; }
+        if ((options & kIOMapCacheMask) != kIOMapInhibitCache) { bar.mapCheck = MapCheck::CacheMismatch; return PlatformResult::InvalidMap; }
+        if ((options & (kIOMapUnique | kIOMapReadOnly)) != (kIOMapUnique | kIOMapReadOnly)) { bar.mapCheck = MapCheck::FlagsMismatch; return PlatformResult::InvalidMap; }
+        if (!address) { bar.mapCheck = MapCheck::NullAddress; return PlatformResult::InvalidMap; }
+        if (address & 0xfff) { bar.mapCheck = MapCheck::UnalignedAddress; return PlatformResult::InvalidMap; }
+        if (bar.bytes > UINTPTR_MAX - address) { bar.mapCheck = MapCheck::RangeOverflow; return PlatformResult::InvalidMap; }
+        if (w.address && address != w.address) { bar.mapCheck = MapCheck::AddressChanged; return PlatformResult::InvalidMap; }
+        bar.mapCheck = MapCheck::Ok;
         w.address = address; bar.reportedMapOptions = options;
         for (unsigned j = 0; j < i; ++j)
             if (overlaps({address, bar.bytes}, {windows_[j].address, facts_.bars[j].bytes}))

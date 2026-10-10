@@ -8,7 +8,18 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from contextlib import contextmanager
 from test_pci_probe_efi import baseline
+
+
+@contextmanager
+def efi_version(version):
+    previous = efi.VERSION
+    efi.VERSION = version
+    try:
+        yield
+    finally:
+        efi.VERSION = previous
 
 TOOLS = Path(__file__).resolve().parents[2] / 'tools'
 sys.path.insert(0, str(TOOLS))
@@ -57,14 +68,26 @@ class ProfileTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             efi.validate_profile(source, old, OFFSET, SIZE, version='0.1.2')
 
-    def test_previous_compute_0_2_0_requires_profile_manifest_and_pinned_binary(self):
+    def test_previous_compute_trials_require_profile_manifest_and_pinned_binary(self):
         source = baseline()
+        binaries = {'0.2.0': '34ce08473ac2acedd0a9094420cbd4ebf159bf48b21a0134095715cfd95809f9',
+                    '0.2.1': '441140b8f86095f0bd06e7c77d61f90ae20518e0fa40171e35dd270bd49e01da'}
+        successors = {'0.2.0': '0.2.1', '0.2.1': '0.2.2'}
+        for version, binary in binaries.items():
+            with self.subTest(version=version):
+                old = efi.make_profile(source, OFFSET, 64 * 1024 * 1024, compute=True)
+                old['Kernel']['Add'][-1] = efi.injection_entry(compute=True, version=version)
+                key = 'OC/Kexts/Navi48Native.kext/Contents/MacOS/Navi48Native'
+                hashes = {'OC/config.plist': 'config', key: binary}
+                with efi_version(successors[version]):
+                    efi.validate_previous_compute_trial(source, old, hashes, hashes.copy(), version)
         old = efi.make_profile(source, OFFSET, 64 * 1024 * 1024, compute=True)
         old['Kernel']['Add'][-1] = efi.injection_entry(compute=True, version='0.2.0')
         key = 'OC/Kexts/Navi48Native.kext/Contents/MacOS/Navi48Native'
         hashes = {'OC/config.plist': 'config', key:
                   '34ce08473ac2acedd0a9094420cbd4ebf159bf48b21a0134095715cfd95809f9'}
-        efi.validate_previous_compute_0_2_0(source, old, hashes, hashes.copy())
+        with efi_version('0.2.1'):
+            efi.validate_previous_compute_0_2_0(source, old, hashes, hashes.copy())
         for changed in (dict(hashes, extra='file'), {'OC/config.plist': 'config'}, dict(hashes, **{key: 'modified'})):
             with self.assertRaises(ValueError):
                 efi.validate_previous_compute_0_2_0(source, old, changed, hashes)
@@ -130,26 +153,36 @@ class ProfileTests(unittest.TestCase):
 
 
 class BootSessionTests(unittest.TestCase):
+    modules = {'0.2.0': efi.BUNDLE_ID + ' (0.2.0) AB1F0B3A-865C-33FC-BC6B-5CA0056BBF45',
+               '0.2.1': efi.BUNDLE_ID + ' (0.2.1) 62893962-8984-3EE0-B636-40E33C9F073D'}
     def setUp(self):
         self.source = baseline()
         self.args = (self.source['NVRAM']['Add'][efi.GUID]['boot-args'] +
                      efi.boot_delta(OFFSET, 64 * 1024 * 1024, compute=True)).split()
-        self.loaded = efi.BUNDLE_ID + ' (0.2.0) AB1F0B3A-865C-33FC-BC6B-5CA0056BBF45'
+        self.loaded = self.modules['0.2.0']
 
-    def validate(self, **kw):
-        parameters = {'baseline': self.source, 'boot_args': self.args, 'loaded': self.loaded,
-                      'allow_retired_0_2_0': True, 'native_service': '', 'native_instances': 0}
+    def validate(self, source='0.2.0', **kw):
+        parameters = {'baseline': self.source, 'boot_args': self.args,
+                      'allow_retired': True, 'native_service': '', 'native_instances': 0,
+                      'retired_source': source}
+        if 'loaded' not in kw:
+            kw['loaded'] = self.modules[source]
         parameters.update(kw)
         return efi.validate_boot_session(**parameters)
 
     def test_reference_boot_keeps_existing_no_experiment_rule(self):
         args = self.source['NVRAM']['Add'][efi.GUID]['boot-args'].split()
-        self.assertFalse(self.validate(boot_args=args, loaded='', allow_retired_0_2_0=False))
+        self.assertFalse(self.validate(boot_args=args, loaded='', allow_retired=False))
 
     def test_exact_retired_compute_boot_allows_only_offline_update(self):
-        self.assertTrue(self.validate())
-        with self.assertRaises(ValueError):
-            self.validate(allow_retired_0_2_0=False)
+        for source in ('0.2.0', '0.2.1'):
+            with self.subTest(source=source):
+                self.assertTrue(self.validate(source))
+                with self.assertRaises(ValueError):
+                    self.validate(source, allow_retired=False)
+                other = '0.2.1' if source == '0.2.0' else '0.2.0'
+                with self.assertRaises(ValueError): # a retired boot never authorizes another source
+                    self.validate(other, loaded=self.modules[source])
 
     def test_existing_or_detached_native_instance_rejected(self):
         for changes in ({'native_service': 'Navi48Native <class Navi48Native>'}, {'native_instances': 1},
@@ -158,11 +191,11 @@ class BootSessionTests(unittest.TestCase):
                 self.validate(**changes)
 
     def test_wrong_or_other_loaded_experiment_rejected(self):
-        for loaded in ('', self.loaded.replace('(0.2.0)', '(0.2.1)'), self.loaded.replace('AB1F', 'AB2F'),
+        for loaded in ('', self.modules['0.2.1'], self.loaded.replace('AB1F', 'AB2F'),
                        self.loaded + '\n' + efi.helpers.BUNDLE_ID, self.loaded + '\ncom.navi48.bringup',
                        self.loaded + '\n' + self.loaded):
             with self.subTest(loaded=loaded), self.assertRaises(ValueError):
-                self.validate(loaded=loaded)
+                self.validate('0.2.0', loaded=loaded)
 
     def test_any_changed_boot_parameters_rejected(self):
         for args in (self.args[:-1], self.args + ['extra=1'],

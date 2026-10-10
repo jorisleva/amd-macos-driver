@@ -170,7 +170,7 @@ IOReturn Navi48Native::finishGated(Action &action) {
         return kIOReturnSuccess;
     }
     stage_ = Stage::MappedFirmwareBlocked; action.checkpoint = Checkpoint::PreparedOnly;
-    IOLog("Navi48Native: started 0.2.1 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
+    IOLog("Navi48Native: started 0.2.2 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
           snapshot.bdf, static_cast<unsigned long long>(action.dmaFacts.bytes), action.dmaFacts.pages,
           action.dmaFacts.deviceMapper ? 1u : 0u, snapshot.blockers);
     // Actual RAM allocation + IOVM generation, NOT GPU DMA qualification.
@@ -222,10 +222,10 @@ void Navi48Native::recordBootDiagnostic(const Action &a, IOReturn result) {
     // Survives detach/free and a wrapped dmesg buffer. Best effort on OOM;
     // NEVER changes the result, authorizes accesses or retries hardware.
     if (a.checkpoint == Checkpoint::StartState) return; // reject rearm without overwriting original result
-    auto *report = OSDictionary::withCapacity(48);
+    auto *report = OSDictionary::withCapacity(64);
     if (!report) { IOLog("Navi48Native: boot diagnostic allocation failed\n"); return; }
     const auto &p = a.platformFacts; const auto &c = a.computeFacts;
-    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x000201, 32) &&
+    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x000202, 32) &&
         number(report, "Checkpoint", static_cast<uint32_t>(a.checkpoint), 32) &&
         number(report, "StartReturn", static_cast<uint32_t>(result), 32) &&
         number(report, "ComputeRequested", a.computeRequested, 32) &&
@@ -249,10 +249,32 @@ void Navi48Native::recordBootDiagnostic(const Action &a, IOReturn result) {
         number(report, "HardwareTouched", c.hardwareTouched, 32) && number(report, "FirmwareLoaded", c.firmwareLoaded, 32) &&
         number(report, "GPUInitialized", c.initialized, 32) &&
         number(report, "ComputePassed", c.computePassed, 32) && number(report, "LanesChecked", c.lanesChecked, 32) &&
-        number(report, "LanesWrong", c.lanesWrong, 32);
+        number(report, "LanesWrong", c.lanesWrong, 32) && recordBars(report, a.platformFacts);
     if (ok) IOService::publishResource("Navi48Native,BootDiagnostics", report); // outside gate, after cleanup
     else IOLog("Navi48Native: boot diagnostic serialization failed\n");
     report->release();
+}
+bool Navi48Native::recordBars(OSDictionary *report, const n48native::PlatformSnapshot &snapshot) {
+    // Decoded per-BAR mapping observations. Values only: addresses/options are
+    // never dereferenced, and no owner/provider/map is retained. NotChecked for
+    // a BAR that checkMaps() never reached; later BARs keep their zero defaults.
+    constexpr const char *names[3] = {"BAR0Map", "BAR2Map", "BAR5Map"};
+    for (unsigned i = 0; i < 3; ++i) {
+        auto *bar = OSDictionary::withCapacity(8);
+        if (!bar) return false;
+        const auto &observation = snapshot.bars[i];
+        const bool ok = number(bar, "MapCheck", static_cast<uint32_t>(observation.mapCheck), 32) &&
+            number(bar, "ObservedAddress", observation.observedAddress) &&
+            number(bar, "ObservedMapOptions", observation.observedMapOptions, 32) &&
+            number(bar, "ObservedLength", observation.observedLength) &&
+            number(bar, "ObservedContiguous", observation.observedContiguous) &&
+            number(bar, "ObservedPhysical", observation.observedPhysical) &&
+            number(bar, "DescriptorMatch", observation.observedDescriptorMatch, 32) &&
+            number(bar, "TaskMatch", observation.observedTaskMatch, 32) && report->setObject(names[i], bar);
+        bar->release();
+        if (!ok) return false;
+    }
+    return true;
 }
 bool Navi48Native::publish(const n48native::PlatformSnapshot &snapshot, const n48native::DmaBuffer::Snapshot &dma) {
     auto *report = OSDictionary::withCapacity(24);

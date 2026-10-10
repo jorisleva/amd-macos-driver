@@ -87,35 +87,52 @@ def make_profile(baseline, offset, size, compute=False):
     return result
 
 
-def validate_previous_compute_0_2_0(baseline, profile, current, reviewed):
-    """Only the already deployed, hashed 64+64 MiB compute trial may be replaced."""
-    validate_profile(baseline, profile, 0x4000000, 0x4000000, compute=True, version='0.2.0')
+PREVIOUS_COMPUTE_TRIALS = {
+    # Each retired trial may only be replaced by its reviewed successor.
+    # The pinned executable hash prevents silent binary substitution.
+    '0.2.0': ('0.2.1', '34ce08473ac2acedd0a9094420cbd4ebf159bf48b21a0134095715cfd95809f9'),
+    '0.2.1': ('0.2.2', '441140b8f86095f0bd06e7c77d61f90ae20518e0fa40171e35dd270bd49e01da'),
+}
+def validate_previous_compute_trial(baseline, profile, current, reviewed, expected_version):
+    """Only an already deployed, hashed 64+64 MiB compute trial may be replaced."""
+    require(expected_version in PREVIOUS_COMPUTE_TRIALS, 'Unreviewed replacement source version')
+    successor, binary = PREVIOUS_COMPUTE_TRIALS[expected_version]
+    require(VERSION == successor, 'Replacement build must be the reviewed successor ' + successor)
+    validate_profile(baseline, profile, 0x4000000, 0x4000000, compute=True, version=expected_version)
     require(current == reviewed and
-            current.get('OC/Kexts/Navi48Native.kext/Contents/MacOS/Navi48Native') ==
-            '34ce08473ac2acedd0a9094420cbd4ebf159bf48b21a0134095715cfd95809f9',
-            'Native 0.2.0 EFI differs from the previously reviewed deployment')
+            current.get('OC/Kexts/Navi48Native.kext/Contents/MacOS/Navi48Native') == binary,
+            'Native ' + expected_version + ' EFI differs from the previously reviewed deployment')
 
 
-def validate_boot_session(baseline, boot_args, loaded, allow_retired_0_2_0=False,
-                          native_service='', native_instances=None):
+def validate_previous_compute_0_2_0(baseline, profile, current, reviewed):
+    validate_previous_compute_trial(baseline, profile, current, reviewed, '0.2.0')
+
+
+RETIRED_BOOT_MODULES = {
+    '0.2.0': ('0.2.0', 'AB1F0B3A-865C-33FC-BC6B-5CA0056BBF45'),
+    '0.2.1': ('0.2.1', '62893962-8984-3EE0-B636-40E33C9F073D'),
+}
+def validate_boot_session(baseline, boot_args, loaded, allow_retired=False,
+                          native_service='', native_instances=None, retired_source=None):
     """EFI files ONLY: no unload/retry/MMIO, even in the reviewed retired boot.
 
     This exception is not a claim that hardware was untouched. It authorizes
-    an offline USB update from the exact loaded 0.2.0 trial, with zero native
+    an offline USB update from the exact loaded trial, with zero native
     instances, rather than asking for an extra reference reboot just to copy.
     """
     experimental = (BUNDLE_ID, helpers.BUNDLE_ID, 'com.navi48.bringup')
     native_args = any(t.startswith(('navi48-native-', 'navi48-pci-probe=1')) for t in boot_args)
     if not native_args and not any(name in loaded for name in experimental):
         return False
-    require(allow_retired_0_2_0, 'Return to the reference boot before changing the trial EFI')
+    require(allow_retired, 'Return to the reference boot before changing the trial EFI')
+    require(retired_source in RETIRED_BOOT_MODULES, 'Unreviewed retired boot source')
     expected_args = (baseline['NVRAM']['Add'][GUID]['boot-args'] +
                      boot_delta(0x4000000, 0x4000000, compute=True)).split()
     modules = re.findall(re.escape(BUNDLE_ID) + r'\s+\(([^)]+)\)\s+([0-9A-Fa-f-]+)', loaded)
-    require(boot_args == expected_args and modules == [('0.2.0', 'AB1F0B3A-865C-33FC-BC6B-5CA0056BBF45')] and
+    require(boot_args == expected_args and modules == [RETIRED_BOOT_MODULES[retired_source]] and
             not any(name in loaded for name in experimental[1:]) and
             not native_service.strip() and type(native_instances) is int and native_instances == 0,
-            'Only the reviewed retired 0.2.0 boot permits this offline USB update')
+            'Only the reviewed retired ' + retired_source + ' boot permits this offline USB update')
     return True
 
 
@@ -174,14 +191,18 @@ def main():
     replacements = parser.add_mutually_exclusive_group()
     replacements.add_argument('--replace-native-0.1.2', dest='replace_native_0_1_2', action='store_true', help='Replace ONLY the previously hashed native 0.1.2 trial')
     replacements.add_argument('--replace-native-0.2.0', dest='replace_native_0_2_0', action='store_true', help='Replace ONLY the reviewed compute 0.2.0 EFI with diagnostic 0.2.1; permits offline copy from its exact retired boot')
+    replacements.add_argument('--replace-native-0.2.1', dest='replace_native_0_2_1', action='store_true', help='Replace ONLY the reviewed diagnostic 0.2.1 EFI with field-level 0.2.2; permits offline copy from its exact retired boot')
     args = parser.parse_args()
     require(sys.platform == 'darwin', 'macOS is required')
-    require(not (args.replace_native_0_1_2 or args.replace_native_0_2_0) or
+    require(not (args.replace_native_0_1_2 or args.replace_native_0_2_0 or args.replace_native_0_2_1) or
             (args.deploy_probe1401 and args.experimental_compute),
             'Replacing a native trial requires explicit compute deployment')
-    require(not args.replace_native_0_2_0 or
-            (VERSION == '0.2.1' and args.candidate_offset == 0x4000000 and args.candidate_bytes == 0x4000000),
-            'The reviewed 0.2.0 replacement is restricted to diagnostic 0.2.1 with unchanged 64+64 MiB scratch')
+    if args.replace_native_0_2_0:
+        require(VERSION == '0.2.1' and args.candidate_offset == 0x4000000 and args.candidate_bytes == 0x4000000,
+                'The reviewed 0.2.0 replacement is restricted to diagnostic 0.2.1 with unchanged 64+64 MiB scratch')
+    if args.replace_native_0_2_1:
+        require(VERSION == '0.2.2' and args.candidate_offset == 0x4000000 and args.candidate_bytes == 0x4000000,
+                'The reviewed 0.2.1 replacement is restricted to field-level 0.2.2 with unchanged 64+64 MiB scratch')
     destination, build = local_output(ROOT, args.output), local_output(ROOT, args.build)
     require(not destination.exists(), 'Choose a fresh output directory')
     require(subprocess.check_output(['uname', '-m'], text=True).strip() == 'x86_64' and
@@ -194,15 +215,16 @@ def main():
     initial = tree_hashes(REFERENCE)
     baseline = plistlib.loads((REFERENCE / 'OC/config.plist').read_bytes())
     native_service, native_instances = '', None
-    if args.replace_native_0_2_0:
+    retired_source = '0.2.0' if args.replace_native_0_2_0 else ('0.2.1' if args.replace_native_0_2_1 else None)
+    if retired_source is not None:
         native_service = subprocess.check_output(['ioreg', '-r', '-c', PRODUCT, '-l', '-w', '0'], text=True)
         diagnostics = plistlib.loads(subprocess.check_output(['ioreg', '-l', '-d', '1', '-a']))
         roots = [diagnostics] if isinstance(diagnostics, dict) else diagnostics
         require(isinstance(roots, list) and len(roots) == 1 and isinstance(roots[0], dict),
                 'Unreviewed IORegistry diagnostics root')
         native_instances = roots[0].get('IOKitDiagnostics', {}).get('Classes', {}).get(PRODUCT)
-    retired_boot = validate_boot_session(baseline, current_args, loaded, args.replace_native_0_2_0,
-                                         native_service, native_instances)
+    retired_boot = validate_boot_session(baseline, current_args, loaded, retired_source is not None,
+                                         native_service, native_instances, retired_source)
     profile = make_profile(baseline, args.candidate_offset, args.candidate_bytes, args.experimental_compute)
     require({p.name for p in (REFERENCE / 'OC/Kexts').iterdir() if p.is_dir()} == helpers.BASE_KEXTS,
             'Unexpected reference kext directory')
@@ -222,12 +244,14 @@ def main():
                     'ce1f4e39a2795bdabd3789fb8d632fdac3ed3209deab851f30429ca418696e23',
                     'Native 0.1.2 EFI differs from the previously reviewed deployment')
             expected_kexts = helpers.BASE_KEXTS | {'Navi48Native.kext'}
-        elif args.replace_native_0_2_0:
-            previous = ROOT / 'out/efi-native/native-0.2.0-compute-trial'
+        elif args.replace_native_0_2_0 or args.replace_native_0_2_1:
+            retired = '0.2.0' if args.replace_native_0_2_0 else '0.2.1'
+            previous = ROOT / ('out/efi-native/native-0.2.0-compute-trial' if retired == '0.2.0'
+                               else 'out/efi-native/native-0.2.1-diagnostics-trial')
             require(initial == json.loads((previous / 'reference-hashes.json').read_text()),
-                    'Reference differs from the reviewed 0.2.0 deployment')
-            validate_previous_compute_0_2_0(baseline, trial_config, current,
-                                           json.loads((previous / 'native-hashes.json').read_text()))
+                    'Reference differs from the reviewed ' + retired + ' deployment')
+            validate_previous_compute_trial(baseline, trial_config, current,
+                                            json.loads((previous / 'native-hashes.json').read_text()), retired)
             expected_kexts = helpers.BASE_KEXTS | {'Navi48Native.kext'}
         else:
             helpers.validate_profile(baseline, trial_config, True)
@@ -244,10 +268,10 @@ def main():
         require(report['experimental_compute']['called_by_service'] is True and
                 report['experimental_compute']['io_vm_per_page'] is True and
                 report['compute_shaders_verified_in_kext'] == 2, 'Missing native compute path/shaders')
-    if args.replace_native_0_2_0:
+    if args.replace_native_0_2_0 or args.replace_native_0_2_1:
         require(report.get('boot_diagnostics', {}).get('resource') == 'Navi48Native,BootDiagnostics' and
                 report.get('symbol_audit', {}).get('boot_diagnostic_publisher_linked') is True,
-                'Missing reviewed 0.2.1 persistent diagnostic publisher')
+                'Missing reviewed persistent diagnostic publisher')
     require(sums == json.loads((build / 'SHA256SUMS.json').read_text()) and
             digest(artifact / 'Contents/MacOS' / PRODUCT) == report['executable_sha256'], 'Modified kext artifact')
     audit_sources(build / 'source/driver')
@@ -304,8 +328,10 @@ def main():
               'two_one_shot_shaders_scheduled': args.experimental_compute,
               'native_0_1_2_replacement_acknowledged': args.replace_native_0_1_2,
               'native_0_2_0_replacement_acknowledged': args.replace_native_0_2_0,
-              'prepared_from_reviewed_retired_0_2_0_boot': retired_boot,
-              'running_native_version_during_update': '0.2.0' if retired_boot else None,
+              'native_0_2_1_replacement_acknowledged': args.replace_native_0_2_1,
+              'prepared_from_reviewed_retired_boot': retired_boot,
+              'retired_source_version': retired_source if retired_boot else None,
+              'running_native_version_during_update': retired_source if retired_boot else None,
               'running_native_hardware_touched_reported': None, 'hot_load_performed': False,
               'gpu_command_executed': False,
               'private_smbios_included': True, 'reference_files': len(initial), 'trial_files': len(hashes),
