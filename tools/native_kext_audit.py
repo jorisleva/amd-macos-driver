@@ -4,10 +4,14 @@ import re
 
 PRODUCT = 'Navi48Native'
 BUNDLE_ID = 'com.amd-macos-driver.' + PRODUCT
-VERSION = '0.2.4'
+VERSION = '0.2.5'
 SOURCE_FILES = ('Navi48Native.cpp', 'Navi48Native.hpp', 'DmaBuffer.cpp', 'DmaBuffer.hpp', 'kmod_info.c', 'Info.plist',
                 'ExperimentalCompute.cpp', 'ExperimentalCompute.hpp', 'ComputeAccess.hpp', 'ComputeSysMem.cpp', 'ComputeSysMem.hpp', 'ComputeLog.cpp')
-CORE_HEADERS = ('IOKitController.hpp', 'AmdGpuAccess.hpp', 'Preflight.hpp', 'NativeLog.hpp', 'amd/amdgpu_ip.h')
+# AcceleratorPreflight.hpp lives in the firmware-core module (single owner)
+# and is copied via CORE_HEADERS, not SOURCE_FILES: the kext dependency
+# audit expects driver/ headers under kexts/Navi48Native and core/ headers
+# under the verified core snapshot.
+CORE_HEADERS = ('IOKitController.hpp', 'AcceleratorPreflight.hpp', 'AmdGpuAccess.hpp', 'Preflight.hpp', 'NativeLog.hpp', 'amd/amdgpu_ip.h')
 LIBRARIES = {'com.apple.iokit.IOPCIFamily': '1.0', 'com.apple.kpi.iokit': '20.0.0',
              'com.apple.kpi.libkern': '20.0.0', 'com.apple.kpi.mach': '20.0.0',
              'com.apple.kpi.unsupported': '20.0.0'}

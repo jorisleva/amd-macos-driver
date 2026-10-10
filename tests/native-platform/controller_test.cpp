@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // The actual IOKitController.cpp with IOKit doubles, never the live Radeon.
 #include "IOKitController.hpp"
+#include "AcceleratorPreflight.hpp"
 #include <atomic>
 #include <cstdio>
 #include <thread>
@@ -313,6 +314,29 @@ static void mapsAndLifetime() {
         f.descriptors[1]->recipe.address = f.descriptors[0]->recipe.address;
         f.refused(c, PlatformResult::VirtualOverlap);
     }
+    // Accelerator-exclusion preflight matrix: the EXACT function run() calls
+    // (AcceleratorPreflight.hpp), covered with IOKit doubles. Null iterator
+    // (real Tahoe 0.2.4 boot, no accelerator) passes with iteratorNull marked;
+    // empty iterator passes; any object found is ExclusiveAccess; a null
+    // matching dictionary is NoMemory. No GPU, firmware, mapping or state.
+    for (unsigned scenario = 0; scenario < 4; ++scenario) {
+        fake::acceleratorMatchingNull = scenario == 0;
+        fake::acceleratorIteratorNull = scenario == 1;
+        fake::acceleratorPresent = scenario == 3;
+        bool iteratorNull = false;
+        const IOReturn result = checkNoAccelerator(iteratorNull);
+        if (scenario == 0) {
+            CHECK(result == kIOReturnNoMemory && !iteratorNull);
+        } else if (scenario == 1) {
+            CHECK(result == kIOReturnSuccess && iteratorNull); // 0.2.4 boot case
+        } else if (scenario == 2) {
+            CHECK(result == kIOReturnSuccess && !iteratorNull);
+        } else {
+            CHECK(result == kIOReturnExclusiveAccess && !iteratorNull);
+        }
+    }
+    fake::acceleratorMatchingNull = fake::acceleratorIteratorNull = fake::acceleratorPresent = false;
+    CHECK(fake::liveObjects == 0); // doubles released, no leak
     // Way 1: a shared mapping declaring a FULLY conforming other object is
     // adopted after revalidation, and the lease succeeds. Separate block:
     // it must NOT live inside Fixture::mapped(), which asserts the strict

@@ -23,6 +23,10 @@ constexpr IOReturn kIOReturnUnsupported = 2;
 constexpr IOReturn kIOReturnTimeout = 3;
 constexpr IOReturn kIOReturnIOError = 4;
 constexpr IOReturn kIOReturnBadArgument = 5;
+// Full IOReturn set for preflight-result comparisons (values match the SDK
+// macros semantically; only equality is tested, never produced kernel codes).
+constexpr IOReturn kIOReturnNoMemory = 6, kIOReturnNotPermitted = 7;
+constexpr IOReturn kIOReturnExclusiveAccess = 8;
 constexpr IOOptionBits kIOMapAnywhere = 0x1, kIOMapCacheMask = 0xf00, kIOMapInhibitCache = 0x100;
 constexpr IOOptionBits kIOMapReadOnly = 0x1000, kIOMapUnique = 0x4000000, kIOMemoryMapperNone = 0x800;
 inline int kernelTaskTag;
@@ -36,6 +40,12 @@ inline bool bootPresent = true, lockFails = false;
 inline uint32_t bootValue = 1;
 inline IOPlatformExpert *platform = nullptr;
 inline IOPCIDevice *substitutionProvider = nullptr;
+// Accelerator-preflight doubles: null dictionary = allocation failure;
+// null iterator = presumed empty set (real Tahoe behavior with no
+// accelerator); present iterator with objects = concurrent accelerator.
+inline bool acceleratorMatchingNull = false;
+inline bool acceleratorIteratorNull = false;
+inline bool acceleratorPresent = false;
 // Event >= 0: map released (bar index); 10: provider closed; 20+index:
 // descriptor freed. Borrowed descriptor ownership is checked via refcounts too.
 inline std::vector<unsigned> events;
@@ -62,6 +72,8 @@ inline void IOLockUnlock(IOLock *lock) { lock->mutex.unlock(); }
 void IOLog(const char *, ...);
 void IOSleep(unsigned);
 
+class OSDictionary;
+class OSIterator;
 class IOService : public OSObject {
 public:
     IOService *provider = nullptr;
@@ -69,7 +81,27 @@ public:
     bool isInactive() const { return inactive; }
     virtual IOService *getProvider() const { return provider; }
     static IOPlatformExpert *getPlatform() { return fake::platform; }
+    static OSDictionary *serviceMatching(const char *name);
+    static OSIterator *getMatchingServices(OSDictionary *matching);
 };
+class OSDictionary : public OSObject {};
+class OSIterator : public OSObject {
+public:
+    bool objects_ = false;
+    virtual OSObject *getNextObject() { return objects_ ? this : nullptr; }
+};
+inline OSDictionary *IOService::serviceMatching(const char *) {
+    if (fake::acceleratorMatchingNull) return nullptr;
+    return new OSDictionary;
+}
+inline OSIterator *IOService::getMatchingServices(OSDictionary *) {
+    // Like the real API: the caller retains ownership of the matching
+    // dictionary; the iterator is returned +1 (or null for the empty set).
+    if (fake::acceleratorIteratorNull) return nullptr;
+    auto *it = new OSIterator;
+    it->objects_ = fake::acceleratorPresent;
+    return it;
+}
 class IOMemoryDescriptor;
 struct MapRecipe {
     bool fail = false;

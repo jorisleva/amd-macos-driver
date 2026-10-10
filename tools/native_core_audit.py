@@ -12,8 +12,11 @@ SOURCES = (
 )
 LOCAL_FILES = ('NativeLog.hpp', 'NativeLog.cpp', 'Preflight.hpp', 'Preflight.cpp',
                'AmdGpuAccess.hpp', 'MappedAccess.hpp', 'MappedAccess.cpp')
-PLATFORM_FILES = ('IOKitController.hpp', 'IOKitController.cpp')
-PLATFORM_DEPENDENCIES = set(PLATFORM_FILES) | {'AmdGpuAccess.hpp', 'Preflight.hpp',
+PLATFORM_FILES = ('IOKitController.hpp', 'IOKitController.cpp', 'AcceleratorPreflight.hpp')
+# AcceleratorPreflight.hpp is copied (PLATFORM_FILES) and host-tested via the
+# controller suite, but IOKitController.o must not depend on it: the audit
+# requires every PLATFORM_DEPENDENCIES entry in the object .d file.
+PLATFORM_DEPENDENCIES = (set(PLATFORM_FILES) - {'AcceleratorPreflight.hpp'}) | {'AmdGpuAccess.hpp', 'Preflight.hpp',
                                              'NativeLog.hpp', 'amd/amdgpu_ip.h'}
 PLATFORM_IMPORTS = (
     '_IOLockAlloc', '_IOLockFree', '_IOLockLock', '_IOLockUnlock', '_PE_parse_boot_argn',

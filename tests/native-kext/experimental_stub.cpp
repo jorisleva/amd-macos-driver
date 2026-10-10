@@ -5,7 +5,7 @@ namespace fakecompute {
 unsigned calls = 0;
 bool simulatePublication = false;
 void (*onRun)() = nullptr;
-}
+} // namespace fakecompute
 namespace n48native {
 ExperimentalCompute::~ExperimentalCompute() = default;
 void ExperimentalCompute::cancel() { __atomic_store_n(&cancelled_, 1, __ATOMIC_RELEASE); }

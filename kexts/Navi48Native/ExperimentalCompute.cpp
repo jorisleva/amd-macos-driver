@@ -79,6 +79,12 @@ ExperimentalCompute::~ExperimentalCompute() {
 void ExperimentalCompute::cancel() { __atomic_store_n(&cancelled_, 1, __ATOMIC_RELEASE); }
 bool ExperimentalCompute::hardwareTouched() const { return facts_.hardwareTouched; }
 ExperimentalCompute::Snapshot ExperimentalCompute::snapshot() const { return facts_; }
+// Accelerator-exclusion preflight lives in AcceleratorPreflight.hpp so host
+// tests cover the exact function the kext calls (no logic duplication).
+#include "AcceleratorPreflight.hpp"
+IOReturn ExperimentalCompute::checkNoAccelerator(bool &iteratorNull) {
+    return n48native::checkNoAccelerator(iteratorNull);
+}
 IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop *loop, const Input &input) {
     facts_.preflightCheck = 1; // owner/provider/workloop
     if (resources_ || !owner || !pci || !loop || loop->inGate() || owner->getProvider() != pci || !pci->isOpen(owner)) {
@@ -119,14 +125,26 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
     if (input.offset < consoleOffset + consoleBytes && consoleOffset < input.offset + input.bytes)
         return fail(1, kIOReturnNotPermitted);
     facts_.preflightCheck = 6;
-    auto *matching = IOService::serviceMatching("IOAccelerator");
-    if (!matching) return fail(1, kIOReturnNoMemory);
-    facts_.preflightCheck = 7;
-    auto *accelerators = IOService::getMatchingServices(matching); matching->release();
-    if (!accelerators) return fail(1, kIOReturnNotReady);
-    facts_.preflightCheck = 8;
-    const bool anotherGpu = accelerators->getNextObject() != nullptr; accelerators->release();
-    if (anotherGpu) return fail(1, kIOReturnExclusiveAccess);
+    bool iteratorNull = false;
+    const IOReturn acceleratorCheck = checkNoAccelerator(iteratorNull);
+    facts_.acceleratorIteratorNull = iteratorNull;
+    // Observed on real Tahoe (0.2.4 boot): with no accelerator registered,
+    // getMatchingServices() returns a NULL iterator. The SDK does not
+    // distinguish this from an allocation failure, so record which case we
+    // took and pass the null as the empty set. A NON-null iterator is still
+    // fully enumerated: any object found is a hard ExclusiveAccess refusal.
+    // Residual risk (a true enumeration failure masking a competitor) is
+    // bounded: an active competitor would corrupt the fenced shader results,
+    // which are verified lane by lane.
+    if (acceleratorCheck == kIOReturnExclusiveAccess) {
+        facts_.preflightCheck = 8;
+        return fail(1, kIOReturnExclusiveAccess);
+    }
+    if (acceleratorCheck != kIOReturnSuccess) {
+        facts_.preflightCheck = 7;
+        return fail(1, acceleratorCheck);
+    }
+    facts_.preflightCheck = 8; // no competitor found (null or empty iterator)
     facts_.preflightCheck = 9;
     resources_ = new Resources;
     if (!resources_) return fail(1, kIOReturnNoMemory);
