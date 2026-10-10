@@ -96,6 +96,10 @@ Les preuves originales ci-dessous sont conservées ; le buffer supplémentaire
 reste privé dans `dmesg-followup/`, SHA-256
 `3ab94bc30321cc89db4e7ad2a7eeb94d4c637cb90bc1c6f1623e68f8388eb199`.
 
+Depuis ce checkpoint, **0.2.1 est déployé sur PROBE1401**, ancienne EFI 0.2.0
+sauvegardée ; le noyau courant n'a pas changé et reste en 0.2.0.
+[Déploiement vérifié / prochain boot](2026-10-10-native-diagnostics-deployment.md).
+
 ## Préservation et preuves
 
 Vérification uniquement en lecture, aucune commande GPU émise, aucun hot-load,

@@ -1,21 +1,27 @@
-# Essai natif 0.2.0 : initialisation et calcul Radeon
+# Essai natif 0.2.1 : initialisation, calcul Radeon et diagnostic de refus
 
-> **Premier boot effectué le 10 octobre :** module 0.2.0 chargé, UUID/arguments
-> conformes, mais service retiré, pas de rapport compute ni résultat Radeon
-> validé. [Rapport du boot](reports/2026-10-10-native-compute-boot.md).
-> **Suite : capture privilégiée lue, messages du boot écrasés.** Refus exact
-> inconnu. Correctif diagnostic **0.2.1** compilé/testé hors ligne, **non chargé
-> et non déployé** ([rapport et décodage](reports/2026-10-10-native-boot-diagnostics.md)).
-> Revoir/sauvegarder la mise à jour USB avant un futur boot diagnostic ; aucun
-> reload/retry dans le noyau courant. Ce document décrit le profil 0.2.0 encore
-> présent sur PROBE1401, pas des opérations matérielles déjà réussies.
+> **PROBE1401 contient désormais 0.2.1**, vérifié/signé/ocvalidate conforme,
+> ancienne EFI 0.2.0 sauvegardée. **Prochaine action : F12 → PROBE1401 → Tahoe,
+> puis relever UUID et BootDiagnostics.** [Déploiement](reports/2026-10-10-native-diagnostics-deployment.md).
+> Le noyau courant reste en **0.2.0**, service retiré, sans résultat Radeon ;
+> son buffer de boot est écrasé et son refus exact inconnu.
+> [Premier boot](reports/2026-10-10-native-compute-boot.md).
+> **0.2.1 non encore chargé/boot testé** : persistance IOResources et résultats
+> matériels à observer, pas présumés. Aucun retry/reload dans le noyau courant.
+> [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
 
 **Ne pas redémarrer l'ancien essai 0.1.2 pour espérer un calcul.** Le bundle
-0.2.0 contient le chemin matériel appelé par `Navi48Native::start()` : découverte
+0.2.1 conserve le chemin matériel de 0.2.0 appelé par `Navi48Native::start()` : découverte
 IP → bootloader PSP → GMC/GART → PSP/ring/TMR/firmwares → SMU/IMU/RLC → CP/MES/GFX
 → fences → deux dispatchs gfx1201 avec relecture/comparaison de 64 lanes.
+
+Le correctif ajoute `Navi48Native,BootDiagnostics` dans IOResources : diagnostic
+synthétique destiné à survivre au refus/retrait du service et au buffer dmesg
+écrasé. Valeurs génériques uniquement, pas de référence au service/provider.
+Best effort sur OOM, pas d'historique de toutes les tentatives ; persistance
+noyau encore à observer. Aucun garde/Claim/chemin de commande GPU changé.
 
 Les deux shaders publics épinglés (assembleur et LLVM/HSA) calculent chacun une
 rampe de 32 entiers à partir de l'identifiant de lane. Ce sont de **premiers
@@ -55,17 +61,17 @@ Le service/module et les ressources restent retenus jusqu'au reboot, même aprè
 échec/timeout. L'assertion PM empêche la veille automatique/de l'affichage ; elle
 ne bloque pas la veille forcée : **ne pas mettre cette session en veille**.
 
-## Bundle prévu
+## Bundle déployé pour le prochain boot
 
-- Produit : `out/native-kext/compute-trial-0.2.0/Navi48Native.kext`, x86_64.
-- UUID : `AB1F0B3A-865C-33FC-BC6B-5CA0056BBF45`.
+- Produit : `out/native-kext/boot-diagnostics-0.2.1-final/Navi48Native.kext`, x86_64.
+- UUID : `62893962-8984-3EE0-B636-40E33C9F073D`.
 - Exécutable SHA-256 :
-  `34ce08473ac2acedd0a9094420cbd4ebf159bf48b21a0134095715cfd95809f9`.
+  `441140b8f86095f0bd06e7c77d61f90ae20518e0fa40171e35dd270bd49e01da`.
 - Dix firmwares et deux shaders vérifiés dans le Mach-O ; signature ad hoc
   stricte ; zéro avertissement. **Cela ne valide pas la liaison/ABI/charge noyau.**
-- 321 contrôles service/lifecycle, 162 adaptateur DMA, 29 pool IOVM et 39 accès
+- 419 contrôles service/lifecycle, 162 adaptateur DMA, 29 pool IOVM et 39 accès
   bornés, sur RAM/doubles IOKit avec ASan/UBSan ; pas une simulation réussie de
-  shader Radeon. 78 tests Python sur outils/profils, sans accès GPU.
+  shader Radeon. 86 tests Python sur outils/profils/remplacement, sans accès GPU.
 
 Le profil conserve SMBIOS, patches Ryzen, sécurité et les cinq kexts de
 référence ; seuls `Kernel/Add` et les arguments natifs changent. Le double
@@ -103,12 +109,21 @@ sw_vers
 uname -r
 sysctl -n kern.bootargs
 kmutil showloaded | grep -i Navi48Native
+ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.0 / UUID ci-dessus**, les cinq arguments natifs et le
-rapport **`Navi48Native,Compute`**, distinct de `Navi48Native,Resources` (RO/DMA
-non qualifiés, dont les anciens flags peuvent rester zéro).
+Vérifier module **0.2.1 / UUID ci-dessus**, les cinq arguments natifs.
+Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
+IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
+Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
+les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
+Si la publication best effort manque, capturer rapidement `sudo dmesg` dans
+Terminal, jamais transmettre le mot de passe. Ne pas retry/reload dans ce boot.
+
+Le rapport complet **`Navi48Native,Compute`** reste requis pour les preuves de
+calculs, distinct de `Navi48Native,Resources` (RO/DMA non qualifiés, dont les
+anciens flags peuvent rester zéro) et du diagnostic synthétique BootDiagnostics.
 
 Pour un résultat matériel positif, exiger simultanément :
 
@@ -158,11 +173,15 @@ python3 -B tools/prepare-native-kext-efi.py \
   --experimental-compute
 ```
 
-Les sources actuelles produisent **0.2.1**, non déployé ; l'exemple prépare
-seulement une nouvelle EFI locale. Il ne doit pas être suivi d'un boot de la
-clé 0.2.0 en pensant lire le nouveau diagnostic.
+Les sources produisent **0.2.1**, maintenant déployé ; ces commandes ne chargent
+pas le pilote. La préparation EFI locale seule exige un boot de référence.
 
-Le déploiement est distinct : `--deploy-probe1401 --replace-native-0.1.2` ne peut
-remplacer que le profil 0.1.2/hashes précédemment revus. Après remplacement, le
-préparateur refusera de recommencer sans une nouvelle revue de l'état USB.
-Rapport de suivi : [native-compute](reports/2026-10-09-native-compute.md).
+Le remplacement déjà effectué a utilisé `--deploy-probe1401
+--experimental-compute --replace-native-0.2.0` : profil/hashes 0.2.0 exacts,
+64+64 Mio, build 0.2.1 vérifié. Une exception de **copie hors ligne seulement**
+autorise le boot 0.2.0/version/UUID/arguments exacts avec zéro instance native,
+pas une reprise GPU. L'ancien `--replace-native-0.1.2` reste limité à 0.1.2.
+**La clé est désormais en 0.2.1 : ne pas rejouer ces options de remplacement**,
+qui refuseront cet état sans nouvelle revue. OPENCORE et backups préservés.
+[Déploiement actuel](reports/2026-10-10-native-diagnostics-deployment.md) ·
+[Préparation historique 0.2.0](reports/2026-10-09-native-compute.md).

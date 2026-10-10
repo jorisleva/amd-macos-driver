@@ -1,6 +1,8 @@
 {
   "schema_version": 1,
   "status": "boot-messages-overwritten-offline-diagnostic-fix-not-deployed",
+  "historical_checkpoint_before_deployment": true,
+  "later_deployment_report": "2026-10-10-native-diagnostics-deployment.json",
   "boot_utc": "2026-10-10T11:20:06.376019+00:00",
   "capture_inspected_utc": "2026-10-10T11:47:25.320633+00:00",
   "running_native_version": "0.2.0",

@@ -1,5 +1,9 @@
 # Buffer de boot perdu ; correctif diagnostic 0.2.1 hors ligne
 
+> **Checkpoint historique avant déploiement.** À la demande de l'utilisateur,
+> 0.2.1 a ensuite été déployé/vérifié sur PROBE1401, ancienne EFI sauvegardée ;
+> non encore chargé. [État actuel et prochain boot](2026-10-10-native-diagnostics-deployment.md).
+
 ## Ce que la capture utilisateur établit
 
 Dans le boot du **10 octobre 2026 à 11:20:06 UTC**, l'utilisateur a capturé

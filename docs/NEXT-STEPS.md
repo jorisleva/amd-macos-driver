@@ -1,6 +1,6 @@
 # Travail restant — Hackintosh Tahoe
 
-## Dernier état : premier boot 0.2.0, chargement oui / calcul non validé
+## Dernier état : 0.2.1 déployé pour prochain boot, noyau courant 0.2.0
 
 **10 octobre : le bon kext est réellement chargé**, UUID et cinq arguments
 conformes. Aucun nœud/instance `Navi48Native`, aucun rapport Resources/Compute ;
@@ -8,11 +8,13 @@ deux fermetures du bail PCI par le client natif pendant le boot. Initialisation,
 fences et résultats GPU non validés. Capture `sudo dmesg` lue dans ce même
 boot : buffer de 128 Kio écrasé, aucune ligne native, refus exact inconnu.
 Correctif **0.2.1** : diagnostic IOResources destiné à survivre au retrait,
-compilé/testé hors ligne, **non chargé/non déployé**. Préparer une mise à jour
-USB strictement revue/sauvegardée avant un futur boot diagnostic ; aucun
-retry/reload dans le noyau actuel. OPENCORE/EFI d'essai/backups inchangés.
-[Boot](reports/2026-10-10-native-compute-boot.md) ·
-[correctif](reports/2026-10-10-native-boot-diagnostics.md).
+**déployé/vérifié sur PROBE1401**, sauvegarde entière de 0.2.0 conservée,
+OPENCORE et anciens backups inchangés. **0.2.1 non chargé/non encore boot testé** ;
+prochaine action : F12 → PROBE1401 → Tahoe, relever UUID et BootDiagnostics.
+Aucun retry/reload dans le noyau actuel, qui reste en 0.2.0.
+[Boot 0.2.0](reports/2026-10-10-native-compute-boot.md) ·
+[correctif](reports/2026-10-10-native-boot-diagnostics.md) ·
+[déploiement 0.2.1](reports/2026-10-10-native-diagnostics-deployment.md).
 
 ## Préparation 0.2.0, historique du 9 octobre
 
@@ -200,13 +202,14 @@ Réglages, sauvegarde et commandes Git pour le Mac :
    pour rejouer les instructions historiques ci-dessus.
 4. **Étape 1 : faire initialiser la Radeon par `Navi48Native.kext`.** Le vrai
    bundle est créé et le chargement noyau 0.2.0 est observé, mais firmware réel
-   et initialisation non validés. L'essai natif **0.2.0** est désormais déployé sur PROBE1401 :
+   et initialisation non validés. Le profil natif **0.2.1** est désormais sur PROBE1401 :
    orchestration firmware/GMC/GART/CP/MES/GFX et deux shaders raccordés au service.
    Le premier boot du 10 octobre a validé le chargement, mais le service se
    retire sans rapport GPU. Le buffer privilégié est maintenant lu : messages
-   de boot écrasés. Le correctif diagnostic persistant 0.2.1 est construit,
-   non déployé/non chargé. Revoir/sauvegarder un remplacement de la clé 0.2.0
-   avant un boot diagnostic ; lire le refus réel, le corriger. Puis observer
+   de boot écrasés. Le correctif diagnostic persistant 0.2.1 est déployé,
+   non encore chargé ; signature/ocvalidate/hashes vérifiés et ancienne EFI
+   sauvegardée. Faire le prochain boot diagnostic ; lire le refus réel,
+   le corriger sans retry/reload. Puis observer
    étapes matérielles, fences et résultats Radeon selon [la procédure](NATIVE-COMPUTE-ESSAI.md).
    Référence OPENCORE intacte. Établir/qualifier ensuite console, réservations,
    géométrie/base MC, propriété GPU exclusive, HDP, DMA et puissance/restauration.

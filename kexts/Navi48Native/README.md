@@ -1,15 +1,16 @@
 # Navi48Native.kext — service PCI/DMA et essai init/compute
 
-**Sources et bundle hors ligne x86_64 0.2.1**, personnalité PCI, service IOKit et points
+**Sources et bundle x86_64 0.2.1 déployé sur PROBE1401**, personnalité PCI, service IOKit et points
 kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
 calculs gfx1201 internes, avec fences et comparaison des 64 résultats. Aucun
 accélérateur annoncé, aucun hook Apple/NVIDIA, aucun `UserClient` autorisé.
-**0.2.0 demeure sur PROBE1401 et chargé dans le noyau** : premier boot le
-10 octobre, service retiré, aucun calcul Radeon validé. Buffer privilégié lu
-mais messages du boot écrasés. **0.2.1 ajoute le diagnostic IOResources,
-compilé/signé/testé, non déployé/non chargé.**
+**Le noyau courant reste en 0.2.0**, premier boot le 10 octobre, service
+retiré, aucun calcul Radeon validé. Buffer privilégié lu mais messages du boot
+écrasés. **0.2.1 ajoute le diagnostic IOResources : déployé/signé/vérifié,
+ancienne EFI sauvegardée, non encore chargé/boot testé.**
 [Boot](../../docs/reports/2026-10-10-native-compute-boot.md) ·
-[correctif diagnostic](../../docs/reports/2026-10-10-native-boot-diagnostics.md).
+[correctif diagnostic](../../docs/reports/2026-10-10-native-boot-diagnostics.md) ·
+[déploiement](../../docs/reports/2026-10-10-native-diagnostics-deployment.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
@@ -108,8 +109,8 @@ python3 -B tools/build-native-kext.py \
 python3 -B -m unittest discover -s tests/tools -v
 ```
 
-Bundle déployé : `out/native-kext/compute-trial-0.2.0/Navi48Native.kext`.
-Correctif hors ligne : `out/native-kext/boot-diagnostics-0.2.1-final/Navi48Native.kext`.
+Bundle déployé : `out/native-kext/boot-diagnostics-0.2.1-final/Navi48Native.kext`.
+Ancien 0.2.0 conservé dans le backup EFI du remplacement.
 Le builder vérifie core/controller/source/SDK, exporte la révision Navi48
 épinglée et applique la correction PSP fail-closed déjà auditée. Les moteurs
 sont renommés à la compilation, sans service/hook graphique amont. Dix
@@ -117,7 +118,7 @@ firmwares et deux bytecodes publics sont vérifiés dans le Mach-O signé.
 Tout warning ou import non revu fait échouer le build.
 
 419 contrôles service/lifecycle, 162 DMA, 29 pool IOVM et 39 accès RAM, tous
-ASan/UBSan, plus 80 tests Python. **Les doubles ne fabriquent jamais une preuve
+ASan/UBSan, plus 86 tests Python (dont le remplacement EFI strict). **Les doubles ne fabriquent jamais une preuve
 positive de calcul Radeon.** Les notices amont/firmware restent dans le bundle.
 Les exports EFI privés et sorties de compilation restent hors Git.
 
