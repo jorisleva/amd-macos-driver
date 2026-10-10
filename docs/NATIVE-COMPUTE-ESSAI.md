@@ -1,13 +1,11 @@
 # Essai natif 0.2.6 : initialisation, calcul Radeon et diagnostic RW
 
-> **PROBE1401 contient désormais 0.2.6**, vérifié/signé/ocvalidate conforme,
-> ancienne EFI 0.2.5 sauvegardée. **Prochaine action : F12 → PROBE1401 → Tahoe,
-> puis relever version et `RWBar0Map/MapCheck`.** [Déploiement](reports/2026-10-10-native-rw-deployment.md).
-> Le noyau courant reste en **0.2.5**, préflight passé puis refus RW BAR0,
-> sans résultat Radeon.
-> [Boot 0.2.5](reports/2026-10-10-native-0.2.5-boot.md).
-> **0.2.6 non encore chargé/boot testé** : champ RW et résultats matériels à
-> observer, pas présumés. Aucun retry/reload dans le noyau courant.
+> **Boot 0.2.6 effectué le 10 octobre à 15:09:46 UTC.** Module/UUID/arguments
+> conformes. **Champ RW nommé : `RWBar0Map/MapCheck=3` (`DescriptorMismatch`)**,
+> même scénario que le RO (partage, provider stable), aucun hardware.
+> [Boot 0.2.6](reports/2026-10-10-native-0.2.6-boot.md).
+> Prochaine action : porter l'adoption voie 1 au chemin RW, sans assouplir
+> les gardes. Aucun retry/reload dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -113,15 +111,13 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.6 / SHA ci-dessus**, les cinq arguments natifs.
+Vérifier module **0.2.6 / UUID BAD9777A-7C72-338A-A6B8-01FA4A3D28C3**, les cinq arguments natifs.
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Si refus RW, relever **`RWBar0Map/MapCheck`** et ses valeurs (0 non atteint,
-1 Ok, 2 NullMap, 3 descripteur, 4 tâche, 5 longueur, 6 contigu, 7 physique,
-8 cache, 9 flags/ReadOnly, 10 adresse nulle, 11 non alignée, 12 descripteur
-absent, 13 longueur descripteur). Si la publication best effort manque,
+Le refus RW actuel est **`RWBar0Map/MapCheck=3`** (partage confirmé,
+`RereadMatch=1, DeclaredIsReread=0`). Si la publication best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.
 
