@@ -20,8 +20,15 @@ public:
         FlagsMismatch = 9, NullAddress = 10, UnalignedAddress = 11, NullDescriptor = 12,
         DescriptorLengthMismatch = 13
     };
+    enum class RwOrigin : uint32_t {
+        Retained = 0, // mapping declares the retained descriptor: strict path
+        DeclaredAdopted = 1, // shared RW mapping path: declared object adopted
+        // after full revalidation (length/segment/provider-stable)
+        NotAdopted = 2 // declared object failed revalidation: still refused
+    };
     struct RwBarObservation {
         RwMapCheck check{RwMapCheck::NotChecked};
+        RwOrigin origin{RwOrigin::Retained};
         uint64_t observedAddress{0};
         IOOptionBits observedMapOptions{0};
         uint64_t observedLength{0}, observedContiguous{0}, observedPhysical{0};

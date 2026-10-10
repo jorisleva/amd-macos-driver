@@ -129,7 +129,7 @@ int main() {
         f.pci.afterClose = [](IOPCIDevice *) { callbackDriver->stop(callbackProvider); };
         f.driver.stop(&f.pci); f.closed(); CHECK(f.driver.stops == 1);
         auto *diagnostic = dynamic_cast<OSDictionary *>(fake::bootDiagnostic);
-        CHECK(value(diagnostic, "Checkpoint") == 14 && value(diagnostic, "DriverVersion") == 0x206);
+        CHECK(value(diagnostic, "Checkpoint") == 14 && value(diagnostic, "DriverVersion") == 0x207);
         CHECK(value(diagnostic, "StartReturn") == 0 && value(diagnostic, "DMAObserved") == 1);
         CHECK(value(diagnostic, "ComputeObserved") == 0);
         CHECK(!f.driver.start(&f.pci)); // no hot restart/rearm
@@ -170,6 +170,7 @@ int main() {
         auto *rwBar0 = dynamic_cast<OSDictionary *>(diagnostic->getObject("RWBar0Map"));
         CHECK(value(rwBar0, "MapCheck") == static_cast<uint32_t>(n48native::ExperimentalCompute::RwMapCheck::NotChecked));
         CHECK(value(rwBar0, "ObservedAddress") == 0);
+        CHECK(value(rwBar0, "Origin") == static_cast<uint32_t>(n48native::ExperimentalCompute::RwOrigin::Retained));
         CHECK(value(report, "HardwareQualificationComplete") == 0 && value(report, "MetalAcceleration") == 0);
         f.closed(); CHECK(f.driver.stops == 1);
         fakecompute::onRun = nullptr;

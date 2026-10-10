@@ -28,6 +28,11 @@ namespace n48native {
 struct ExperimentalCompute::Resources final : n48::HwAccess {
     ExperimentalCompute *parent{nullptr}; IOService *owner{nullptr}; IOPCIDevice *pci{nullptr}; IOWorkLoop *loop{nullptr};
     IOMemoryMap *maps[3]{}; IODeviceMemory *descriptors[3]{};
+    // Way 1 (RW adoption): when a shared RW mapping declares another object
+    // that fully revalidates, adopted[i] holds our extra retain of it while
+    // descriptors[i] keeps the originally retained provider object (the
+    // provider must stay stable). Released together. Null when not adopted.
+    IODeviceMemory *adopted[3]{};
     uint32_t barConfig[5]{};
     IOPMrootDomain *powerRoot{nullptr}; IOPMDriverAssertionID sleepAssertion{kIOPMUndefinedDriverAssertionID};
     DeviceContext dev{}; IpDiscovery discovery; uint8_t discoveryBytes[10240]{};
@@ -66,7 +71,7 @@ struct ExperimentalCompute::Resources final : n48::HwAccess {
             if (sleepAssertion != kIOPMUndefinedDriverAssertionID) powerRoot->releasePMAssertion(sleepAssertion);
             powerRoot->release();
         }
-        for (unsigned i = 3; i-- > 0;) { if (maps[i]) maps[i]->release(); if (descriptors[i]) descriptors[i]->release(); }
+        for (unsigned i = 3; i-- > 0;) { if (maps[i]) maps[i]->release(); if (descriptors[i]) descriptors[i]->release(); if (adopted[i]) adopted[i]->release(); }
         if (dev.indirectLock) IOLockFree(dev.indirectLock);
         if (loop) loop->release(); if (pci) pci->release(); if (owner) owner->release();
     }
@@ -188,7 +193,40 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
         observation.observedDescriptorMatch = descriptorMatch; observation.observedTaskMatch = taskMatch;
         observation.observedRereadPresent = rereadPresent; observation.observedRereadMatch = rereadMatch;
         observation.observedDeclaredIsReread = declaredIsReread;
-        if (!descriptorMatch) { observation.check = RwMapCheck::DescriptorMismatch; return fail(1, kIOReturnBadArgument); }
+        // Way 1 (RW adoption): a shared RW mapping declaring another object
+        // is adopted ONLY if the declared object fully revalidates (length,
+        // contiguous segment at the config base) AND the provider still
+        // returns the retained one. Otherwise the mismatch stays terminal.
+        // The adopted object gets our extra retain; the original retain is
+        // kept for provider-stability checks. No state changed on failure.
+        if (!descriptorMatch) {
+            observation.check = RwMapCheck::DescriptorMismatch;
+            if (!(rereadPresent && rereadMatch && !declaredIsReread)) {
+                observation.origin = RwOrigin::NotAdopted;
+                return fail(1, kIOReturnBadArgument);
+            }
+            // reread==retained!=declared: the exact 0.2.6 hardware scenario.
+            // Downcast without RTTI (kext has no typeinfo): the declared
+            // object is fully revalidated below (length/segment/provider),
+            // so a wrong dynamic type cannot pass silently.
+            auto *declared = static_cast<IODeviceMemory *>(map->getMemoryDescriptor());
+            IOByteCount declaredContiguous = 0;
+            const uint64_t declaredPhysical = declared ?
+                declared->getPhysicalSegment(0, &declaredContiguous, kIOMemoryMapperNone) : 0;
+            if (!declared || declared == md || declared->getLength() != input.barBytes[i] ||
+                declaredContiguous != input.barBytes[i] || declaredPhysical != input.barPhysical[i] ||
+                pci->getDeviceMemoryWithRegister(regs[i]) != md) {
+                observation.origin = RwOrigin::NotAdopted;
+                return fail(1, kIOReturnBadArgument);
+            }
+            declared->retain();
+            r.adopted[i] = declared;
+            observation.origin = RwOrigin::DeclaredAdopted;
+            // Recompute the match against the adopted object, then fall
+            // through to every remaining property check (task/length/segment/
+            // options/address). Nothing is skipped.
+            observation.observedDescriptorMatch = true;
+        }
         if (!taskMatch) { observation.check = RwMapCheck::TaskMismatch; return fail(1, kIOReturnBadArgument); }
         if (length != input.barBytes[i]) { observation.check = RwMapCheck::LengthMismatch; return fail(1, kIOReturnBadArgument); }
         if (bytes != input.barBytes[i]) { observation.check = RwMapCheck::ContiguousMismatch; return fail(1, kIOReturnBadArgument); }

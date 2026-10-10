@@ -170,7 +170,7 @@ IOReturn Navi48Native::finishGated(Action &action) {
         return kIOReturnSuccess;
     }
     stage_ = Stage::MappedFirmwareBlocked; action.checkpoint = Checkpoint::PreparedOnly;
-    IOLog("Navi48Native: started 0.2.6 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
+    IOLog("Navi48Native: started 0.2.7 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
           snapshot.bdf, static_cast<unsigned long long>(action.dmaFacts.bytes), action.dmaFacts.pages,
           action.dmaFacts.deviceMapper ? 1u : 0u, snapshot.blockers);
     // Actual RAM allocation + IOVM generation, NOT GPU DMA qualification.
@@ -227,7 +227,7 @@ void Navi48Native::recordBootDiagnostic(const Action &a, IOReturn result) {
     auto *report = OSDictionary::withCapacity(80);
     if (!report) { IOLog("Navi48Native: boot diagnostic allocation failed\n"); return; }
     const auto &p = a.platformFacts; const auto &c = a.computeFacts;
-    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x000206, 32) &&
+    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x000207, 32) &&
         number(report, "Checkpoint", static_cast<uint32_t>(a.checkpoint), 32) &&
         number(report, "StartReturn", static_cast<uint32_t>(result), 32) &&
         number(report, "ComputeRequested", a.computeRequested, 32) &&
@@ -290,10 +290,11 @@ bool Navi48Native::recordRwBars(OSDictionary *report, const n48native::Experimen
     // provider/map retained. NotChecked for a BAR the RW loop never reached.
     constexpr const char *names[3] = {"RWBar0Map", "RWBar2Map", "RWBar5Map"};
     for (unsigned i = 0; i < 3; ++i) {
-        auto *bar = OSDictionary::withCapacity(12);
+        auto *bar = OSDictionary::withCapacity(14);
         if (!bar) return false;
         const auto &observation = facts.rwBars[i];
         const bool ok = number(bar, "MapCheck", static_cast<uint32_t>(observation.check), 32) &&
+            number(bar, "Origin", static_cast<uint32_t>(observation.origin), 32) &&
             number(bar, "ObservedAddress", observation.observedAddress) &&
             number(bar, "ObservedMapOptions", observation.observedMapOptions, 32) &&
             number(bar, "ObservedLength", observation.observedLength) &&
