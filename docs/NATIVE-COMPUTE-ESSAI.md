@@ -1,12 +1,13 @@
-# Essai natif 0.2.11 : shell réparé et diagnostic doorbell
+# Essai natif 0.2.12 : témoins GC avant/après kick
 
-> **Boot 0.2.11 effectué le 11 octobre à 12:09:21 UTC.** Module/UUID/six
-> arguments conformes, service conservé (1 instance). **Kick tue tout le
-> MMIO (BAR2 + GC, 3/3).** Shell : snapshot/survey répondent, lectures
-directes refusées post-faute (voulu), zéro écriture envoyée.
+> **PROBE1401 contient désormais 0.2.12** (copie forcée explicite, fichiers
+> seuls, tout vérifié). **Prochaine action : F12 → PROBE1401 → Tahoe, puis
+> relever les témoins GRBM/GFX/ME/MEC/RPTR.** [Déploiement](reports/2026-10-11-native-gc-witness-deployment.md).
+> Boot 0.2.11 toujours en mémoire : kick tue tout le MMIO, shell répond.
+> Index 139 = 0x8B gfx_ring0 (destination saine).
 > [Boot 0.2.11](reports/2026-10-11-native-0.2.11-boot.md).
-> Prochaine action : valider l'index 139 contre HQD/MQD ou instrumenter les
-> horloges GFX, sans unload/reload/veille dans le noyau courant.
+> **0.2.12 non encore chargé/boot testé** : témoins et résultats à observer,
+> pas présumés. Aucun retry/reload dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -62,16 +63,16 @@ ne bloque pas la veille forcée : **ne pas mettre cette session en veille**.
 
 ## Bundle déployé pour le prochain boot
 
-- Produit : `out/native-kext/shellfix-doorbell-0.2.11/Navi48Native.kext`, x86_64.
+- Produit : `out/native-kext/gc-witness-0.2.12/Navi48Native.kext`, x86_64.
 - Exécutable SHA-256 :
-  `7a322a24560656215b5ff5327f4a229677c858780ad1e0e2d73336da30ddd477`.
+  `6461c2d9a168195c4e9298a191cbeb24028b7c27e466388c4fb4af710d2f3da8`.
 - Dix firmwares et deux shaders vérifiés dans le Mach-O ; signature ad hoc
   stricte ; zéro avertissement. **Cela ne valide pas la liaison/ABI/charge noyau.**
-- 3 207 contrôles contrôleur, 1 323 service/lifecycle, 162 adaptateur DMA,
+- 3 207 contrôles contrôleur, 1 335 service/lifecycle, 162 adaptateur DMA,
   29 pool IOVM et 39 accès bornés, sur RAM/doubles IOKit avec ASan/UBSan ;
-  pas une simulation réussie de shader Radeon. 86 tests Python sur
-  outils/profils/remplacements, sans accès GPU. Le détail stage 16 est
-  purement observationnel (mêmes appels, mêmes attentes).
+  pas une simulation réussie de shader Radeon. 88 tests Python sur
+  outils/profils/remplacements, sans accès GPU. Les témoins GC sont
+  purement observationnels (mêmes appels, mêmes attentes).
 
 Le profil conserve SMBIOS, patches Ryzen, sécurité et les cinq kexts de
 référence ; seuls `Kernel/Add` et les arguments natifs changent. Le double
@@ -113,15 +114,15 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.11 / UUID F775021A-E284-381C-BBBA-556A3616D597**, les **six** arguments natifs (dont `navi48-native-shell=1`).
+Vérifier module **0.2.12 / SHA ci-dessus**, les **six** arguments natifs (dont `navi48-native-shell=1`).
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Le shell répond (snapshot/survey) ; les lectures directes sont refusées
-post-faute (voulu). Le kick tue tout le MMIO : valider l'index 139 contre
-HQD/MQD ou instrumenter les horloges GFX. Aucune écriture via le shell.
-Si la publication best effort manque,
+Si stage 16 : relever les témoins avant/après (GRBM/GFX/ME/MEC/RPTR).
+Index 139 = 0x8B gfx_ring0 (destination saine). Puis interagir via le shell
+(lecture seule). Aucune écriture via le shell. Si la publication best
+effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.
 
@@ -181,13 +182,13 @@ Les sources produisent **0.2.8**, maintenant déployé ; ces commandes ne charge
 pas le pilote. La préparation EFI locale seule exige un boot de référence.
 
 Le remplacement déjà effectué a utilisé `--deploy-probe1401
---experimental-compute --read-only-shell --replace-native-0.2.10` **par copie
-forcée explicite depuis le boot 0.2.10 conservé** (1 instance, fichiers seuls,
-tout vérifié) : profil/hashes 0.2.10 exacts, 64+64 Mio + shell, build 0.2.11
+--experimental-compute --read-only-shell --replace-native-0.2.11` **par copie
+forcée explicite depuis le boot 0.2.11 conservé** (1 instance, fichiers seuls,
+tout vérifié) : profil/hashes 0.2.11 exacts, 64+64 Mio + shell, build 0.2.12
 vérifié. Les anciennes options restent limitées à leurs sources respectives
-(`0.2.0 → … → 0.2.11`).
-**La clé est désormais en 0.2.11 : ne pas rejouer ces options de remplacement**,
+(`0.2.0 → … → 0.2.12`).
+**La clé est désormais en 0.2.12 : ne pas rejouer ces options de remplacement**,
 qui refuseront cet état sans nouvelle revue. OPENCORE et backups préservés.
-[Déploiement actuel](reports/2026-10-10-native-shellfix-deployment.md) ·
-[Déploiement 0.2.10](reports/2026-10-10-native-shell-deployment.md) ·
+[Déploiement actuel](reports/2026-10-11-native-gc-witness-deployment.md) ·
+[Déploiement 0.2.11](reports/2026-10-10-native-shellfix-deployment.md) ·
 [Préparation historique 0.2.0](reports/2026-10-09-native-compute.md).

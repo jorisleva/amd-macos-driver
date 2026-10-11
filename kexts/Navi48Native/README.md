@@ -1,16 +1,16 @@
 # Navi48Native.kext — service PCI/DMA et essai init/compute
 
-**Sources et bundle x86_64 0.2.11 déployé sur PROBE1401** (copie forcée
+**Sources et bundle x86_64 0.2.12 déployé sur PROBE1401** (copie forcée
 explicite, triple opt-in shell), personnalité PCI, service IOKit et points
 kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
 calculs gfx1201 internes, avec fences et comparaison des 64 résultats, ring-test
-découpé (write/read, kick, poll + relevés), diagnostic doorbell
-(index/offset/wptr/range/readback), et **shell lecture seule RÉPARÉ**
-(`request.result` propagé, 5 sélecteurs, aucune écriture/soumission/horloge).
-**Boot 0.2.11** (11 octobre, 12:09:21 UTC) : service conservé (1 instance).
-**Kick tue tout le MMIO (BAR2 + GC, 3/3).** Shell : snapshot/survey
-répondent, lectures directes refusées post-faute (voulu), zéro écriture.
-[Boot 0.2.11](../../docs/reports/2026-10-11-native-0.2.11-boot.md).
+découpé (write/read, kick, poll + relevés), diagnostic doorbell, **témoins GC
+avant/après kick** (GRBM/GFX/ME/MEC/RPTR), et **shell lecture seule**
+(5 sélecteurs, aucune écriture/soumission/horloge).
+**Boot 0.2.11 toujours en mémoire** : kick tue tout le MMIO, shell répond.
+Index 139 = 0x8B gfx_ring0 (destination saine).
+[Boot 0.2.11](../../docs/reports/2026-10-11-native-0.2.11-boot.md) ·
+[déploiement 0.2.12](../../docs/reports/2026-10-11-native-gc-witness-deployment.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
@@ -109,7 +109,7 @@ python3 -B tools/build-native-kext.py \
 python3 -B -m unittest discover -s tests/tools -v
 ```
 
-Bundle déployé : `out/native-kext/shellfix-doorbell-0.2.11/Navi48Native.kext`.
+Bundle déployé : `out/native-kext/gc-witness-0.2.12/Navi48Native.kext`.
 Anciens builds conservés dans les backups EFI de chaque remplacement.
 Le builder vérifie core/controller/source/SDK, exporte la révision Navi48
 épinglée et applique la correction PSP fail-closed déjà auditée. Les moteurs

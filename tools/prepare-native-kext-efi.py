@@ -158,7 +158,7 @@ def validate_boot_session(baseline, boot_args, loaded, allow_retired=False,
     require(retired_source in RETIRED_BOOT_MODULES, 'Unreviewed retired boot source')
     # 0.2.10+ boots carry the triple opt-in shell arg; earlier ones do not.
     # The expected args must match the reviewed profile of THAT version.
-    shell_expected = retired_source in ('0.2.10', '0.2.11')
+    shell_expected = retired_source in ('0.2.10', '0.2.11', '0.2.12')
     expected_args = (baseline['NVRAM']['Add'][GUID]['boot-args'] +
                      boot_delta(0x4000000, 0x4000000, compute=True, shell=shell_expected)).split()
     modules = re.findall(re.escape(BUNDLE_ID) + r'\s+\(([^)]+)\)\s+([0-9A-Fa-f-]+)', loaded)
@@ -327,7 +327,7 @@ def main():
                                          allow_retained=allow_retained_copy)
     require(not args.read_only_shell or args.experimental_compute,
             'Read-only shell requires the explicit compute trial')
-    require(not args.read_only_shell or VERSION in ('0.2.10', '0.2.11'),
+    require(not args.read_only_shell or VERSION in ('0.2.10', '0.2.11', '0.2.12'),
             'Read-only shell is only reviewed for 0.2.10+')
     profile = make_profile(baseline, args.candidate_offset, args.candidate_bytes,
                            args.experimental_compute, args.read_only_shell)
@@ -371,7 +371,8 @@ def main():
                                '0.2.7': 'out/efi-native/native-0.2.7-rw-adoption-trial',
                                '0.2.8': 'out/efi-native/native-0.2.8-stage16-trial',
                                '0.2.9': 'out/efi-native/native-0.2.9-gc-trial',
-                               '0.2.10': 'out/efi-native/native-0.2.10-shell-arg-trial'}[retired]
+                               '0.2.10': 'out/efi-native/native-0.2.10-shell-arg-trial',
+                               '0.2.11': 'out/efi-native/native-0.2.11-shellfix-trial'}[retired]
             require(initial == json.loads((previous / 'reference-hashes.json').read_text()),
                     'Reference differs from the reviewed ' + retired + ' deployment')
             validate_previous_compute_trial(baseline, trial_config, current,
