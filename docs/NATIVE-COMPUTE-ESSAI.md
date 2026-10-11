@@ -1,11 +1,12 @@
-# Essai natif 0.2.12 : témoins GC avant/après kick
+# Essai natif 0.2.13 : reset ME après GfxStart
 
-> **Boot 0.2.12 effectué le 11 octobre à 12:27:26 UTC.** Module/UUID/six
-> arguments conformes, service conservé (1 instance). **Témoins vivants avant,
-> tous morts après le kick ; `ME_PIPE0_RESET` collé avant.**
+> **PROBE1401 contient désormais 0.2.13** (copie forcée explicite, fichiers
+> seuls, tout vérifié). **Prochaine action : F12 → PROBE1401 → Tahoe, puis
+> comparer halt après start vs avant kick.** [Déploiement](reports/2026-10-11-native-me-reset-deployment.md).
+> Boot 0.2.12 toujours en mémoire : kill global, reset collé avant le kick.
 > [Boot 0.2.12](reports/2026-10-11-native-0.2.12-boot.md).
-> Prochaine action : lever le reset ME collé, vérifier le démarrage ME,
-> sans unload/reload/veille dans le noyau courant.
+> **0.2.13 non encore chargé/boot testé** : halt et résultats à observer, pas
+> présumés. Aucun retry/reload dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -61,9 +62,9 @@ ne bloque pas la veille forcée : **ne pas mettre cette session en veille**.
 
 ## Bundle déployé pour le prochain boot
 
-- Produit : `out/native-kext/gc-witness-0.2.12/Navi48Native.kext`, x86_64.
+- Produit : `out/native-kext/me-reset-0.2.13/Navi48Native.kext`, x86_64.
 - Exécutable SHA-256 :
-  `6461c2d9a168195c4e9298a191cbeb24028b7c27e466388c4fb4af710d2f3da8`.
+  `9888439002eea33af2196b0f3977fd2f35fcda8ea46ee0ccbb6f3c9f96cd8c6c`.
 - Dix firmwares et deux shaders vérifiés dans le Mach-O ; signature ad hoc
   stricte ; zéro avertissement. **Cela ne valide pas la liaison/ABI/charge noyau.**
 - 3 207 contrôles contrôleur, 1 335 service/lifecycle, 162 adaptateur DMA,
@@ -112,13 +113,13 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.12 / UUID BC977056-97FE-3A2A-884F-3804970F02AD**, les **six** arguments natifs (dont `navi48-native-shell=1`).
+Vérifier module **0.2.13 / SHA ci-dessus**, les **six** arguments natifs (dont `navi48-native-shell=1`).
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Les témoins tranchent : tout le GC + BAR2 meurent après le kick, et
-`ME_PIPE0_RESET` est collé avant. Lever le reset, vérifier le démarrage ME.
+Comparer `MeCntlAfterStart` (juste après start) vs avant kick : bit collé
+dès le start = clear jamais pris ; apparu après = ME se remet seul.
 Interagir via le shell (lecture seule). Aucune écriture via le shell.
 Si la publication best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
@@ -180,13 +181,13 @@ Les sources produisent **0.2.8**, maintenant déployé ; ces commandes ne charge
 pas le pilote. La préparation EFI locale seule exige un boot de référence.
 
 Le remplacement déjà effectué a utilisé `--deploy-probe1401
---experimental-compute --read-only-shell --replace-native-0.2.11` **par copie
-forcée explicite depuis le boot 0.2.11 conservé** (1 instance, fichiers seuls,
-tout vérifié) : profil/hashes 0.2.11 exacts, 64+64 Mio + shell, build 0.2.12
+--experimental-compute --read-only-shell --replace-native-0.2.12` **par copie
+forcée explicite depuis le boot 0.2.12 conservé** (1 instance, fichiers seuls,
+tout vérifié) : profil/hashes 0.2.12 exacts, 64+64 Mio + shell, build 0.2.13
 vérifié. Les anciennes options restent limitées à leurs sources respectives
-(`0.2.0 → … → 0.2.12`).
-**La clé est désormais en 0.2.12 : ne pas rejouer ces options de remplacement**,
+(`0.2.0 → … → 0.2.13`).
+**La clé est désormais en 0.2.13 : ne pas rejouer ces options de remplacement**,
 qui refuseront cet état sans nouvelle revue. OPENCORE et backups préservés.
-[Déploiement actuel](reports/2026-10-11-native-gc-witness-deployment.md) ·
-[Déploiement 0.2.11](reports/2026-10-10-native-shellfix-deployment.md) ·
+[Déploiement actuel](reports/2026-10-11-native-me-reset-deployment.md) ·
+[Déploiement 0.2.12](reports/2026-10-11-native-gc-witness-deployment.md) ·
 [Préparation historique 0.2.0](reports/2026-10-09-native-compute.md).

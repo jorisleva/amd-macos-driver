@@ -114,7 +114,7 @@ def validate_previous_compute_trial(baseline, profile, current, reviewed, expect
     require(VERSION == successor, 'Replacement build must be the reviewed successor ' + successor)
     # 0.2.10+ profiles carry navi48-native-shell=1 (triple opt-in); earlier ones do not.
     validate_profile(baseline, profile, 0x4000000, 0x4000000, compute=True, version=expected_version,
-                     shell=expected_version in ('0.2.10', '0.2.11'))
+                     shell=expected_version in ('0.2.10', '0.2.11', '0.2.12', '0.2.13'))
     require(current == reviewed and
             current.get('OC/Kexts/Navi48Native.kext/Contents/MacOS/Navi48Native') == binary,
             'Native ' + expected_version + ' EFI differs from the previously reviewed deployment')
@@ -334,7 +334,7 @@ def main():
                                          allow_retained=allow_retained_copy)
     require(not args.read_only_shell or args.experimental_compute,
             'Read-only shell requires the explicit compute trial')
-    require(not args.read_only_shell or VERSION in ('0.2.10', '0.2.11', '0.2.12'),
+    require(not args.read_only_shell or VERSION in ('0.2.10', '0.2.11', '0.2.12', '0.2.13'),
             'Read-only shell is only reviewed for 0.2.10+')
     profile = make_profile(baseline, args.candidate_offset, args.candidate_bytes,
                            args.experimental_compute, args.read_only_shell)

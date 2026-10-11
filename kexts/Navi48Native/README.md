@@ -1,16 +1,15 @@
 # Navi48Native.kext — service PCI/DMA et essai init/compute
 
-**Sources et bundle x86_64 0.2.12 déployé sur PROBE1401** (copie forcée
+**Sources et bundle x86_64 0.2.13 déployé sur PROBE1401** (copie forcée
 explicite, triple opt-in shell), personnalité PCI, service IOKit et points
 kmod. Le service appelle maintenant un chemin expérimental complet jusqu'à deux
 calculs gfx1201 internes, avec fences et comparaison des 64 résultats, ring-test
-découpé (write/read, kick, poll + relevés), diagnostic doorbell, **témoins GC
-avant/après kick** (GRBM/GFX/ME/MEC/RPTR), et **shell lecture seule**
-(5 sélecteurs, aucune écriture/soumission/horloge).
-**Boot 0.2.12** (11 octobre, 12:27:26 UTC) : service conservé (1 instance).
-**Témoins vivants avant, tous morts après le kick ; `ME_PIPE0_RESET` collé
-avant.** Le kick tue GC[0]+GC[1]+BAR2. Shell snapshot/survey répondent.
-[Boot 0.2.12](../../docs/reports/2026-10-11-native-0.2.12-boot.md).
+découpé, diagnostic doorbell, témoins GC avant/après kick, **halt ME/MEC juste
+après `GfxStart`** (`MeCntlAfterStart`/`MecCntlAfterStart`), et **shell lecture
+seule** (5 sélecteurs, aucune écriture/soumission/horloge).
+**Boot 0.2.12 toujours en mémoire** : kill global, reset collé avant le kick.
+[Boot 0.2.12](../../docs/reports/2026-10-11-native-0.2.12-boot.md) ·
+[déploiement 0.2.13](../../docs/reports/2026-10-11-native-me-reset-deployment.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
@@ -109,7 +108,7 @@ python3 -B tools/build-native-kext.py \
 python3 -B -m unittest discover -s tests/tools -v
 ```
 
-Bundle déployé : `out/native-kext/gc-witness-0.2.12/Navi48Native.kext`.
+Bundle déployé : `out/native-kext/me-reset-0.2.13/Navi48Native.kext`.
 Anciens builds conservés dans les backups EFI de chaque remplacement.
 Le builder vérifie core/controller/source/SDK, exporte la révision Navi48
 épinglée et applique la correction PSP fail-closed déjà auditée. Les moteurs

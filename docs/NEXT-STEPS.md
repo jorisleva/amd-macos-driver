@@ -1,6 +1,6 @@
 # Travail restant — Hackintosh Tahoe
 
-## Dernier état : boot 0.2.12, kill global confirmé, ME en reset collé
+## Dernier état : 0.2.13 déployé (reset ME après start), prochain boot décisif
 
 **10 octobre : le bon kext est réellement chargé**, UUID et cinq arguments
 conformes. Aucun nœud/instance `Navi48Native`, aucun rapport Resources/Compute ;
@@ -8,12 +8,13 @@ deux fermetures du bail PCI par le client natif pendant le boot. Initialisation,
 fences et résultats GPU non validés. Capture `sudo dmesg` lue dans ce même
 boot : buffer de 128 Kio écrasé, aucune ligne native, refus exact inconnu.
 Correctif **0.2.1** : diagnostic IOResources destiné à survivre au retrait,
-**0.2.12 booté le 11 octobre à 12:27:26 UTC** : témoins vivants avant,
-tous morts après le kick (GC[0]+GC[1]+BAR2). `ME_PIPE0_RESET` collé avant
-le kick (bit 20). Shell snapshot/survey répondent. Prochaine action : lever
-le reset ME collé et vérifier le démarrage ME, sans unload/reload/veille.
+**0.2.12 toujours en mémoire** (service + GPU tenus) : kill global après
+kick, `ME_PIPE0_RESET` collé avant. **0.2.13 déployé par copie forcée
+explicite** (fichiers seuls, tout vérifié) : halt ME/MEC juste après
+`GfxStart`, non encore chargé. Prochaine action : F12 → PROBE1401 → Tahoe,
+comparer halt après start vs avant kick, sans retry/reload.
 [Boot 0.2.12](reports/2026-10-11-native-0.2.12-boot.md) ·
-[Boot 0.2.11](reports/2026-10-11-native-0.2.11-boot.md) ·
+[déploiement 0.2.13](reports/2026-10-11-native-me-reset-deployment.md) ·
 [Boot 0.2.0](reports/2026-10-10-native-compute-boot.md) ·
 [correctif](reports/2026-10-10-native-boot-diagnostics.md) ·
 [déploiement 0.2.1](reports/2026-10-10-native-diagnostics-deployment.md).
