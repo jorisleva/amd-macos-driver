@@ -381,6 +381,23 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
     // (clear never took), or does it appear later (ME re-asserts by itself)?
     facts_.meCntlAfterStart = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_ME_CNTL));
     facts_.mecCntlAfterStart = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_MEC_RS64_CNTL));
+    // Entry points + IC bases + ring config: where would the ME fetch from
+    // if kicked now? A zero IC base or PC names the fetch failure; a wrong
+    // RB base names a ring the CP cannot read. Pure reads, no state change.
+    facts_.pfpPcStart = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, CPRegs::CP_PFP_PRGRM_CNTR_START));
+    facts_.pfpPcStartHi = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, CPRegs::CP_PFP_PRGRM_CNTR_START_HI));
+    facts_.mePcStart = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, CPRegs::CP_ME_PRGRM_CNTR_START));
+    facts_.mePcStartHi = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, CPRegs::CP_ME_PRGRM_CNTR_START_HI));
+    facts_.mecPcStart = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_MEC_RS64_PRGRM_CNTR_START));
+    facts_.mecPcStartHi = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_MEC_RS64_PRGRM_CNTR_START_HI));
+    facts_.pfpIcBaseLo = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_PFP_IC_BASE_LO));
+    facts_.pfpIcBaseHi = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_PFP_IC_BASE_HI));
+    facts_.meIcBaseLo = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_ME_IC_BASE_LO));
+    facts_.meIcBaseHi = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_ME_IC_BASE_HI));
+    facts_.rb0Base = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, CPRegs::CP_RB0_BASE));
+    facts_.rb0BaseHi = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, CPRegs::CP_RB0_BASE_HI));
+    facts_.rb0Cntl = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, CPRegs::CP_RB0_CNTL));
+    facts_.rbActive = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, CPRegs::CP_RB_ACTIVE));
     // Read-only GC survey BEFORE the ring-test writes anything. Distinguishes
     // a wrong GC base (all GC reads fail) from a live GC with a dead SCRATCH
     // (power-gate/clocks on this register). Pure reads, no state change.

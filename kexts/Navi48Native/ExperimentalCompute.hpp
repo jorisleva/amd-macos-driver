@@ -61,6 +61,17 @@ public:
         // bit is already stuck here, the clear never took; if it appears
         // only before the ring-test, the ME re-asserts it by itself.
         uint32_t meCntlAfterStart{0}, mecCntlAfterStart{0};
+        // CP entry points + instruction-cache bases + ring config, read
+        // right after start and before any ring-test write. If the ME
+        // fetches from a zero/wrong IC base or PC, the kick hangs the GC;
+        // these name the culprit. Pure reads, no state change.
+        uint32_t pfpPcStart{0}, pfpPcStartHi{0}; // CP_PFP_PRGRM_CNTR_START[_HI], BIDX0
+        uint32_t mePcStart{0}, mePcStartHi{0}; // CP_ME_PRGRM_CNTR_START[_HI], BIDX0
+        uint32_t mecPcStart{0}, mecPcStartHi{0}; // CP_MEC_RS64_PRGRM_CNTR_START[_HI], BIDX1
+        uint32_t pfpIcBaseLo{0}, pfpIcBaseHi{0}; // CP_PFP_IC_BASE_LO/HI, BIDX1
+        uint32_t meIcBaseLo{0}, meIcBaseHi{0}; // CP_ME_IC_BASE_LO/HI, BIDX1
+        uint32_t rb0Base{0}, rb0BaseHi{0}; // CP_RB0_BASE[_HI], BIDX0
+        uint32_t rb0Cntl{0}, rbActive{0}; // CP_RB0_CNTL / CP_RB_ACTIVE, BIDX0
         uint32_t doorbellIndex{0}; // cp.doorbell_index programmed by cp_init_full
         uint64_t doorbellBar2Offset{0}; // doorbell_index * stride (bytes into BAR2)
         uint32_t doorbellWptrAtKick{0}; // wptr staged when the ring-test kicked
