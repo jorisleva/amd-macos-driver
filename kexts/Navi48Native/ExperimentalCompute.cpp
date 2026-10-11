@@ -377,6 +377,10 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
     if ((kr = step(16, cp_map_gfx_kgq_mes(r.dev, r.cp, r.mes)))) return kr;
     facts_.stage16Step = Stage16Step::GfxStart;
     if ((kr = step(16, cp_gfx_start(r.dev, r.cp, false)))) return kr;
+    // Halt state right after start: is the ME_PIPE0_RESET bit already stuck
+    // (clear never took), or does it appear later (ME re-asserts by itself)?
+    facts_.meCntlAfterStart = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_ME_CNTL));
+    facts_.mecCntlAfterStart = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_MEC_RS64_CNTL));
     // Read-only GC survey BEFORE the ring-test writes anything. Distinguishes
     // a wrong GC base (all GC reads fail) from a live GC with a dead SCRATCH
     // (power-gate/clocks on this register). Pure reads, no state change.

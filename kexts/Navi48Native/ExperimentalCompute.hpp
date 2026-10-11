@@ -57,6 +57,10 @@ public:
         bool hardwareTouched{false}, firmwareLoaded{false}, initialized{false}, computePassed{false}, idleSleepPrevented{false};
         bool acceleratorIteratorNull{false}; // true when getMatchingServices() returned null (empty set presumed)
         RwBarObservation rwBars[3]{};
+        // ME/MEC halt state right after cp_gfx_start (step 4). If the reset
+        // bit is already stuck here, the clear never took; if it appears
+        // only before the ring-test, the ME re-asserts it by itself.
+        uint32_t meCntlAfterStart{0}, mecCntlAfterStart{0};
         uint32_t doorbellIndex{0}; // cp.doorbell_index programmed by cp_init_full
         uint64_t doorbellBar2Offset{0}; // doorbell_index * stride (bytes into BAR2)
         uint32_t doorbellWptrAtKick{0}; // wptr staged when the ring-test kicked
