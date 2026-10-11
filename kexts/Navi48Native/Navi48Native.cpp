@@ -171,7 +171,7 @@ IOReturn Navi48Native::finishGated(Action &action) {
         return kIOReturnSuccess;
     }
     stage_ = Stage::MappedFirmwareBlocked; action.checkpoint = Checkpoint::PreparedOnly;
-    IOLog("Navi48Native: started 0.2.11 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
+    IOLog("Navi48Native: started 0.2.12 bdf=0x%x DMA prepared bytes=%llu pages=%u deviceMapper=%u blockers=0x%x; GPU initialization blocked\n",
           snapshot.bdf, static_cast<unsigned long long>(action.dmaFacts.bytes), action.dmaFacts.pages,
           action.dmaFacts.deviceMapper ? 1u : 0u, snapshot.blockers);
     // Actual RAM allocation + IOVM generation, NOT GPU DMA qualification.
@@ -186,7 +186,7 @@ IOReturn Navi48Native::computeFinishAction(OSObject *owner, void *argument, void
 IOReturn Navi48Native::computeFinishGated(Action &action) {
     action.checkpoint = Checkpoint::ComputeFinished;
     const auto &f = action.computeFacts;
-    auto *report = OSDictionary::withCapacity(44);
+    auto *report = OSDictionary::withCapacity(52);
     bool ok = report && number(report, "SchemaVersion", 1, 32) && number(report, "Stage", f.stage, 32) &&
         number(report, "FailedStage", f.failedStage, 32) && number(report, "PreflightCheck", f.preflightCheck, 32) && number(report, "Result", f.result, 32) &&
         number(report, "HardwareTouched", f.hardwareTouched, 32) && number(report, "FirmwareLoaded", f.firmwareLoaded, 32) &&
@@ -215,6 +215,13 @@ IOReturn Navi48Native::computeFinishGated(Action &action) {
         number(report, "DoorbellRangeLower", f.doorbellRangeLower, 32) &&
         number(report, "DoorbellRangeUpper", f.doorbellRangeUpper, 32) &&
         number(report, "DoorbellReadback", f.doorbellReadback, 32) &&
+        number(report, "GrbmStatusBefore", f.grbmStatusBefore, 32) &&
+        number(report, "GrbmStatusAfter", f.grbmStatusAfter, 32) &&
+        number(report, "GfxIndexBefore", f.gfxIndexBefore, 32) &&
+        number(report, "GfxIndexAfter", f.gfxIndexAfter, 32) &&
+        number(report, "MeCntlAfter", f.meCntlAfter, 32) &&
+        number(report, "MecCntlAfter", f.mecCntlAfter, 32) &&
+        number(report, "RptrAfter", f.rptrAfter, 32) &&
         number(report, "HardwareQualificationComplete", 0, 32) && number(report, "MetalAcceleration", 0, 32) &&
         recordRwBars(report, f);
     for (unsigned variant = 0; ok && variant < 2; ++variant) {
@@ -244,10 +251,10 @@ void Navi48Native::recordBootDiagnostic(const Action &a, IOReturn result) {
     // Survives detach/free and a wrapped dmesg buffer. Best effort on OOM;
     // NEVER changes the result, authorizes accesses or retries hardware.
     if (a.checkpoint == Checkpoint::StartState) return; // reject rearm without overwriting original result
-    auto *report = OSDictionary::withCapacity(104);
+    auto *report = OSDictionary::withCapacity(112);
     if (!report) { IOLog("Navi48Native: boot diagnostic allocation failed\n"); return; }
     const auto &p = a.platformFacts; const auto &c = a.computeFacts;
-    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x00020B, 32) &&
+    bool ok = number(report, "SchemaVersion", 1, 32) && number(report, "DriverVersion", 0x00020C, 32) &&
         number(report, "Checkpoint", static_cast<uint32_t>(a.checkpoint), 32) &&
         number(report, "StartReturn", static_cast<uint32_t>(result), 32) &&
         number(report, "ComputeRequested", a.computeRequested, 32) &&
@@ -292,6 +299,13 @@ void Navi48Native::recordBootDiagnostic(const Action &a, IOReturn result) {
         number(report, "DoorbellRangeLower", c.doorbellRangeLower, 32) &&
         number(report, "DoorbellRangeUpper", c.doorbellRangeUpper, 32) &&
         number(report, "DoorbellReadback", c.doorbellReadback, 32) &&
+        number(report, "GrbmStatusBefore", c.grbmStatusBefore, 32) &&
+        number(report, "GrbmStatusAfter", c.grbmStatusAfter, 32) &&
+        number(report, "GfxIndexBefore", c.gfxIndexBefore, 32) &&
+        number(report, "GfxIndexAfter", c.gfxIndexAfter, 32) &&
+        number(report, "MeCntlAfter", c.meCntlAfter, 32) &&
+        number(report, "MecCntlAfter", c.mecCntlAfter, 32) &&
+        number(report, "RptrAfter", c.rptrAfter, 32) &&
         recordBars(report, a.platformFacts) && recordRwBars(report, c);
     if (ok) IOService::publishResource("Navi48Native,BootDiagnostics", report); // outside gate, after cleanup
     else IOLog("Navi48Native: boot diagnostic serialization failed\n");

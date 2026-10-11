@@ -390,6 +390,11 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
     facts_.gcRb0Rptr = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, CPRegs::CP_RB0_RPTR));
     facts_.gcCpMeCntl = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_ME_CNTL));
     facts_.gcCpMecCntl = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_MEC_RS64_CNTL));
+    // Witness pair BEFORE the kick (read-only): GRBM_STATUS (expect 0x382c)
+    // and GRBM_GFX_INDEX (expect 0xE0000000). If these survive the kick while
+    // SCRATCH dies, only UCONFIG+doorbell is affected.
+    facts_.grbmStatusBefore = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, GFXRegsRO::GRBM_STATUS));
+    facts_.gfxIndexBefore = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, GFXRegs::GRBM_GFX_INDEX));
     // Phase-split ring-test (same packets/doorbell/timeout as upstream
     // cp_ring_test_scratch, reproduced with intermediate surveys because the
     // upstream function is monolithic and its LOG lines do not survive).
@@ -433,6 +438,13 @@ IOReturn ExperimentalCompute::run(IOService *owner, IOPCIDevice *pci, IOWorkLoop
         if (kr) return fail(16, kr);
         facts_.ringAfterKick = RREG32(r.dev, scratchDword);
         facts_.doorbellReadback = RDOORBELL32(r.dev, facts_.doorbellBar2Offset);
+        // Witness pair AFTER the kick: did the whole GC die, or only
+        // UCONFIG+doorbell? Plus halt/RPTR state after the kick.
+        facts_.grbmStatusAfter = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, GFXRegsRO::GRBM_STATUS));
+        facts_.gfxIndexAfter = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, GFXRegs::GRBM_GFX_INDEX));
+        facts_.rptrAfter = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 0, CPRegs::CP_RB0_RPTR));
+        facts_.meCntlAfter = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_ME_CNTL));
+        facts_.mecCntlAfter = RREG32(r.dev, SOC15_REG_OFFSET_BIDX(r.dev, IPBlock::GC, 1, CPRegs::CP_MEC_RS64_CNTL));
     }
     // Phase 3: the standard test (same write/poll) for the authoritative
     // pass/fail + fetch proof. Its internal WREG32 rewrites CAFEDEAD, so our

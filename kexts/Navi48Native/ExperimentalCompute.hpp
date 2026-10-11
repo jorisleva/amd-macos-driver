@@ -79,6 +79,12 @@ public:
         uint32_t gcRb0Rptr{0}; // CP_RB0_RPTR at ring-test timeout
         uint32_t gcCpMeCntl{0}; // CP_ME_CNTL (GC[0]): PFP/ME halt state
         uint32_t gcCpMecCntl{0}; // CP_MEC_RS64_CNTL (GC[1]): MEC halt state
+        // Before/after kick pairs: did the kick kill the whole GC or only
+        // UCONFIG+doorbell? GRBM_STATUS (0x0DA4/BIDX0, expect 0x382c) and
+        // GRBM_GFX_INDEX (0x2200/BIDX1, expect 0xE0000000) are the witnesses.
+        uint32_t grbmStatusBefore{0}, grbmStatusAfter{0};
+        uint32_t gfxIndexBefore{0}, gfxIndexAfter{0};
+        uint32_t meCntlAfter{0}, mecCntlAfter{0}, rptrAfter{0};
         uint64_t vramBytes{0}, mcBase{0}, elapsedUs[2]{};
         bool fenceLanded[2]{}, ibTestPassed[2]{};
         uint32_t dmaBuffers{0}, lanesChecked{0}, lanesWrong{0}, observed[2][4]{}, expected[2][4]{};
