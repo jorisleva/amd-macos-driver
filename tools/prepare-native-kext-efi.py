@@ -375,7 +375,8 @@ def main():
                        '0.2.8' if args.replace_native_0_2_8 else
                        '0.2.9' if args.replace_native_0_2_9 else
                        '0.2.10' if args.replace_native_0_2_10 else
-                       '0.2.11' if args.replace_native_0_2_11 else '0.2.12')
+                       '0.2.11' if args.replace_native_0_2_11 else
+                       '0.2.12' if args.replace_native_0_2_12 else '0.2.13')
             previous = ROOT / {'0.2.0': 'out/efi-native/native-0.2.0-compute-trial',
                                '0.2.1': 'out/efi-native/native-0.2.1-diagnostics-trial',
                                '0.2.2': 'out/efi-native/native-0.2.2-mapping-trial',

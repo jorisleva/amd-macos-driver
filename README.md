@@ -6,12 +6,13 @@ L'objectif est de réutiliser la couche Metal du fork NVIDIA de NullMoth, puis d
 
 **Statut : calcul et rendu Apple AIR validés sur la RX 9070 XT sous Windows.** Les quatre shaders graphiques compilés sur Mac et traduits en SPIR-V passent les 48 cas du banc Radeon : 330 984 pixels RGBA exactement conformes, aucun écart de gardes/entrées et aucune erreur Vulkan/synchronisation. Leurs 96 fichiers RGBA sont identiques à ceux du contrôle GLSL rejoué. Le calcul Apple et le contrôle GLSL passent 36 cas chacun ; les trois rejets attendus, 15 tests Rust ciblés, 13 CTest et huit tests Python passent sous Windows. Preuves : [rapport Metal/Radeon](docs/reports/2026-10-07-metal-graphics-radeon.md). Tahoe installé démarre maintenant sur ce PC, sans accélération. Navi48Bringup est construit deux fois pour x86_64 et contrôlé statiquement ; son chargement, RADV Darwin et le rendu via Metal sous macOS restent à qualifier. Ce dossier ne fournit pas encore de pilote installable ; le fork contient toujours le pilote NVIDIA.
 
-**Dernier état natif : `Navi48Native.kext` 0.2.13 sur PROBE1401 (reset ME).**
-Boot 0.2.12 conservé en mémoire (service + GPU tenus). **0.2.13 déployé par
-copie forcée explicite** : `MeCntlAfterStart`/`MecCntlAfterStart` (halt juste
-après `GfxStart`), non encore chargé. Zéro écriture envoyée
-([boot 0.2.12](docs/reports/2026-10-11-native-0.2.12-boot.md) ·
-[déploiement 0.2.13](docs/reports/2026-10-11-native-me-reset-deployment.md)).
+**Dernier état natif : `Navi48Native.kext` 0.2.14 sur PROBE1401 (entrées CP).**
+Boot 0.2.13 : **aucun reset ME collé** — `MeCntlAfterStart=0x0100A000` == avant
+kick == preuve 0.2.12, bit 20 = 0 partout (transcription `0x100A00` corrigée).
+**0.2.14 déployé par copie forcée explicite** : points d'entrée CP + bases IC
++ config ring, non encore chargé. Zéro écriture envoyée
+([boot 0.2.13](docs/reports/2026-10-11-native-0.2.13-boot.md) ·
+[déploiement 0.2.14](docs/reports/2026-10-11-native-cp-entry-deployment.md)).
 Étapes matérielles 1/2 non terminées, pas de Metal/WindowServer ni API de calcul libre. Essai
 matériel explicitement risqué, ressources conservées jusqu'au reboot ; OPENCORE
 intact et ancien essai 0.1.2 sauvegardé. **Procédure actuelle :
