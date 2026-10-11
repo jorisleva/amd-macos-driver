@@ -1,13 +1,11 @@
 # Essai natif 0.2.12 : témoins GC avant/après kick
 
-> **PROBE1401 contient désormais 0.2.12** (copie forcée explicite, fichiers
-> seuls, tout vérifié). **Prochaine action : F12 → PROBE1401 → Tahoe, puis
-> relever les témoins GRBM/GFX/ME/MEC/RPTR.** [Déploiement](reports/2026-10-11-native-gc-witness-deployment.md).
-> Boot 0.2.11 toujours en mémoire : kick tue tout le MMIO, shell répond.
-> Index 139 = 0x8B gfx_ring0 (destination saine).
-> [Boot 0.2.11](reports/2026-10-11-native-0.2.11-boot.md).
-> **0.2.12 non encore chargé/boot testé** : témoins et résultats à observer,
-> pas présumés. Aucun retry/reload dans le noyau courant.
+> **Boot 0.2.12 effectué le 11 octobre à 12:27:26 UTC.** Module/UUID/six
+> arguments conformes, service conservé (1 instance). **Témoins vivants avant,
+> tous morts après le kick ; `ME_PIPE0_RESET` collé avant.**
+> [Boot 0.2.12](reports/2026-10-11-native-0.2.12-boot.md).
+> Prochaine action : lever le reset ME collé, vérifier le démarrage ME,
+> sans unload/reload/veille dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -114,15 +112,15 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.12 / SHA ci-dessus**, les **six** arguments natifs (dont `navi48-native-shell=1`).
+Vérifier module **0.2.12 / UUID BC977056-97FE-3A2A-884F-3804970F02AD**, les **six** arguments natifs (dont `navi48-native-shell=1`).
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Si stage 16 : relever les témoins avant/après (GRBM/GFX/ME/MEC/RPTR).
-Index 139 = 0x8B gfx_ring0 (destination saine). Puis interagir via le shell
-(lecture seule). Aucune écriture via le shell. Si la publication best
-effort manque,
+Les témoins tranchent : tout le GC + BAR2 meurent après le kick, et
+`ME_PIPE0_RESET` est collé avant. Lever le reset, vérifier le démarrage ME.
+Interagir via le shell (lecture seule). Aucune écriture via le shell.
+Si la publication best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.
 

@@ -7,10 +7,10 @@ calculs gfx1201 internes, avec fences et comparaison des 64 résultats, ring-tes
 découpé (write/read, kick, poll + relevés), diagnostic doorbell, **témoins GC
 avant/après kick** (GRBM/GFX/ME/MEC/RPTR), et **shell lecture seule**
 (5 sélecteurs, aucune écriture/soumission/horloge).
-**Boot 0.2.11 toujours en mémoire** : kick tue tout le MMIO, shell répond.
-Index 139 = 0x8B gfx_ring0 (destination saine).
-[Boot 0.2.11](../../docs/reports/2026-10-11-native-0.2.11-boot.md) ·
-[déploiement 0.2.12](../../docs/reports/2026-10-11-native-gc-witness-deployment.md).
+**Boot 0.2.12** (11 octobre, 12:27:26 UTC) : service conservé (1 instance).
+**Témoins vivants avant, tous morts après le kick ; `ME_PIPE0_RESET` collé
+avant.** Le kick tue GC[0]+GC[1]+BAR2. Shell snapshot/survey répondent.
+[Boot 0.2.12](../../docs/reports/2026-10-11-native-0.2.12-boot.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
