@@ -82,13 +82,14 @@ class ProfileTests(unittest.TestCase):
                     '0.2.9': '0bada18712b5bd2e31424ac40ea3996a4d70e277020d4e906a9bad1b4be09d07',
                     '0.2.10': '1ab98748fec072e3420aae1c7384d177900807588d1a53f7edd08d716ca43502',
                     '0.2.11': '7a322a24560656215b5ff5327f4a229677c858780ad1e0e2d73336da30ddd477',
-                    '0.2.12': '6461c2d9a168195c4e9298a191cbeb24028b7c27e466388c4fb4af710d2f3da8'}
+                    '0.2.12': '6461c2d9a168195c4e9298a191cbeb24028b7c27e466388c4fb4af710d2f3da8',
+                    '0.2.13': '9888439002eea33af2196b0f3977fd2f35fcda8ea46ee0ccbb6f3c9f96cd8c6c'}
         # NOTE: the pinned hash is the DEPLOYED source EFI's binary (what we
         # replace), not the new build's (already pinned by VERSION + report).
         successors = {'0.2.0': '0.2.1', '0.2.1': '0.2.2', '0.2.2': '0.2.3', '0.2.3': '0.2.4',
                       '0.2.4': '0.2.5', '0.2.5': '0.2.6', '0.2.6': '0.2.7', '0.2.7': '0.2.8',
-                      '0.2.8': '0.2.9', '0.2.9': '0.2.10', '0.2.10': '0.2.11', '0.2.11': '0.2.12', '0.2.12': '0.2.13'}
-        shells = ('0.2.10', '0.2.11', '0.2.12', '0.2.13')
+                      '0.2.8': '0.2.9', '0.2.9': '0.2.10', '0.2.10': '0.2.11', '0.2.11': '0.2.12', '0.2.12': '0.2.13', '0.2.13': '0.2.14'}
+        shells = ('0.2.10', '0.2.11', '0.2.12', '0.2.13', '0.2.14')
         for version, binary in binaries.items():
             with self.subTest(version=version):
                 shelled = version in shells
@@ -194,7 +195,8 @@ class BootSessionTests(unittest.TestCase):
                '0.2.9': efi.BUNDLE_ID + ' (0.2.9) 809701A2-4A08-39F7-AA30-9CE65ECE4C7B',
                '0.2.10': efi.BUNDLE_ID + ' (0.2.10) C9F3A729-7910-351B-9F27-22996B70461B',
                '0.2.11': efi.BUNDLE_ID + ' (0.2.11) F775021A-E284-381C-BBBA-556A3616D597',
-               '0.2.12': efi.BUNDLE_ID + ' (0.2.12) BC977056-97FE-3A2A-884F-3804970F02AD'}
+               '0.2.12': efi.BUNDLE_ID + ' (0.2.12) BC977056-97FE-3A2A-884F-3804970F02AD',
+               '0.2.13': efi.BUNDLE_ID + ' (0.2.13) 6F249E51-9738-356D-B72B-366950C349BD'}
     def setUp(self):
         self.source = baseline()
         self.args = (self.source['NVRAM']['Add'][efi.GUID]['boot-args'] +
@@ -203,7 +205,7 @@ class BootSessionTests(unittest.TestCase):
 
     def validate(self, source='0.2.0', **kw):
         # 0.2.10+ boots carry navi48-native-shell=1 (triple opt-in).
-        if 'boot_args' not in kw and source in ('0.2.10', '0.2.11', '0.2.12'):
+        if 'boot_args' not in kw and source in ('0.2.10', '0.2.11', '0.2.12', '0.2.13'):
             kw['boot_args'] = (self.source['NVRAM']['Add'][efi.GUID]['boot-args'] +
                                efi.boot_delta(OFFSET, 64 * 1024 * 1024, compute=True, shell=True)).split()
         parameters = {'baseline': self.source, 'boot_args': self.args,
@@ -219,13 +221,13 @@ class BootSessionTests(unittest.TestCase):
         self.assertFalse(self.validate(boot_args=args, loaded='', allow_retired=False))
 
     def test_exact_retired_compute_boot_allows_only_offline_update(self):
-        for source in ('0.2.0', '0.2.1', '0.2.2', '0.2.3', '0.2.4', '0.2.5', '0.2.6', '0.2.7', '0.2.8', '0.2.9', '0.2.10', '0.2.11', '0.2.12'):
+        for source in ('0.2.0', '0.2.1', '0.2.2', '0.2.3', '0.2.4', '0.2.5', '0.2.6', '0.2.7', '0.2.8', '0.2.9', '0.2.10', '0.2.11', '0.2.12', '0.2.13'):
             with self.subTest(source=source):
                 self.assertTrue(self.validate(source))
                 with self.assertRaises(ValueError):
                     self.validate(source, allow_retired=False)
                 other = {'0.2.0': '0.2.1', '0.2.1': '0.2.2', '0.2.2': '0.2.3', '0.2.3': '0.2.4',
-                         '0.2.4': '0.2.5', '0.2.5': '0.2.6', '0.2.6': '0.2.7', '0.2.7': '0.2.8', '0.2.8': '0.2.9', '0.2.9': '0.2.10', '0.2.10': '0.2.11', '0.2.11': '0.2.12', '0.2.12': '0.2.0'}[source]
+                         '0.2.4': '0.2.5', '0.2.5': '0.2.6', '0.2.6': '0.2.7', '0.2.7': '0.2.8', '0.2.8': '0.2.9', '0.2.9': '0.2.10', '0.2.10': '0.2.11', '0.2.11': '0.2.12', '0.2.12': '0.2.13', '0.2.13': '0.2.0'}[source]
                 with self.assertRaises(ValueError): # a retired boot never authorizes another source
                     self.validate(other, loaded=self.modules[source])
 
