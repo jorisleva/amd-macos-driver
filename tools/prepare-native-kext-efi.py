@@ -104,6 +104,7 @@ PREVIOUS_COMPUTE_TRIALS = {
     '0.2.8': ('0.2.9', '8871d7f167de34ce98d14780c62d3608d9d7530f3a7bc7eaa59bc468e4f8c0bd'),
     '0.2.9': ('0.2.10', '0bada18712b5bd2e31424ac40ea3996a4d70e277020d4e906a9bad1b4be09d07'),
     '0.2.10': ('0.2.11', '1ab98748fec072e3420aae1c7384d177900807588d1a53f7edd08d716ca43502'),
+    '0.2.11': ('0.2.12', '7a322a24560656215b5ff5327f4a229677c858780ad1e0e2d73336da30ddd477'),
 }
 def validate_previous_compute_trial(baseline, profile, current, reviewed, expected_version):
     """Only an already deployed, hashed 64+64 MiB compute trial may be replaced."""
@@ -134,6 +135,7 @@ RETIRED_BOOT_MODULES = {
     '0.2.8': ('0.2.8', 'DBD6962B-7594-3B64-9B1A-BAAEAFC07D03'),
     '0.2.9': ('0.2.9', '809701A2-4A08-39F7-AA30-9CE65ECE4C7B'),
     '0.2.10': ('0.2.10', 'C9F3A729-7910-351B-9F27-22996B70461B'),
+    '0.2.11': ('0.2.11', 'F775021A-E284-381C-BBBA-556A3616D597'),
 }
 def validate_boot_session(baseline, boot_args, loaded, allow_retired=False,
                           native_service='', native_instances=None, retired_source=None,
@@ -241,12 +243,13 @@ def main():
     replacements.add_argument('--replace-native-0.2.8', dest='replace_native_0_2_8', action='store_true', help='Replace ONLY the reviewed stage-16-detail 0.2.8 EFI with GC-survey 0.2.9; permits offline copy OR explicit forced copy from its exact retained boot')
     replacements.add_argument('--replace-native-0.2.9', dest='replace_native_0_2_9', action='store_true', help='Replace ONLY the reviewed GC-survey 0.2.9 EFI with shell+phases 0.2.10; permits offline copy OR explicit forced copy from its exact retained boot')
     replacements.add_argument('--replace-native-0.2.10', dest='replace_native_0_2_10', action='store_true', help='Replace ONLY the reviewed shell+phases 0.2.10 EFI with shellfix-doorbell 0.2.11; permits explicit forced copy from its exact retained boot')
+    replacements.add_argument('--replace-native-0.2.11', dest='replace_native_0_2_11', action='store_true', help='Replace ONLY the reviewed shellfix-doorbell 0.2.11 EFI with GC-witness 0.2.12; permits explicit forced copy from its exact retained boot')
     args = parser.parse_args()
     require(sys.platform == 'darwin', 'macOS is required')
     require(not (args.replace_native_0_1_2 or args.replace_native_0_2_0 or args.replace_native_0_2_1 or
                  args.replace_native_0_2_2 or args.replace_native_0_2_3 or args.replace_native_0_2_4 or
                  args.replace_native_0_2_5 or args.replace_native_0_2_6 or args.replace_native_0_2_7 or
-                 args.replace_native_0_2_8 or args.replace_native_0_2_9 or args.replace_native_0_2_10) or
+                 args.replace_native_0_2_8 or args.replace_native_0_2_9 or args.replace_native_0_2_10 or args.replace_native_0_2_11) or
             (args.deploy_probe1401 and args.experimental_compute),
             'Replacing a native trial requires explicit compute deployment')
     if args.replace_native_0_2_0:
@@ -282,6 +285,9 @@ def main():
     if args.replace_native_0_2_10:
         require(VERSION == '0.2.11' and args.candidate_offset == 0x4000000 and args.candidate_bytes == 0x4000000 and args.read_only_shell,
                 'The reviewed 0.2.10 replacement is restricted to shellfix-doorbell 0.2.11 with unchanged 64+64 MiB scratch and shell')
+    if args.replace_native_0_2_11:
+        require(VERSION == '0.2.12' and args.candidate_offset == 0x4000000 and args.candidate_bytes == 0x4000000 and args.read_only_shell,
+                'The reviewed 0.2.11 replacement is restricted to GC-witness 0.2.12 with unchanged 64+64 MiB scratch and shell')
         require(args.read_only_shell,
                 'The reviewed 0.2.9 replacement requires --read-only-shell (triple opt-in boot-arg)')
     destination, build = local_output(ROOT, args.output), local_output(ROOT, args.build)
@@ -296,7 +302,8 @@ def main():
     initial = tree_hashes(REFERENCE)
     baseline = plistlib.loads((REFERENCE / 'OC/config.plist').read_bytes())
     native_service, native_instances = '', None
-    allow_retained_copy = bool(args.replace_native_0_2_8 or args.replace_native_0_2_9 or args.replace_native_0_2_10)
+    allow_retained_copy = bool(args.replace_native_0_2_8 or args.replace_native_0_2_9 or args.replace_native_0_2_10 or
+                             args.replace_native_0_2_11)
     retired_source = ('0.2.0' if args.replace_native_0_2_0 else
                       '0.2.1' if args.replace_native_0_2_1 else
                       '0.2.2' if args.replace_native_0_2_2 else
@@ -306,7 +313,8 @@ def main():
                       '0.2.6' if args.replace_native_0_2_6 else
                       '0.2.7' if args.replace_native_0_2_7 else
                       '0.2.8' if args.replace_native_0_2_8 else
-                      '0.2.9' if args.replace_native_0_2_9 else ('0.2.10' if args.replace_native_0_2_10 else None))
+                      '0.2.9' if args.replace_native_0_2_9 else
+                      '0.2.10' if args.replace_native_0_2_10 else ('0.2.11' if args.replace_native_0_2_11 else None))
     if retired_source is not None:
         native_service = subprocess.check_output(['ioreg', '-r', '-c', PRODUCT, '-l', '-w', '0'], text=True)
         diagnostics = plistlib.loads(subprocess.check_output(['ioreg', '-l', '-d', '1', '-a']))
@@ -341,7 +349,7 @@ def main():
                     'ce1f4e39a2795bdabd3789fb8d632fdac3ed3209deab851f30429ca418696e23',
                     'Native 0.1.2 EFI differs from the previously reviewed deployment')
             expected_kexts = helpers.BASE_KEXTS | {'Navi48Native.kext'}
-        elif args.replace_native_0_2_0 or args.replace_native_0_2_1 or args.replace_native_0_2_2 or args.replace_native_0_2_3 or args.replace_native_0_2_4 or args.replace_native_0_2_5 or args.replace_native_0_2_6 or args.replace_native_0_2_7 or args.replace_native_0_2_8 or args.replace_native_0_2_9 or args.replace_native_0_2_10:
+        elif args.replace_native_0_2_0 or args.replace_native_0_2_1 or args.replace_native_0_2_2 or args.replace_native_0_2_3 or args.replace_native_0_2_4 or args.replace_native_0_2_5 or args.replace_native_0_2_6 or args.replace_native_0_2_7 or args.replace_native_0_2_8 or args.replace_native_0_2_9 or args.replace_native_0_2_10 or args.replace_native_0_2_11:
             retired = ('0.2.0' if args.replace_native_0_2_0 else
                        '0.2.1' if args.replace_native_0_2_1 else
                        '0.2.2' if args.replace_native_0_2_2 else
@@ -351,7 +359,8 @@ def main():
                        '0.2.6' if args.replace_native_0_2_6 else
                        '0.2.7' if args.replace_native_0_2_7 else
                        '0.2.8' if args.replace_native_0_2_8 else
-                       '0.2.9' if args.replace_native_0_2_9 else '0.2.10')
+                       '0.2.9' if args.replace_native_0_2_9 else
+                       '0.2.10' if args.replace_native_0_2_10 else '0.2.11')
             previous = ROOT / {'0.2.0': 'out/efi-native/native-0.2.0-compute-trial',
                                '0.2.1': 'out/efi-native/native-0.2.1-diagnostics-trial',
                                '0.2.2': 'out/efi-native/native-0.2.2-mapping-trial',
@@ -383,7 +392,7 @@ def main():
         require(report['experimental_compute']['called_by_service'] is True and
                 report['experimental_compute']['io_vm_per_page'] is True and
                 report['compute_shaders_verified_in_kext'] == 2, 'Missing native compute path/shaders')
-    if args.replace_native_0_2_0 or args.replace_native_0_2_1 or args.replace_native_0_2_2 or args.replace_native_0_2_3 or args.replace_native_0_2_4 or args.replace_native_0_2_5 or args.replace_native_0_2_6 or args.replace_native_0_2_7 or args.replace_native_0_2_8 or args.replace_native_0_2_9 or args.replace_native_0_2_10:
+    if args.replace_native_0_2_0 or args.replace_native_0_2_1 or args.replace_native_0_2_2 or args.replace_native_0_2_3 or args.replace_native_0_2_4 or args.replace_native_0_2_5 or args.replace_native_0_2_6 or args.replace_native_0_2_7 or args.replace_native_0_2_8 or args.replace_native_0_2_9 or args.replace_native_0_2_10 or args.replace_native_0_2_11:
         require(report.get('boot_diagnostics', {}).get('resource') == 'Navi48Native,BootDiagnostics' and
                 report.get('symbol_audit', {}).get('boot_diagnostic_publisher_linked') is True,
                 'Missing reviewed persistent diagnostic publisher')
@@ -454,6 +463,7 @@ def main():
               'native_0_2_8_replacement_acknowledged': args.replace_native_0_2_8,
               'native_0_2_9_replacement_acknowledged': args.replace_native_0_2_9,
               'native_0_2_10_replacement_acknowledged': args.replace_native_0_2_10,
+              'native_0_2_11_replacement_acknowledged': args.replace_native_0_2_11,
               'prepared_from_reviewed_retired_boot': retired_boot,
               'retained_boot_forced_copy': retired_boot == 'retained-forced',
               'retained_native_instances_during_copy': native_instances if retired_boot == 'retained-forced' else 0,
