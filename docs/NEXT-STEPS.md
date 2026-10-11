@@ -1,6 +1,6 @@
 # Travail restant — Hackintosh Tahoe
 
-## Dernier état : 0.2.11 déployé (shell réparé + doorbell), prochain boot interactif
+## Dernier état : boot 0.2.11, kick tue tout le MMIO, shell opérationnel
 
 **10 octobre : le bon kext est réellement chargé**, UUID et cinq arguments
 conformes. Aucun nœud/instance `Navi48Native`, aucun rapport Resources/Compute ;
@@ -8,13 +8,13 @@ deux fermetures du bail PCI par le client natif pendant le boot. Initialisation,
 fences et résultats GPU non validés. Capture `sudo dmesg` lue dans ce même
 boot : buffer de 128 Kio écrasé, aucune ligne native, refus exact inconnu.
 Correctif **0.2.1** : diagnostic IOResources destiné à survivre au retrait,
-**0.2.10 toujours en mémoire** (service + GPU tenus) : kick coupable (2/2),
-canal shell prouvé avec bug plumbing. **0.2.11 déployé par copie forcée
-explicite** (fichiers seuls, tout vérifié) : shell réparé + diagnostic
-doorbell, non encore chargé. Prochaine action : F12 → PROBE1401 → Tahoe,
-tester le shell qui répond et relever la programmation doorbell.
+**0.2.11 booté le 11 octobre à 12:09:21 UTC** : kick tue tout le MMIO
+(BAR2 + GC illisibles après, 3/3), service conservé (1 instance). Shell :
+snapshot/survey répondent, lectures directes refusées post-faute (voulu).
+Prochaine action : valider l'index doorbell 139 contre HQD/MQD ou
+instrumenter les horloges GFX autour du kick, sans unload/reload/veille.
+[Boot 0.2.11](reports/2026-10-11-native-0.2.11-boot.md) ·
 [Boot 0.2.10](reports/2026-10-10-native-0.2.10-boot.md) ·
-[déploiement 0.2.11](reports/2026-10-10-native-shellfix-deployment.md) ·
 [Boot 0.2.0](reports/2026-10-10-native-compute-boot.md) ·
 [correctif](reports/2026-10-10-native-boot-diagnostics.md) ·
 [déploiement 0.2.1](reports/2026-10-10-native-diagnostics-deployment.md).

@@ -1,13 +1,12 @@
 # Essai natif 0.2.11 : shell réparé et diagnostic doorbell
 
-> **PROBE1401 contient désormais 0.2.11** (copie forcée explicite, fichiers
-> seuls, tout vérifié). **Prochaine action : F12 → PROBE1401 → Tahoe, puis
-> tester le shell (`/tmp/n48-shell-cli snapshot survey`) et relever la
-> programmation doorbell.** [Déploiement](reports/2026-10-10-native-shellfix-deployment.md).
-> Boot 0.2.10 toujours en mémoire : kick coupable, canal prouvé avec bug.
-> [Boot 0.2.10](reports/2026-10-10-native-0.2.10-boot.md).
-> **0.2.11 non encore chargé/boot testé** : shell et doorbell à observer, pas
-> présumés. Aucun retry/reload dans le noyau courant.
+> **Boot 0.2.11 effectué le 11 octobre à 12:09:21 UTC.** Module/UUID/six
+> arguments conformes, service conservé (1 instance). **Kick tue tout le
+> MMIO (BAR2 + GC, 3/3).** Shell : snapshot/survey répondent, lectures
+directes refusées post-faute (voulu), zéro écriture envoyée.
+> [Boot 0.2.11](reports/2026-10-11-native-0.2.11-boot.md).
+> Prochaine action : valider l'index 139 contre HQD/MQD ou instrumenter les
+> horloges GFX, sans unload/reload/veille dans le noyau courant.
 > [Décodage BootDiagnostics](reports/2026-10-10-native-boot-diagnostics.md).
 
 ## Ce qui change
@@ -114,14 +113,14 @@ ioreg -r -c IOResources -l -w 0 | grep 'Navi48Native,BootDiagnostics'
 ioreg -r -c Navi48Native -l -w 0
 ```
 
-Vérifier module **0.2.11 / SHA ci-dessus**, les **six** arguments natifs (dont `navi48-native-shell=1`).
+Vérifier module **0.2.11 / UUID F775021A-E284-381C-BBBA-556A3616D597**, les **six** arguments natifs (dont `navi48-native-shell=1`).
 Même si le service se retire, chercher **`Navi48Native,BootDiagnostics`** dans
 IOResources. Lire `PlatformObserved`, `DMAObserved`, `ComputeObserved` avant
 Checkpoint/PlatformDecision/FailedBar/DMAResult/FailedStage/PreflightCheck :
 les valeurs par défaut d'un bloc non observé ne sont pas des preuves hardware.
-Le shell doit désormais répondre (`/tmp/n48-shell-cli snapshot survey`).
-Si stage 16 : relever programmation doorbell (index/offset/wptr/range/
-readback) avant toute hypothèse. Aucune écriture/commande via le shell.
+Le shell répond (snapshot/survey) ; les lectures directes sont refusées
+post-faute (voulu). Le kick tue tout le MMIO : valider l'index 139 contre
+HQD/MQD ou instrumenter les horloges GFX. Aucune écriture via le shell.
 Si la publication best effort manque,
 capturer rapidement `sudo dmesg` dans Terminal, jamais transmettre le mot de
 passe. Ne pas retry/reload dans ce boot.

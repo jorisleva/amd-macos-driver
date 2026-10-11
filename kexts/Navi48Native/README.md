@@ -7,9 +7,10 @@ calculs gfx1201 internes, avec fences et comparaison des 64 résultats, ring-tes
 découpé (write/read, kick, poll + relevés), diagnostic doorbell
 (index/offset/wptr/range/readback), et **shell lecture seule RÉPARÉ**
 (`request.result` propagé, 5 sélecteurs, aucune écriture/soumission/horloge).
-**Boot 0.2.10 toujours en mémoire** : kick coupable (2/2), canal prouvé.
-[Boot 0.2.10](../../docs/reports/2026-10-10-native-0.2.10-boot.md) ·
-[déploiement 0.2.11](../../docs/reports/2026-10-10-native-shellfix-deployment.md).
+**Boot 0.2.11** (11 octobre, 12:09:21 UTC) : service conservé (1 instance).
+**Kick tue tout le MMIO (BAR2 + GC, 3/3).** Shell : snapshot/survey
+répondent, lectures directes refusées post-faute (voulu), zéro écriture.
+[Boot 0.2.11](../../docs/reports/2026-10-11-native-0.2.11-boot.md).
 Pas de Metal/WindowServer ni API pour soumettre librement des programmes.
 
 **Procédure actuelle : [NATIVE-COMPUTE-ESSAI.md](../../docs/NATIVE-COMPUTE-ESSAI.md)** ·
